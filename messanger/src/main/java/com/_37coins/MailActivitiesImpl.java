@@ -29,7 +29,7 @@ public class MailActivitiesImpl implements MailActivities {
 			if (((String)rsp.get("source")).equalsIgnoreCase("email")){
 				mt.sendMessage(rsp);
 			}else{
-				qc.send(rsp,MailServletConfig.queueUri, "hello", "test");
+				qc.send(rsp,MailServletConfig.queueUri, (String)rsp.get("gateway"),"amq.direct");
 			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);

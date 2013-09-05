@@ -19,5 +19,7 @@ if (!success) {
 	out.println ("msg.war not found.");
 }
 %>
+PARAM2=<%= System.getProperty("PARAM2") %><br/>
+PARAM3=<%= System.getProperty("PARAM3") %><br/>
 </body>
 </html>

@@ -74,6 +74,7 @@ public class EnvayaSmsResource {
 					from, message);
 			if (null!=o.get("action")){
 				o.put("service","37coins");
+				o.put("gateway", phoneNumber);
 				switch (Action.fromString((String)o.get("action"))) {
 				case CREATE:
 				case BALANCE:

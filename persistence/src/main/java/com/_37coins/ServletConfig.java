@@ -16,7 +16,6 @@ import javax.mail.event.MessageCountListener;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
-
 import org.restlet.ext.jaxrs.JaxRsApplication;
 import org.restnucleus.PersistenceConfiguration;
 import org.restnucleus.inject.ContextFactory;
@@ -25,7 +24,6 @@ import org.restnucleus.servlet.RestletServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com._37coins.MessageProcessor;
 import com._37coins.MessageProcessor.Action;
 import com._37coins.bizLogic.DepositWorkflowImpl;
 import com._37coins.bizLogic.WithdrawalWorkflowImpl;
@@ -41,8 +39,6 @@ import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.flow.ActivityWorker;
 import com.amazonaws.services.simpleworkflow.flow.WorkflowWorker;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
@@ -57,7 +53,7 @@ import com.mysql.jdbc.AbandonedConnectionCleanupThread;
 import com.wordnik.swagger.jaxrs.JaxrsApiReader;
 
 public class ServletConfig extends GuiceServletContextListener {
-	public static AWSCredentials awsCredentials;
+	public static AWSCredentials awsCredentials=null;
 	public static String domainName;
 	public static String endpoint;
 	public static String actListName = "core-activities-tasklist";
@@ -75,29 +71,18 @@ public class ServletConfig extends GuiceServletContextListener {
 	public static Logger log = LoggerFactory.getLogger(ServletConfig.class);
 	static {
 		JaxrsApiReader.setFormatString("");
-		Map<String,Object> param2 = null;
-		Map<String,Object> param3 = null;
-		ObjectMapper om = new ObjectMapper();
-		try {
-			param2 = om.readValue(
-					System.getProperty("PARAM2"), 
-					new TypeReference<Map<String,Object>>() {});
-			param3 = om.readValue(
-					System.getProperty("PARAM3"), 
-					new TypeReference<Map<String,Object>>() {});
-		} catch (Exception e1) {
-			e1.printStackTrace();
+		if (null!=System.getProperty("accessKey")){
+			awsCredentials = new BasicAWSCredentials(
+				System.getProperty("accessKey"),
+				System.getProperty("secretKey"));
 		}
-		awsCredentials = new BasicAWSCredentials(
-				(String)param2.get("accessKey"),
-				(String)param2.get("secretKey"));
-		domainName = (String)param2.get("swfDomain");
-		endpoint = (String)param2.get("endpoint");
+		domainName = System.getProperty("swfDomain");
+		endpoint = System.getProperty("endpoint");
 		//EMAIL SETTINGS
-		imapHost = (String)param3.get("imapHost");
-		imapUser = (String)param3.get("imapUser");
-		imapPassword = (String)param3.get("imapPassword");
-		basePath = (String)param3.get("basePath");
+		imapHost = System.getProperty("imapHost");
+		imapUser = System.getProperty("imapUser");
+		imapPassword = System.getProperty("imapPassword");
+		basePath = System.getProperty("basePath");
 	}
 
 	private ServletContext servletContext;
@@ -208,8 +193,12 @@ public class ServletConfig extends GuiceServletContextListener {
 			@Provides @Named("wfClient") @Singleton
 			@SuppressWarnings("unused")
 			AmazonSimpleWorkflow getSimpleWorkflowClient() {
-				AmazonSimpleWorkflow rv = new AmazonSimpleWorkflowClient(
-						awsCredentials);
+				AmazonSimpleWorkflow rv = null;
+				if (null!=awsCredentials){
+					rv = new AmazonSimpleWorkflowClient(awsCredentials);
+				}else{
+					rv = new AmazonSimpleWorkflowClient();
+				}
 				rv.setEndpoint("swf.ap-northeast-1.amazonaws.com");
 				return rv;
 			}

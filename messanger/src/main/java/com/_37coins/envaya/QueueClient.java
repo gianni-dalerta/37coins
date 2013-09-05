@@ -31,23 +31,20 @@ public class QueueClient {
 		this.sendAction = sendAction;
 	}
 	
-	private void connect(String uri, String queueName, String exchangeName)  throws KeyManagementException, NoSuchAlgorithmException, URISyntaxException, IOException{
+	private void connect(String uri, String exchangeName)  throws KeyManagementException, NoSuchAlgorithmException, URISyntaxException, IOException{
 		ConnectionFactory factory = new ConnectionFactory();
 		factory.setUri(uri);
 		connection = factory.newConnection();
 		channel = connection.createChannel();
-		channel.exchangeDeclare(exchangeName, "direct",true);
-		channel.queueDeclare(queueName, true, false, false, null);
-		channel.queueBind(queueName, exchangeName, "black");
 	}
 	
-	public void send(Map<String, Object> cmd, String uri, String queueName, String exchangeName) throws IOException, TemplateException, KeyManagementException, NoSuchAlgorithmException, URISyntaxException {
+	public void send(Map<String, Object> cmd, String uri, String gateway, String exchangeName) throws IOException, TemplateException, KeyManagementException, NoSuchAlgorithmException, URISyntaxException {
 		if (null==connection || !connection.isOpen()){
-			connect(uri, queueName,exchangeName);
+			connect(uri, exchangeName);
 		}
 		String message = StringEscapeUtils.escapeJava(msgFactory.construct(cmd, sendAction));
 		String msg = "{\"event\":\"send\",\"messages\":[{\"id\":\""+new Date()+"\",\"to\":\""+cmd.get("msgAddress")+"\",\"message\":\""+message+"\"}]}";
-		channel.basicPublish(exchangeName, "black", null, msg.getBytes());
+		channel.basicPublish(exchangeName,gateway,null, msg.getBytes());
 	}
 	
 	public void close(){

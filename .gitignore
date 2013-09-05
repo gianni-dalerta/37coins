@@ -1,0 +1,6 @@
+target
+.settings
+.project
+datanucleus.log
+.classpath
+**/aws.properties

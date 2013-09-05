@@ -1,0 +1,4 @@
+${msg("DepositConf",amount)}
+${msg("TransactionDetails",txHash)}
+
+${msg("byebye","37Coins")}

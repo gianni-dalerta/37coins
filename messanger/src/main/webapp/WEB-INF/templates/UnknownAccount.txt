@@ -1,0 +1,16 @@
+
+${msg.HelpPrimer}
+${msg.HelpCommand1}
+${msg.HelpCommand1Description}
+${msg.HelpCommand2}
+${msg.HelpCommand2Description}
+${msg.HelpCommand3}
+${msg.HelpCommand3Description}
+${msg.HelpCommand3Example}
+${msg.HelpCommand4}
+${msg.HelpCommand4Description}
+${msg.HelpCommand5}
+${msg.HelpCommand5Description}
+${msg("HelpLast","37Coins")}
+
+${msg("byebye","37Coins")}

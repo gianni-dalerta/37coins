@@ -1,0 +1,1 @@
+${msg("DepositReq",bcAddress)}

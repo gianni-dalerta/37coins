@@ -1,0 +1,2 @@
+${msg.InsufissientFunds}
+${msg.MoreInfoSms}

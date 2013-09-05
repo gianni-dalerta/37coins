@@ -1,0 +1,1 @@
+${msg("WithdrawalConf",amount,receiver)}

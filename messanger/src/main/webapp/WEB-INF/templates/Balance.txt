@@ -1,0 +1,3 @@
+${msg("Balance",balance)}
+
+${msg("byebye","37Coins")}

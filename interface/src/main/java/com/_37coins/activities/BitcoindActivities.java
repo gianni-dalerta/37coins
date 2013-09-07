@@ -25,4 +25,8 @@ public interface BitcoindActivities {
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
     Map<String,Object> getNewAddress(Map<String,Object> rsp);
     
+    @Activity(name = "getAccount", version = "0.1")
+    @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
+    Map<String,Object> getAccount(Map<String,Object> rsp);
+    
 }

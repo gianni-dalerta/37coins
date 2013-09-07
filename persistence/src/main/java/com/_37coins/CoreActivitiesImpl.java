@@ -21,6 +21,7 @@ public class CoreActivitiesImpl implements CoreActivities {
 		RNQuery q = new RNQuery().addFilter("address", (String)data.get("msgAddress"));
 		MsgAddress ma = dao.queryEntity(q, MsgAddress.class,false);
 		if (null==ma){
+			dao.closePersistenceManager();
 			throw new RuntimeException("account not found");
 		}
 		data.put("account", ma.getOwner().getId().toString());
@@ -51,6 +52,26 @@ public class CoreActivitiesImpl implements CoreActivities {
 		data.put("source", account.getFirstMsgAddress().getType());
 		data.put("locale", account.getFirstMsgAddress().getLocale());
 		dao.closePersistenceManager();
+		return data;
+	}
+
+	@Override
+	public Map<String, Object> findReceiverAccount(Map<String, Object> data) {
+		String address = (String)data.get("receiverPhone");
+		address = (address==null)?(String)data.get("receiverEmail"):address;
+		if (address!=null){
+			GenericRepository dao = new GenericRepository();
+			RNQuery q = new RNQuery().addFilter("address", address);
+			MsgAddress ma = dao.queryEntity(q, MsgAddress.class,false);
+			if (null==ma){
+				dao.closePersistenceManager();
+				throw new RuntimeException("account not found");
+			}
+			data.put("receiverAccount", ma.getOwner().getId().toString());
+			dao.closePersistenceManager();
+		}else{
+			throw new RuntimeException("Parameter missing");
+		}
 		return data;
 	}
 

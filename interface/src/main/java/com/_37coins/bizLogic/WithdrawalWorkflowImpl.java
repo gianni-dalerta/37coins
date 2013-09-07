@@ -47,14 +47,45 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
             	account.set(data);
 			}
 		};
-		handleAccount(account);
+		handleReceiver(account);
     }
     
     @Asynchronous
-    public void handleAccount(final Promise<Map<String,Object>> data){
+    public void handleReceiver(final Promise<Map<String,Object>> data){
     	if (((String)data.get().get("action")).contains("error")){
     		throw new CancellationException("account not found");
     	}
+    	
+    	final Settable<Map<String,Object>> account = new Settable<>();
+    	if (data.get().get("receiver")!=null){
+    		setAccount(account, bcdClient.getAccount(data));
+    	}else{
+    		new TryCatch() {
+				@Override
+	            protected void doTry() throws Throwable {
+				   	if (data.get().get("receiverEmail")!=null){
+				   		setAccount(account, dbClient.findReceiverAccount(data));
+			    	}else if (data.get().get("receiverPhone")!=null){
+			    		setAccount(account, dbClient.findReceiverAccount(data));
+			    	}
+				}
+	            @Override
+	            protected void doCatch(Throwable e) throws Throwable {
+	            	data.get().put("action", "error003");
+	    			mailClient.sendMail(data);
+	            	account.set(data.get());
+				}
+			};
+    	}
+    	handleConfirm(account);
+    }
+    
+    @Asynchronous
+    public void handleConfirm(final Promise<Map<String,Object>> data){
+    	if (data.get().get("receiver")==null && data.get().get("receiverAccount")==null){
+    		throw new CancellationException("receiver not found");
+    	}
+
 		final Settable<Map<String,Object>> confirm = new Settable<>();
 		if (((String)data.get().get("source")).equalsIgnoreCase("email")){
 			data.get().put("action", "confirmSend");

@@ -20,5 +20,9 @@ public interface CoreActivities {
 	@Activity(name = "readAccount", version = "0.1")
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 10)
 	public Map<String, Object> readAccount(Map<String, Object> data);
+	
+	@Activity(name = "findReceiverAccount", version = "0.1")
+	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 10)
+	public Map<String, Object> findReceiverAccount(Map<String, Object> data);
 
 }

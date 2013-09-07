@@ -69,6 +69,10 @@ public class DepositWorkflowTest {
 				}
 				return rsp;
 			}
+			@Override
+			public Map<String, Object> getAccount(Map<String, Object> rsp) {
+				return null;
+			}
         };
         MailActivities mailActivities = new MailActivities() {
         	
@@ -114,6 +118,10 @@ public class DepositWorkflowTest {
 					data.put("locale", "en");
 				}
 				return data;
+			}
+			@Override
+			public Map<String, Object> findReceiverAccount(Map<String, Object> data) {
+				return null;
 			}
         };
         workflowTest.addActivitiesImplementation(activities);

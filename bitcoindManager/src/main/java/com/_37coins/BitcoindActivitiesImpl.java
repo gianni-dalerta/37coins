@@ -14,8 +14,13 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 
 	@Override
 	public Map<String,Object> sendTransaction(Map<String,Object> rsp){
-		String rv = client.sendfrom((String)rsp.get("account"), (String)rsp.get("receiver"), (double)rsp.get("amount"));
-		rsp.put("txHash", rv);
+		if (null!=rsp.get("receiverAccount")){
+			String rv = client.move((String)rsp.get("account"), (String)rsp.get("receiverAccount"), (double)rsp.get("amount"));
+			rsp.put("txHash", rv);
+		}else{
+			String rv = client.sendfrom((String)rsp.get("account"), (String)rsp.get("receiver"), (double)rsp.get("amount"));
+			rsp.put("txHash", rv);
+		}
 		return rsp;
 	}
 
@@ -42,6 +47,15 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 	public Map<String, Object> getNewAddress(Map<String, Object> rsp) {
 		String address = client.getaccountaddress((String)rsp.get("account"));
 		rsp.put("bcAddress", address);
+		return rsp;
+	}
+
+	@Override
+	public Map<String, Object> getAccount(Map<String, Object> rsp) {
+		String rv = client.getaccount((String)rsp.get("receiver"));
+		if (rv!=null && rv.length()>0){
+			rsp.put("receiverAccount", rv);
+		}
 		return rsp;
 	}
 

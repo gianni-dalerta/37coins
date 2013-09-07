@@ -8,12 +8,10 @@ import java.util.Map;
 
 import javax.jdo.annotations.Discriminator;
 import javax.jdo.annotations.DiscriminatorStrategy;
-import javax.jdo.annotations.Embedded;
 import javax.jdo.annotations.Index;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.Serialized;
-
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.restnucleus.dao.Model;

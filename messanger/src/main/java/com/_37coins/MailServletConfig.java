@@ -6,9 +6,14 @@ import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.event.MessageCountEvent;
+import javax.mail.event.MessageCountListener;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
@@ -20,7 +25,9 @@ import org.restnucleus.servlet.RestletServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com._37coins.MessageProcessor.Action;
 import com._37coins.envaya.MessageFactory;
+import com._37coins.imap.JavaPushMailAccount;
 import com._37coins.pojo.SendAction;
 import com._37coins.pojo.ServiceEntry;
 import com._37coins.pojo.ServiceList;
@@ -65,6 +72,11 @@ public class MailServletConfig extends GuiceServletContextListener {
 	public static String smtpHost;
 	public static String smtpUser;
 	public static String smtpPassword;
+	public static String imapHost;
+	public static final int IMAP_PORT = 993;
+	public static final boolean IMAP_SSL = true;
+	public static String imapUser;
+	public static String imapPassword;
 	public static String basePath;
 	public static String queueUri;
 	public static Logger log = LoggerFactory.getLogger(MailServletConfig.class);
@@ -81,12 +93,17 @@ public class MailServletConfig extends GuiceServletContextListener {
 		smtpHost = System.getProperty("smtpHost");
 		smtpUser = System.getProperty("smtpUser");
 		smtpPassword = System.getProperty("smtpPassword");
+		//EMAIL SETTINGS
+		imapHost = System.getProperty("imapHost");
+		imapUser = System.getProperty("imapUser");
+		imapPassword = System.getProperty("imapPassword");
 		basePath = System.getProperty("basePath");
 		queueUri = System.getProperty("queueUri");
 	}
 	
 	private ServletContext servletContext;
 	private ActivityWorker activityWorker;
+	private JavaPushMailAccount jPM;
     
 	@Override
 	public void contextInitialized(ServletContextEvent servletContextEvent) {
@@ -96,6 +113,48 @@ public class MailServletConfig extends GuiceServletContextListener {
 		final Injector i = getInjector();
 		activityWorker = i.getInstance(ActivityWorker.class);
 		activityWorker.start();
+		// set up receiving mails
+		final MessageProcessor msgProcessor = i.getInstance(MessageProcessor.class);
+		
+		jPM = new JavaPushMailAccount(imapUser, imapHost, IMAP_PORT, IMAP_SSL);
+		jPM.setCredentials(imapUser, imapPassword);
+		jPM.setMessageCounterListerer(new MessageCountListener() {
+			@Override
+			public void messagesRemoved(MessageCountEvent e) {
+			}
+
+			@Override
+			public void messagesAdded(MessageCountEvent e) {
+				try {
+					for (Message m : e.getMessages()) {
+						Map<String, Object> o = msgProcessor.process(
+								m.getFrom(), m.getSubject());
+						o.put("source","email");
+						o.put("service","37coins");
+						switch (Action.fromString((String)o.get("action"))) {
+						case CREATE:
+						case BALANCE:
+						case DEPOSIT:
+							o.put("action", o.get("action"));
+							i.getInstance(DepositWorkflowClientExternal.class)
+									.executeCommand(o);
+							break;
+						case SEND_CONFIRM:
+						case SEND:
+							o.put("action", o.get("action"));
+							i.getInstance(
+									WithdrawalWorkflowClientExternal.class)
+									.executeCommand(o);
+							break;
+						}
+					}
+				} catch (MessagingException e1) {
+					e1.printStackTrace();
+				}
+			}
+		});
+		jPM.run();
+
 		log.info("ServletContextListener started");
 	}
 	
@@ -122,6 +181,14 @@ public class MailServletConfig extends GuiceServletContextListener {
 				cs.add(WithdrawalResource.class);
 				cs.add(HealthCheckResource.class);
 				return cs;
+			}
+			
+			
+			@Provides
+			@Singleton
+			@SuppressWarnings("unused")
+			public MessageProcessor getMessageProcessor() {
+				return new MessageProcessor(servletContext);
 			}
 			
 			@Provides @Singleton @SuppressWarnings("unused")
@@ -210,6 +277,7 @@ public class MailServletConfig extends GuiceServletContextListener {
 		super.contextDestroyed(sce);
 		PersistenceConfiguration.getInstance().closeEntityManagerFactory();
 		deregisterJdbc();
+		jPM.disconnect();
 		try {
 			activityWorker.shutdownAndAwaitTermination(1, TimeUnit.MINUTES);
             System.out.println("Activity Worker Exited.");

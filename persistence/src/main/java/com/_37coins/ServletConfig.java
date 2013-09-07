@@ -5,14 +5,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.event.MessageCountEvent;
-import javax.mail.event.MessageCountListener;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
@@ -24,15 +19,9 @@ import org.restnucleus.servlet.RestletServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com._37coins.MessageProcessor.Action;
 import com._37coins.bizLogic.DepositWorkflowImpl;
 import com._37coins.bizLogic.WithdrawalWorkflowImpl;
-import com._37coins.imap.JavaPushMailAccount;
 import com._37coins.resources.HealthCheckResource;
-import com._37coins.workflow.DepositWorkflowClientExternal;
-import com._37coins.workflow.DepositWorkflowClientExternalFactoryImpl;
-import com._37coins.workflow.WithdrawalWorkflowClientExternal;
-import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
@@ -57,11 +46,6 @@ public class ServletConfig extends GuiceServletContextListener {
 	public static String domainName;
 	public static String endpoint;
 	public static String actListName = "core-activities-tasklist";
-	public static String imapHost;
-	public static final int IMAP_PORT = 993;
-	public static final boolean IMAP_SSL = true;
-	public static String imapUser;
-	public static String imapPassword;
 	public static String basePath;
 	public static final String EMAIL_PATTERN = "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@"
 			+ "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
@@ -78,16 +62,11 @@ public class ServletConfig extends GuiceServletContextListener {
 		}
 		domainName = System.getProperty("swfDomain");
 		endpoint = System.getProperty("endpoint");
-		//EMAIL SETTINGS
-		imapHost = System.getProperty("imapHost");
-		imapUser = System.getProperty("imapUser");
-		imapPassword = System.getProperty("imapPassword");
 		basePath = System.getProperty("basePath");
 	}
 
 	private ServletContext servletContext;
 	private ActivityWorker activityWorker;
-	private JavaPushMailAccount jPM;
 	private WorkflowWorker depositWorker;
 	private WorkflowWorker withdrawalWorker;
 
@@ -105,45 +84,6 @@ public class ServletConfig extends GuiceServletContextListener {
 		withdrawalWorker = i.getInstance(Key.get(WorkflowWorker.class,
 				Names.named("withdrawal")));
 		withdrawalWorker.start();
-		// set up receiving mails
-		final MessageProcessor mailProcessor = i.getInstance(MessageProcessor.class);
-		jPM = new JavaPushMailAccount(imapUser, imapHost, IMAP_PORT, IMAP_SSL);
-		jPM.setCredentials(imapUser, imapPassword);
-		jPM.setMessageCounterListerer(new MessageCountListener() {
-			@Override
-			public void messagesRemoved(MessageCountEvent e) {
-			}
-
-			@Override
-			public void messagesAdded(MessageCountEvent e) {
-				try {
-					for (Message m : e.getMessages()) {
-						Map<String, Object> o = mailProcessor.process(
-								m.getFrom(), m.getSubject());
-						o.put("service","37coins");
-						switch (Action.fromString((String)o.get("action"))) {
-						case CREATE:
-						case BALANCE:
-						case DEPOSIT:
-							o.put("action", o.get("action"));
-							i.getInstance(DepositWorkflowClientExternal.class)
-									.executeCommand(o);
-							break;
-						case SEND_CONFIRM:
-						case SEND:
-							o.put("action", o.get("action"));
-							i.getInstance(
-									WithdrawalWorkflowClientExternal.class)
-									.executeCommand(o);
-							break;
-						}
-					}
-				} catch (MessagingException e1) {
-					e1.printStackTrace();
-				}
-			}
-		});
-		jPM.run();
 		log.info("ServletContextListener started");
 	}
 
@@ -170,24 +110,6 @@ public class ServletConfig extends GuiceServletContextListener {
 				Set<Class<?>> cs = new HashSet<>();
 				cs.add(HealthCheckResource.class);
 				return cs;
-			}
-
-			@Provides
-			@Singleton
-			@SuppressWarnings("unused")
-			public DepositWorkflowClientExternal getDWorkflowClientExternal(
-					@Named("wfClient") AmazonSimpleWorkflow workflowClient) {
-				return new DepositWorkflowClientExternalFactoryImpl(
-						workflowClient, domainName).getClient();
-			}
-
-			@Provides
-			@Singleton
-			@SuppressWarnings("unused")
-			public WithdrawalWorkflowClientExternal getSWorkflowClientExternal(
-					@Named("wfClient") AmazonSimpleWorkflow workflowClient) {
-				return new WithdrawalWorkflowClientExternalFactoryImpl(
-						workflowClient, domainName).getClient();
 			}
 
 			@Provides @Named("wfClient") @Singleton
@@ -261,7 +183,6 @@ public class ServletConfig extends GuiceServletContextListener {
 	public void contextDestroyed(ServletContextEvent sce) {
 		super.contextDestroyed(sce);
 		PersistenceConfiguration.getInstance().closeEntityManagerFactory();
-		jPM.disconnect();
 		try {
 			activityWorker.shutdownAndAwaitTermination(1, TimeUnit.MINUTES);
 			System.out.println("Activity Worker Exited.");

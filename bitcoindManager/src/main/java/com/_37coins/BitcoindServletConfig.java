@@ -18,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
-
 import org.restlet.ext.jaxrs.JaxRsApplication;
 import org.restnucleus.inject.ContextFactory;
 import org.restnucleus.inject.PersistenceModule;
@@ -38,8 +37,6 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.flow.ActivityWorker;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Provides;
@@ -53,7 +50,7 @@ import com.mysql.jdbc.AbandonedConnectionCleanupThread;
 import com.wordnik.swagger.jaxrs.JaxrsApiReader;
 
 public class BitcoindServletConfig extends GuiceServletContextListener {
-	public static AWSCredentials awsCredentials;
+	public static AWSCredentials awsCredentials=null;
 	public static String domainName;
 	public static String actListName = "bitcoind-activities-tasklist";
 	public static String endpoint;
@@ -65,37 +62,22 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 	public static Logger log = LoggerFactory.getLogger(BitcoindServletConfig.class);
 	static {
 		JaxrsApiReader.setFormatString("");
-		Map<String, Object> param2 = null;
-		Map<String, Object> param4 = null;
-		ObjectMapper om = new ObjectMapper();
-		try {
-			param2 = om.readValue(System.getProperty("PARAM2"),
-					new TypeReference<Map<String, Object>>() {
-					});
-			param4 = om.readValue(System.getProperty("PARAM4"),
-					new TypeReference<Map<String, Object>>() {
-					});
-		} catch (Exception e1) {
-			e1.printStackTrace();
-		}
-		if (null!= param2.get("accessKey")){
+		if (null!= System.getProperty("accessKey")){
 			awsCredentials = new BasicAWSCredentials(
-				(String) param2.get("accessKey"),
-				(String) param2.get("secretKey"));
-		}else{
-			awsCredentials = null;			
+				System.getProperty("accessKey"),
+				System.getProperty("secretKey"));
 		}
-		domainName = (String) param2.get("swfDomain");
-		endpoint = (String) param2.get("endpoint");
+		domainName = System.getProperty("swfDomain");
+		endpoint = System.getProperty("endpoint");
 		try {
-			bcdUrl = new URL( (String) param4.get("url"));
+			bcdUrl = new URL(System.getProperty("url"));
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		}
-		bcdUser = (String) param4.get("user");
-		bcdPassword = (String) param4.get("password");
-		fee = (double) param4.get("fee");
-		feeAddress = (String) param4.get("feeAddress");
+		bcdUser = System.getProperty("user");
+		bcdPassword = System.getProperty("password");
+		fee = Double.parseDouble(System.getProperty("fee"));
+		feeAddress = System.getProperty("feeAddress");
 	}
 	private ServletContext servletContext;
 	private ActivityWorker activityWorker;

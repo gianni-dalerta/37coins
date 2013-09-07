@@ -4,9 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.mail.Address;
 import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
 
 import org.junit.After;
 import org.junit.Before;
@@ -132,17 +130,15 @@ public class DepositWorkflowTest {
 	@Test
 	public void testCreateAccount() throws AddressException {
 		DepositWorkflowClient workflow = workflowFactory.getClient();
-		Promise<Void> booked = workflow
-				.executeCommand(new MessageProcessor()
-						.process(new Address[] { new InternetAddress(
-								"test@37coins.com") }, "Create"));
+		Map<String, Object> input = new HashMap<>();
+		input.put("action","create");
+		input.put("msgAddress","test@37coins.com");
+		Promise<Void> booked = workflow.executeCommand(input);
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("account", "1");
 		expected.put("action", "create");
 		expected.put("bcAddress", "1Nsateouhasontuh234");
 		expected.put("msgAddress", "test@37coins.com");
-		expected.put("source", "email");
-		expected.put("locale", "en");
 		AsyncAssert.assertEqualsWaitFor("successfull create", expected, trace,
 				booked);
 	}
@@ -150,17 +146,15 @@ public class DepositWorkflowTest {
 	@Test
 	public void testDepositAccount() throws AddressException {
 		DepositWorkflowClient workflow = workflowFactory.getClient();
-		Promise<Void> booked = workflow
-				.executeCommand(new MessageProcessor()
-						.process(new Address[] { new InternetAddress(
-								"test1@37coins.com") }, "Deposit"));
+		Map<String, Object> input = new HashMap<>();
+		input.put("action","deposit");
+		input.put("msgAddress","test1@37coins.com");
+		Promise<Void> booked = workflow.executeCommand(input);
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("account", "1");
 		expected.put("action", "deposit");
 		expected.put("bcAddress", "1Nsateouhasontuh234");
 		expected.put("msgAddress", "test1@37coins.com");
-		expected.put("source", "email");
-		expected.put("locale", "en");
 		AsyncAssert.assertEqualsWaitFor("successfull deposit", expected, trace,
 				booked);
 	}
@@ -168,15 +162,13 @@ public class DepositWorkflowTest {
 	@Test
 	public void testDepositNoAccount() throws AddressException {
 		DepositWorkflowClient workflow = workflowFactory.getClient();
-		Promise<Void> booked = workflow
-				.executeCommand(new MessageProcessor()
-						.process(new Address[] { new InternetAddress(
-								"test2@37coins.com") }, "Deposit"));
+		Map<String, Object> input = new HashMap<>();
+		input.put("action","deposit");
+		input.put("msgAddress","test2@37coins.com");
+		Promise<Void> booked = workflow.executeCommand(input);
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("action", "error001");
 		expected.put("msgAddress", "test2@37coins.com");
-		expected.put("source", "email");
-		expected.put("locale", "en");
 		AsyncAssert.assertEqualsWaitFor("failed deposit", expected, trace,
 				booked);
 	}
@@ -184,17 +176,15 @@ public class DepositWorkflowTest {
 	@Test
 	public void testBalanceAccount() throws AddressException {
 		DepositWorkflowClient workflow = workflowFactory.getClient();
-		Promise<Void> booked = workflow
-				.executeCommand(new MessageProcessor()
-						.process(new Address[] { new InternetAddress(
-								"test1@37coins.com") }, "Balance"));
+		Map<String, Object> input = new HashMap<>();
+		input.put("action","balance");
+		input.put("msgAddress","test1@37coins.com");
+		Promise<Void> booked = workflow.executeCommand(input);
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("account", "1");
 		expected.put("action", "balance");
 		expected.put("balance", 2.5);
 		expected.put("msgAddress", "test1@37coins.com");
-		expected.put("source", "email");
-		expected.put("locale", "en");
 		AsyncAssert.assertEqualsWaitFor("successfull balance", expected, trace,
 				booked);
 	}
@@ -202,15 +192,14 @@ public class DepositWorkflowTest {
 	@Test
 	public void testBalanceNoAccount() throws AddressException {
 		DepositWorkflowClient workflow = workflowFactory.getClient();
+		Map<String, Object> input = new HashMap<>();
+		input.put("action","balance");
+		input.put("msgAddress","test2@37coins.com");
 		Promise<Void> booked = workflow
-				.executeCommand(new MessageProcessor()
-						.process(new Address[] { new InternetAddress(
-								"test2@37coins.com") }, "Balance"));
+				.executeCommand(input);
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("action", "error001");
 		expected.put("msgAddress", "test2@37coins.com");
-		expected.put("source", "email");
-		expected.put("locale", "en");
 		AsyncAssert.assertEqualsWaitFor("failed balance", expected, trace,
 				booked);
 	}

@@ -64,14 +64,12 @@ public class EnvayaSmsResource {
 			@FormParam("error") String error,
 			//amqp_started
 			@FormParam("consumer_tag") String consumerTag) {
-		System.out.println("version " + version);
-		System.out.println("network " + network);
-		System.out.println("phoneNumber " + phoneNumber);
 		Map<String,Object> rv = new HashMap<>();
 		if (action.equalsIgnoreCase("incoming") 
 				&& messageType.equalsIgnoreCase("sms")){
 			Map<String, Object> o = new MessageProcessor().process(
 					from, message);
+			o.put("source","sms");
 			if (null!=o.get("action")){
 				o.put("service","37coins");
 				o.put("gateway", phoneNumber);

@@ -14,19 +14,19 @@
 
 	<dependencies>
 		<dependency>
-		    <groupId>com.amazonaws</groupId>
-		    <artifactId>aws-java-sdk</artifactId>
-		    <version>1.5.3</version>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk</artifactId>
+			<version>1.5.3</version>
 		</dependency>
 		<dependency>
-		    <groupId>org.apache.httpcomponents</groupId>
-		    <artifactId>httpclient</artifactId>
-		    <version>4.3-beta2</version>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.3-beta2</version>
 		</dependency>
 		<dependency>
-		    <groupId>org.mockito</groupId>
-		    <artifactId>mockito-all</artifactId>
-		    <version>1.9.5</version>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<version>1.9.5</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
@@ -57,20 +57,33 @@
 			<version>1.7.3</version>
 		</dependency>
 		<dependency>
-		    <groupId>org.freemarker</groupId>
-		    <artifactId>freemarker</artifactId>
-		    <version>2.3.20</version>
+			<groupId>org.freemarker</groupId>
+			<artifactId>freemarker</artifactId>
+			<version>2.3.20</version>
 		</dependency>
 		<dependency>
 			<groupId>com.37coins</groupId>
 			<artifactId>BitcoindClient4J</artifactId>
 			<version>0.2.0-SNAPSHOT</version>
 		</dependency>
+		<dependency>
+			<groupId>com.google</groupId>
+			<artifactId>bitcoinj</artifactId>
+			<version>0.10</version>
+			<scope>compile</scope>
+		</dependency>
 	</dependencies>
+	
+	<repositories>
+		<repository>
+			<id>bitcoinj</id>
+			<url>http://distribution.bitcoinj.googlecode.com/git/releases/</url>
+		</repository>
+	</repositories>
 
 	<build>
 		<plugins>
-		    <plugin>
+			<plugin>
 				<groupId>org.bsc.maven</groupId>
 				<artifactId>maven-processor-plugin</artifactId>
 				<version>2.2.3</version>
@@ -119,21 +132,21 @@
 				<configuration>
 					<complianceLevel>1.7</complianceLevel>
 					<source>1.7</source>
-                    <target>1.7</target>
-				    <sources>
-				      <source>
-				        <basedir>${basedir}/src/main/java</basedir>
-				        <includes>
-				          <include>**/*.java</include>
-				        </includes>
-				      </source>
-				      <source>
-				        <basedir>${project.build.directory}/generated-sources</basedir>
-				        <includes>
-				          <include>**/*.java</include>
-				        </includes>
-				      </source>
-				    </sources>
+					<target>1.7</target>
+					<sources>
+						<source>
+							<basedir>${basedir}/src/main/java</basedir>
+							<includes>
+								<include>**/*.java</include>
+							</includes>
+						</source>
+						<source>
+							<basedir>${project.build.directory}/generated-sources</basedir>
+							<includes>
+								<include>**/*.java</include>
+							</includes>
+						</source>
+					</sources>
 					<aspectLibraries>
 						<aspectLibrary>
 							<groupId>com.amazonaws</groupId>
@@ -144,17 +157,17 @@
 					<verbose>true</verbose>
 				</configuration>
 				<dependencies>
-                    <dependency>
-                        <groupId>org.aspectj</groupId>
-                        <artifactId>aspectjrt</artifactId>
-                        <version>1.7.3</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.aspectj</groupId>
-                        <artifactId>aspectjtools</artifactId>
-                        <version>1.7.3</version>
-                    </dependency>
-                </dependencies>
+					<dependency>
+						<groupId>org.aspectj</groupId>
+						<artifactId>aspectjrt</artifactId>
+						<version>1.7.3</version>
+					</dependency>
+					<dependency>
+						<groupId>org.aspectj</groupId>
+						<artifactId>aspectjtools</artifactId>
+						<version>1.7.3</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 		</plugins>
 	</build>

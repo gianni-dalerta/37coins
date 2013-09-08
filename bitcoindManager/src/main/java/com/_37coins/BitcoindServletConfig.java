@@ -1,6 +1,7 @@
 package com._37coins;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Driver;
@@ -57,7 +58,7 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 	public static URL bcdUrl;
 	public static String bcdUser;
 	public static String bcdPassword;
-	public static double fee;
+	public static BigDecimal fee;
 	public static String feeAddress;
 	public static Logger log = LoggerFactory.getLogger(BitcoindServletConfig.class);
 	static {
@@ -76,7 +77,7 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 		}
 		bcdUser = System.getProperty("user");
 		bcdPassword = System.getProperty("password");
-		fee = Double.parseDouble(System.getProperty("fee"));
+		fee = new BigDecimal(System.getProperty("fee"));
 		feeAddress = System.getProperty("feeAddress");
 	}
 	private ServletContext servletContext;

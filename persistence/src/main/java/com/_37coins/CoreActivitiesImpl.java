@@ -1,7 +1,7 @@
 package com._37coins;
 
+import java.util.Locale;
 import java.util.Map;
-
 
 import org.restnucleus.dao.GenericRepository;
 import org.restnucleus.dao.RNQuery;
@@ -34,7 +34,7 @@ public class CoreActivitiesImpl implements CoreActivities {
 		GenericRepository dao = new GenericRepository();
 		MsgAddress ma = new MsgAddress()
 			.setAddress((String)data.get("msgAddress"))
-			.setLocale((String)data.get("locale"))
+			.setLocale(((Locale)data.get("locale")).toString())
 			.setType((String)data.get("source"))
 			.setOwner(new Account());
 		dao.add(ma);
@@ -50,7 +50,7 @@ public class CoreActivitiesImpl implements CoreActivities {
 		Account account = dao.getObjectById(Long.parseLong((String)data.get("account")), Account.class);
 		data.put("msgAddress", account.getFirstMsgAddress().getAddress());
 		data.put("source", account.getFirstMsgAddress().getType());
-		data.put("locale", account.getFirstMsgAddress().getLocale());
+		data.put("locale", new Locale(account.getFirstMsgAddress().getLocale()));
 		dao.closePersistenceManager();
 		return data;
 	}

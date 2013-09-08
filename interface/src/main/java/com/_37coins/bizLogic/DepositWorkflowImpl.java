@@ -1,5 +1,6 @@
 package com._37coins.bizLogic;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -70,9 +71,9 @@ public class DepositWorkflowImpl implements DepositWorkflow {
 		//handle deposit 
 		if (((String)data.get().get("action")).equalsIgnoreCase("received")){
 			List<Map<String,Object>> l = (List<Map<String,Object>>)data.get().get("receive");
-			double amount = 0;
+			BigDecimal amount = BigDecimal.ZERO;
 			for (Map<String,Object> m : l){
-				amount += (double)m.get("amount");
+				amount = amount.add((BigDecimal)m.get("amount"));
 			}
 			data.get().put("amount", amount);
 			data.get().remove("receive");

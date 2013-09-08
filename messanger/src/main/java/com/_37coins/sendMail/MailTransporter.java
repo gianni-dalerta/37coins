@@ -4,12 +4,10 @@ import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.AddressException;
-
 
 import org.restnucleus.dao.GenericRepository;
 import org.restnucleus.dao.RNQuery;
@@ -75,7 +73,7 @@ public class MailTransporter {
 			return;
 		}
 		// parse locale
-		mr.put("locale", new Locale((String) mr.get("locale")));
+		mr.put("locale", mr.get("locale"));
 		// prepare send journal
 		try {
 			String sendHash = new Sha1Hex().makeSHA1Hash(new Date().toString() + mr.get("msgAddress")+ category);

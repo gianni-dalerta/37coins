@@ -2,8 +2,8 @@ package com._37coins;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
-
 
 import org.junit.Test;
 
@@ -18,7 +18,7 @@ public class LocalizationTest {
 	public void test37coinsCreate() throws IOException, TemplateException {
 		EmailFactory ef = new EmailFactory();
 		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("locale", "ko");
+		data.put("locale", new Locale("ko"));
 		data.put("service", "37coins");
 		data.put("msgAddress", "test@37coins.com");
 		data.put("action", "create");
@@ -36,7 +36,7 @@ public class LocalizationTest {
 	public void test37coinsDeposit() throws IOException, TemplateException {
 		EmailFactory ef = new EmailFactory();
 		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("locale", "ko");
+		data.put("locale", new Locale("ko"));
 		data.put("service", "37coins");
 		data.put("msgAddress", "test@37coins.com");
 		data.put("action", "deposit");
@@ -53,7 +53,7 @@ public class LocalizationTest {
 	public void test37coinsHelp() throws IOException, TemplateException {
 		EmailFactory ef = new EmailFactory();
 		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("locale", "ko");
+		data.put("locale", new Locale("ko"));
 		data.put("service", "37coins");
 		data.put("msgAddress", "test@37coins.com");
 		data.put("action", "help");
@@ -69,7 +69,7 @@ public class LocalizationTest {
 	public void test37coinsReiceive() throws IOException, TemplateException {
 		EmailFactory ef = new EmailFactory();
 		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("locale", "ko");
+		data.put("locale", new Locale("ko"));
 		data.put("service", "37coins");
 		data.put("msgAddress", "test@37coins.com");
 		data.put("action", "received");
@@ -89,7 +89,7 @@ public class LocalizationTest {
 	public void test37coinsSend() throws IOException, TemplateException {
 		EmailFactory ef = new EmailFactory();
 		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("locale", "ko");
+		data.put("locale", new Locale("ko"));
 		data.put("service", "37coins");
 		data.put("msgAddress", "test@37coins.com");
 		data.put("action", "send");
@@ -109,7 +109,7 @@ public class LocalizationTest {
 	public void test37coinsWethdrawalReq() throws IOException, TemplateException {
 		EmailFactory ef = new EmailFactory();
 		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("locale", "ko");
+		data.put("locale", new Locale("ko"));
 		data.put("service", "37coins");
 		data.put("msgAddress", "test@37coins.com");
 		data.put("action", "confirmSend");
@@ -129,7 +129,7 @@ public class LocalizationTest {
 	public void test37coinsBalance() throws IOException, TemplateException {
 		EmailFactory ef = new EmailFactory();
 		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("locale", "ko");
+		data.put("locale", new Locale("ko"));
 		data.put("service", "37coins");
 		data.put("msgAddress", "test@37coins.com");
 		data.put("action", "balance");

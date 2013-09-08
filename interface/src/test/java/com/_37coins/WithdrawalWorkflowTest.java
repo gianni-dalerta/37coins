@@ -1,11 +1,11 @@
 package com._37coins;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 
 import javax.mail.internet.AddressException;
-
 
 import org.junit.After;
 import org.junit.Before;
@@ -51,7 +51,7 @@ public class WithdrawalWorkflowTest {
 
 			@Override
 			public Map<String, Object> getAccountBalance(Map<String, Object> rsp) {
-				rsp.put("balance", 2.5);
+				rsp.put("balance", new BigDecimal("2.5"));
 				return rsp;
 			}
 
@@ -77,23 +77,11 @@ public class WithdrawalWorkflowTest {
 
 			@Override
 			public void sendMail(Map<String, Object> rsp) {
-				try {
-					System.out.println(new ObjectMapper()
-							.writeValueAsString(rsp));
-				} catch (JsonProcessingException e) {
-					e.printStackTrace();
-				}
 				trace.putAll(rsp);
 			}
 
 			@Override
 			public void sendConfirmation(Map<String, Object> rsp) {
-				try {
-					System.out.println(new ObjectMapper()
-							.writeValueAsString(rsp));
-				} catch (JsonProcessingException e) {
-					e.printStackTrace();
-				}
 			}
 
 			@Override
@@ -157,15 +145,15 @@ public class WithdrawalWorkflowTest {
 		Map<String, Object> cmd = new HashMap<>();
 		cmd.put("action", "send");
 		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", 0.5);
-		cmd.put("fee", 0.0005);
+		cmd.put("amount", new BigDecimal("0.5"));
+		cmd.put("fee", new BigDecimal("0.0005"));
 		cmd.put("source", "sms");
 		cmd.put("receiver", "456");
 		Promise<Void> booked = workflow.executeCommand(cmd);
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("account", "1");
-		expected.put("amount", 0.5);
-		expected.put("balance", 2.5);
+		expected.put("amount", new BigDecimal("0.5"));
+		expected.put("balance", new BigDecimal("2.5"));
 		expected.put("action", "send");
 		expected.put("txid", "txid2038942304");
 		expected.put("msgAddress", "01027423984");
@@ -211,8 +199,8 @@ public class WithdrawalWorkflowTest {
 		final Map<String, Object> cmd = new HashMap<>();
 		cmd.put("action", "send");
 		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", 5.5);
-		cmd.put("fee", 0.0005);
+		cmd.put("amount", new BigDecimal("5.5"));
+		cmd.put("fee", new BigDecimal("0.0005"));
 		cmd.put("receiver", "456");
 		cmd.put("source", "sms");
 		new TryCatch() {
@@ -228,8 +216,8 @@ public class WithdrawalWorkflowTest {
     				expected.put("action", "error005");
     				expected.put("msgAddress", "01027423984");
     				expected.put("source", "sms");
-    				expected.put("amount",5.5);
-    				expected.put("balance",2.5);
+    				expected.put("amount",new BigDecimal("5.5"));
+    				expected.put("balance",new BigDecimal("2.5"));
     				expected.put("receiver", "456");
     				expected.put("account","1");
     				AsyncAssert.assertEqualsWaitFor("failed send", expected, trace);
@@ -246,15 +234,15 @@ public class WithdrawalWorkflowTest {
 		final Map<String, Object> cmd = new HashMap<>();
 		cmd.put("action", "send");
 		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", 0.1);
-		cmd.put("fee", 0.0005);
+		cmd.put("amount", new BigDecimal("0.1"));
+		cmd.put("fee", new BigDecimal("0.0005"));
 		cmd.put("source", "sms");
 		cmd.put("receiverEmail", "receiver@37coins.com");
 		Promise<Void> booked = workflow.executeCommand(cmd);
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("account", "1");
-		expected.put("amount", 0.1);
-		expected.put("balance", 2.5);
+		expected.put("amount", new BigDecimal("0.1"));
+		expected.put("balance", new BigDecimal("2.5"));
 		expected.put("action", "send");
 		expected.put("txid", "txid2038942304");
 		expected.put("msgAddress", "01027423984");
@@ -270,8 +258,8 @@ public class WithdrawalWorkflowTest {
 		final Map<String, Object> cmd = new HashMap<>();
 		cmd.put("action", "send");
 		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", 0.1);
-		cmd.put("fee", 0.0005);
+		cmd.put("amount", new BigDecimal("0.1"));
+		cmd.put("fee", new BigDecimal("0.0005"));
 		cmd.put("source", "sms");
 		cmd.put("receiverEmail", "receiver2@37coins.com");
 		new TryCatch() {
@@ -287,8 +275,8 @@ public class WithdrawalWorkflowTest {
     				expected.put("action", "error003");
     				expected.put("msgAddress", "01027423984");
     				expected.put("source", "sms");
-    				expected.put("amount",0.1);
-    				expected.put("fee", 0.0005);
+    				expected.put("amount",new BigDecimal("0.1"));
+    				expected.put("fee", new BigDecimal("0.0005"));
     				expected.put("account","1");
     				expected.put("receiverEmail", "receiver2@37coins.com");
     				AsyncAssert.assertEqualsWaitFor("failed move", expected, trace);
@@ -305,15 +293,15 @@ public class WithdrawalWorkflowTest {
 		final Map<String, Object> cmd = new HashMap<>();
 		cmd.put("action", "send");
 		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", 0.1);
-		cmd.put("fee", 0.0005);
+		cmd.put("amount", new BigDecimal("0.1"));
+		cmd.put("fee", new BigDecimal("0.0005"));
 		cmd.put("source", "sms");
 		cmd.put("receiverPhone", "987654321");
 		Promise<Void> booked = workflow.executeCommand(cmd);
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("account", "1");
-		expected.put("amount", 0.1);
-		expected.put("balance", 2.5);
+		expected.put("amount", new BigDecimal("0.1"));
+		expected.put("balance", new BigDecimal("2.5"));
 		expected.put("action", "send");
 		expected.put("txid", "txid2038942304");
 		expected.put("msgAddress", "01027423984");
@@ -329,8 +317,8 @@ public class WithdrawalWorkflowTest {
 		final Map<String, Object> cmd = new HashMap<>();
 		cmd.put("action", "send");
 		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", 0.1);
-		cmd.put("fee", 0.0005);
+		cmd.put("amount", new BigDecimal("0.1"));
+		cmd.put("fee", new BigDecimal("0.0005"));
 		cmd.put("receiverPhone", "12345678");
 		new TryCatch() {
 			@Override
@@ -344,8 +332,8 @@ public class WithdrawalWorkflowTest {
     				Map<String, Object> expected = new HashMap<>();
     				expected.put("action", "error003");
     				expected.put("msgAddress", "01027423984");
-    				expected.put("amount",0.1);
-    				expected.put("fee", 0.0005);
+    				expected.put("amount",new BigDecimal("0.1"));
+    				expected.put("fee", new BigDecimal("0.0005"));
     				expected.put("account","1");
     				expected.put("receiverPhone", "12345678");
     				AsyncAssert.assertEqualsWaitFor("failed move account2", expected, trace);

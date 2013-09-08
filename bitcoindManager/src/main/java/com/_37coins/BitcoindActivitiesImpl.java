@@ -1,7 +1,7 @@
 package com._37coins;
 
+import java.math.BigDecimal;
 import java.util.Map;
-
 
 import com._37coins.activities.BitcoindActivities;
 import com._37coins.bcJsonRpc.BitcoindInterface;
@@ -15,10 +15,10 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 	@Override
 	public Map<String,Object> sendTransaction(Map<String,Object> rsp){
 		if (null!=rsp.get("receiverAccount")){
-			String rv = client.move((String)rsp.get("account"), (String)rsp.get("receiverAccount"), (double)rsp.get("amount"));
+			String rv = client.move((String)rsp.get("account"), (String)rsp.get("receiverAccount"), (BigDecimal)rsp.get("amount"));
 			rsp.put("txHash", rv);
 		}else{
-			String rv = client.sendfrom((String)rsp.get("account"), (String)rsp.get("receiver"), (double)rsp.get("amount"));
+			String rv = client.sendfrom((String)rsp.get("account"), (String)rsp.get("receiver"), (BigDecimal)rsp.get("amount"));
 			rsp.put("txHash", rv);
 		}
 		return rsp;
@@ -26,7 +26,7 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 
 	@Override
 	public Map<String, Object> getAccountBalance(Map<String, Object> rsp) {
-		double rv = client.getbalance((String)rsp.get("account"), 0);
+		BigDecimal rv = client.getbalance((String)rsp.get("account"), 0);
 		rsp.put("balance", rv);
 		if (((String)rsp.get("action")).equalsIgnoreCase("confirmSend")
 				|| ((String)rsp.get("action")).equalsIgnoreCase("send")){

@@ -1,7 +1,9 @@
 package com._37coins;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.mail.internet.AddressException;
@@ -48,7 +50,7 @@ public class DepositWorkflowTest {
 			}
 			@Override
 			public Map<String, Object> getAccountBalance(Map<String, Object> rsp) {
-				rsp.put("balance", 2.5);
+				rsp.put("balance", new BigDecimal("2.5"));
 				return rsp;
 			}
 			@Override
@@ -115,7 +117,7 @@ public class DepositWorkflowTest {
 				if (((String)data.get("account")).equalsIgnoreCase("1")){
 					data.put("msgAddress","test1@37coins.com");
 					data.put("source", "email");
-					data.put("locale", "en");
+					data.put("locale", new Locale("en"));
 				}
 				return data;
 			}
@@ -191,7 +193,7 @@ public class DepositWorkflowTest {
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("account", "1");
 		expected.put("action", "balance");
-		expected.put("balance", 2.5);
+		expected.put("balance", new BigDecimal("2.5"));
 		expected.put("msgAddress", "test1@37coins.com");
 		AsyncAssert.assertEqualsWaitFor("successfull balance", expected, trace,
 				booked);
@@ -215,22 +217,22 @@ public class DepositWorkflowTest {
 	@Test
 	public void testReceiveAccount() throws AddressException, JsonProcessingException {
 		DepositWorkflowClient workflow = workflowFactory.getClient();
-		Transaction tx1 = new Transaction().setAmount(0.5).setCategory(Category.RECEIVE).setAccount("1");
-		Transaction tx2 = new Transaction().setAmount(0.4).setCategory(Category.SEND);
-		Transaction tx3 = new Transaction().setAmount(0.1).setCategory(Category.RECEIVE).setAccount("1");
+		Transaction tx1 = new Transaction().setAmount(new BigDecimal("0.5")).setCategory(Category.RECEIVE).setAccount("1");
+		Transaction tx2 = new Transaction().setAmount(new BigDecimal("0.4")).setCategory(Category.SEND);
+		Transaction tx3 = new Transaction().setAmount(new BigDecimal("0.1")).setCategory(Category.RECEIVE).setAccount("1");
 		Transaction t = new Transaction().setDetails(Arrays.asList(tx1,tx2,tx3)).setTxid("txid22543456456");
 		Promise<Void> booked = workflow.executeCommand(BitcoindClientFactory.txToMap(t));
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("account", "1");
 		expected.put("action", "received");
-		expected.put("balance", 2.5);
-		expected.put("amount", 0.6);
+		expected.put("balance", new BigDecimal("2.5"));
+		expected.put("amount", new BigDecimal("0.6"));
 		expected.put("confirmations", 0L);
 		expected.put("txid", "txid22543456456");
 		expected.put("msgAddress", "test1@37coins.com");
 		expected.put("source", "email");
 		expected.put("service", "37coins");
-		expected.put("locale", "en");
+		expected.put("locale", new Locale("en"));
 		AsyncAssert.assertEqualsWaitFor("successfull receive", expected, trace,
 				booked);
 	}

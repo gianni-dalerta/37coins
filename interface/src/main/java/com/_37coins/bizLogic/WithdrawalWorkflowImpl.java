@@ -1,5 +1,6 @@
 package com._37coins.bizLogic;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 
@@ -113,12 +114,12 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     
     @Asynchronous
     public void handleBalance(final Promise<Map<String,Object>> data){
-    	double balance = (double)data.get().get("balance");
-    	double amount = (double)data.get().get("amount");
-    	double fee = (double)data.get().get("fee");
+    	BigDecimal balance = (BigDecimal)data.get().get("balance");
+    	BigDecimal amount = (BigDecimal)data.get().get("amount");
+    	BigDecimal fee = (BigDecimal)data.get().get("fee");
     	data.get().put("action", "send");
     	data.get().remove("fee");
-    	if (balance < amount + fee){
+    	if (balance.compareTo(amount.add(fee))<0){
     		data.get().put("action", "error005");
     		Promise<Void> fail = mailClient.sendMail(data);
     		fail(fail);

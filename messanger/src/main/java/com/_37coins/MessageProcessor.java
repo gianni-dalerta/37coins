@@ -216,7 +216,7 @@ public class MessageProcessor {
 			break;
 		case HELP:
 			Map<String, Object> r = new HashMap<>();
-			r.put("locale", "en");
+			r.put("locale", new Locale("en"));
 			r.put("msgAddress", sender);
 			r.put("action", "help");
 			return r;
@@ -239,7 +239,7 @@ public class MessageProcessor {
 
 	public Map<String, Object> sendError(String sender, String errMsg) {
 		Map<String, Object> r = new HashMap<>();
-		r.put("locale", "en");
+		r.put("locale", new Locale("en"));
 		r.put("msgAddress", sender);
 		r.put("action", errMsg);
 		return r;

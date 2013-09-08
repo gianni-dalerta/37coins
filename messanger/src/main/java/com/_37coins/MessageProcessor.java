@@ -76,7 +76,7 @@ public class MessageProcessor {
 		// figure out class loader
 		File[] files= null;
 		ClassLoader loader = null;
-		if(null!=sc){
+		if(null!=sc && !sc.getServerInfo().contains("jetty")){
 			Set<String> paths = sc.getResourcePaths("/WEB-INF/classes/");
 			files = new File[paths.size()];
 			int i = 0;
@@ -86,10 +86,11 @@ public class MessageProcessor {
 			}
 			loader = MessageProcessor.class.getClassLoader();
 		}else{
-			URL bundle = ClassLoader.getSystemClassLoader().getResource("37coins_en.properties");
-			File root = new File(bundle.getFile()).getParentFile();
-			files = root.listFiles();
 			try{
+				URL bundle = (null != sc) ? sc.getResource("/WEB-INF/classes/37coins_en.properties")
+						: ClassLoader.getSystemClassLoader().getResource("37coins_en.properties");
+				File root = new File(bundle.getFile()).getParentFile();
+				files = root.listFiles();
 				URL[] urls = {root.toURI().toURL()};
 				loader = new URLClassLoader(urls);
 			}catch(Exception e){}

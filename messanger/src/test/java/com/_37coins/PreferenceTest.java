@@ -23,6 +23,7 @@ import com._37coins.persistence.dto.SendJournal;
 import com._37coins.pojo.SendAction;
 import com._37coins.pojo.ServiceEntry;
 import com._37coins.pojo.ServiceList;
+import com._37coins.resources.EnvayaSmsResource;
 import com._37coins.resources.HealthCheckResource;
 import com._37coins.resources.PreferenceResource;
 import com.google.inject.AbstractModule;
@@ -46,6 +47,7 @@ public class PreferenceTest  extends AbstractDataHelper {
 			public Set<Class<?>> getClassList() {
 				Set<Class<?>> cs = new HashSet<>();
 				cs.add(PreferenceResource.class);
+				cs.add(EnvayaSmsResource.class);
 				cs.add(HealthCheckResource.class);
 				return cs;
 			}
@@ -124,5 +126,18 @@ public class PreferenceTest  extends AbstractDataHelper {
 			.body(equalTo("{\"newsletter\":\"newsletter\"}"))
 		.when()
 			.get(restUrl + PreferenceResource.PATH);
+	}
+	
+	@Test
+	public void testEnvaya() {
+		given()
+			.formParam("action", "incomming")
+			.formParam("message", "balance")
+			.formParam("test", "true")
+			.queryParam("phone_number", "010982392349")
+		.expect()
+			.statusCode(200)
+		.when()
+			.post(restUrl + EnvayaSmsResource.PATH);
 	}
 }

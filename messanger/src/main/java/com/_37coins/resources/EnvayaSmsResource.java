@@ -11,15 +11,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-
 import com._37coins.MessageProcessor;
 import com._37coins.MessageProcessor.Action;
 import com._37coins.workflow.DepositWorkflowClientExternal;
 import com._37coins.workflow.WithdrawalWorkflowClientExternal;
-import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-import com.google.inject.name.Named;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiError;
 import com.wordnik.swagger.annotations.ApiErrors;
@@ -30,10 +27,9 @@ import com.wordnik.swagger.annotations.ApiOperation;
 @Produces(MediaType.APPLICATION_JSON)
 public class EnvayaSmsResource {
 	public final static String PATH = "/envayasms";
-
-	@Inject @Named("wfClient")
-	protected AmazonSimpleWorkflow swfService;
 	
+	@Inject
+	protected MessageProcessor mp;
 	
 	@Inject
 	Injector i;
@@ -44,6 +40,7 @@ public class EnvayaSmsResource {
     @ApiErrors(value = { @ApiError(code = 500, reason = "Internal Server Error.")})
 	public Map<String,Object> receive(
 			@HeaderParam("X-Request-Signature") String signature,
+			@FormParam("test") String test,
 			@FormParam("version") int version,
 			@FormParam("phone_number") String phoneNumber,
 			@FormParam("log") String logMsg,
@@ -67,8 +64,7 @@ public class EnvayaSmsResource {
 		Map<String,Object> rv = new HashMap<>();
 		if (action.equalsIgnoreCase("incoming") 
 				&& messageType.equalsIgnoreCase("sms")){
-			Map<String, Object> o = new MessageProcessor().process(
-					from, message);
+			Map<String, Object> o = mp.process(from, message);
 			o.put("source","sms");
 			if (null!=o.get("action")){
 				o.put("service","37coins");
@@ -84,9 +80,11 @@ public class EnvayaSmsResource {
 				case SEND_CONFIRM:
 				case SEND:
 					o.put("action", o.get("action"));
-					i.getInstance(
+					if (test!=null){
+						i.getInstance(
 							WithdrawalWorkflowClientExternal.class)
 							.executeCommand(o);
+					}
 					break;
 				}
 			}else{

@@ -2,7 +2,6 @@ package com._37coins;
 
 import java.io.File;
 import java.math.BigDecimal;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -11,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
 
 import javax.mail.Address;
 import javax.mail.internet.InternetAddress;
@@ -74,17 +74,27 @@ public class MessageProcessor {
 
 	public MessageProcessor(ServletContext sc) {
 		// figure out class loader
-		File root = null;
-		try {
-			URL bundle = (null != sc) ? sc.getResource("/WEB-INF/classes/37coins_en.properties")
-					: ClassLoader.getSystemClassLoader().getResource("37coins_en.properties");
-			root = new File(bundle.getFile()).getParentFile();
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-			return;
+		File[] files= null;
+		ClassLoader loader = null;
+		if(null!=sc){
+			Set<String> paths = sc.getResourcePaths("/WEB-INF/classes/");
+			files = new File[paths.size()];
+			int i = 0;
+			for (String path : paths){
+				files[i] = new File(path);
+				i++;
+			}
+			loader = MessageProcessor.class.getClassLoader();
+		}else{
+			URL bundle = ClassLoader.getSystemClassLoader().getResource("37coins_en.properties");
+			File root = new File(bundle.getFile()).getParentFile();
+			files = root.listFiles();
+			try{
+				URL[] urls = {root.toURI().toURL()};
+				loader = new URLClassLoader(urls);
+			}catch(Exception e){}
 		}
 		// find all available locales
-		File[] files = root.listFiles();
 		List<Locale> locales = new ArrayList<>();
 		for (File file : files) {
 			if (file.getName().matches(".*37coins_..\\.properties")) {
@@ -95,9 +105,7 @@ public class MessageProcessor {
 		// create a map of command words to actions and locales
 		for (Locale locale : locales) {
 			try {
-				URL[] urls = { root.toURI().toURL() };
-				ResourceBundle rb = ResourceBundle.getBundle("37coins", locale,
-						new URLClassLoader(urls));
+				ResourceBundle rb = ResourceBundle.getBundle("37coins", locale,loader);
 				for (Action a : Action.values()) {
 					String cmdList = rb.getString(a.getText() + "Cmd");
 					for (String cmd : cmdList.split(",")) {

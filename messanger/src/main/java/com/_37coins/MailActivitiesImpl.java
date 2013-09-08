@@ -35,6 +35,25 @@ public class MailActivitiesImpl implements MailActivities {
 			throw new RuntimeException(e);
 		}
 	}
+	
+
+	@Override
+	public void notifyMoveReceiver(Map<String, Object> data) {
+		data.put("action", "received");
+		String receiver = (data.get("receiverEmail")!=null)
+				?(String)data.get("receiverEmail")
+					:(String)data.get("receiverPhone");
+		data.put("msgAddress", receiver);
+		try {
+			if (((String)data.get("source")).equalsIgnoreCase("email")){
+				mt.sendMessage(data);
+			}else{
+				qc.send(data,MailServletConfig.queueUri, (String)data.get("gateway"),"amq.direct");
+			}
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	@Override
 	@ManualActivityCompletion

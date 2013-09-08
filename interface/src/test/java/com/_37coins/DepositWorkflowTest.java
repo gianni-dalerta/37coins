@@ -93,6 +93,9 @@ public class DepositWorkflowTest {
 			public String requestWithdrawalReview(Map<String, Object> cmd) {
 				return null;
 			}
+			@Override
+			public void notifyMoveReceiver(Map<String, Object> rsp) {
+			}
 
         };
         CoreActivities coreActivities = new CoreActivities(){

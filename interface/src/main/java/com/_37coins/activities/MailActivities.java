@@ -13,6 +13,10 @@ public interface MailActivities {
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 10)
     void sendMail(Map<String,Object> rsp);
     
+    @Activity(name = "NotifyMoveReceiver", version = "0.1")
+    @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 10)
+    void notifyMoveReceiver(Map<String,Object> rsp);
+    
     @Activity(name = "SendConfirmation", version = "0.3")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 3600)	
 	void sendConfirmation(Map<String,Object> rsp);

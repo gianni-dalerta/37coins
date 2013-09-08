@@ -15,11 +15,13 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 	@Override
 	public Map<String,Object> sendTransaction(Map<String,Object> rsp){
 		if (null!=rsp.get("receiverAccount")){
-			String rv = client.move((String)rsp.get("account"), (String)rsp.get("receiverAccount"), (BigDecimal)rsp.get("amount"));
-			rsp.put("txHash", rv);
+			boolean rv = client.move((String)rsp.get("account"), (String)rsp.get("receiverAccount"), (BigDecimal)rsp.get("amount"));
+			if (!rv){
+				throw new RuntimeException("move failed."); 
+			}
 		}else{
 			String rv = client.sendfrom((String)rsp.get("account"), (String)rsp.get("receiver"), (BigDecimal)rsp.get("amount"));
-			rsp.put("txHash", rv);
+			rsp.put("txid", rv);
 		}
 		return rsp;
 	}

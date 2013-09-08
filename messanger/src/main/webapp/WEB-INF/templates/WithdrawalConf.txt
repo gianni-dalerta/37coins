@@ -1,4 +1,4 @@
 ${msg("WithdrawalConf",amount,receiver)}
-${msg("TransactionDetails",txHash)}
+${msg("TransactionDetails",txid)}
 
 ${msg("byebye","37Coins")}

@@ -25,8 +25,6 @@ import com.amazonaws.services.simpleworkflow.flow.core.TryCatch;
 import com.amazonaws.services.simpleworkflow.flow.junit.AsyncAssert;
 import com.amazonaws.services.simpleworkflow.flow.junit.FlowBlockJUnit4ClassRunner;
 import com.amazonaws.services.simpleworkflow.flow.junit.WorkflowTest;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RunWith(FlowBlockJUnit4ClassRunner.class)
 public class WithdrawalWorkflowTest {
@@ -92,6 +90,10 @@ public class WithdrawalWorkflowTest {
 			@Override
 			public String requestWithdrawalReview(Map<String, Object> cmd) {
 				return null;
+			}
+
+			@Override
+			public void notifyMoveReceiver(Map<String, Object> rsp) {
 			}
 
 		};

@@ -129,7 +129,7 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
                 protected void doTry() throws Throwable {
 		    		//define transaction
 		    		Promise<Map<String,Object>> tx = bcdClient.sendTransaction(data);
-		    		mailClient.sendMail(tx);
+		    		afterSend(tx);
                 }
                 @Override
                 protected void doCatch(Throwable e) throws Throwable {
@@ -138,6 +138,22 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 	            	cancel(e);
                 }
     		};
+    	}
+    }
+    
+    @Asynchronous
+    public void afterSend(Promise<Map<String,Object>> data){
+    	if (data.get().get("txid")!=null && data.get().get("receiver")!=null){
+    		//only confirm to sender
+    		mailClient.sendMail(data);
+    		//blockchain will notify receiver
+    	}else if (data.get().get("receiverAccount")!=null){
+    		//send confirmation to sender
+    		mailClient.sendMail(data);
+    		//send notification to receiver
+    		mailClient.notifyMoveReceiver(data);
+    	}else{
+    		throw new RuntimeException("no tx but also no move?");
     	}
     }
     

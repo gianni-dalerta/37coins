@@ -1,4 +1,6 @@
 ${msg("DepositConf",amount)}
-${msg("TransactionDetails",txHash)}
+<#if txid??>
+${msg("TransactionDetails",txid)}
+</#if>
 
 ${msg("byebye","37Coins")}

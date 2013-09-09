@@ -1,6 +1,7 @@
 package com._37coins.resources;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,10 +10,14 @@ import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
+import com._37coins.MailServletConfig;
 import com._37coins.MessageProcessor;
 import com._37coins.MessageProcessor.Action;
+import com._37coins.envaya.QueueClient;
 import com._37coins.workflow.DepositWorkflowClientExternal;
 import com._37coins.workflow.WithdrawalWorkflowClientExternal;
 import com.google.inject.Inject;
@@ -30,6 +35,9 @@ public class EnvayaSmsResource {
 	
 	@Inject
 	protected MessageProcessor mp;
+	
+	@Inject
+	QueueClient qc;
 	
 	@Inject
 	Injector i;
@@ -66,9 +74,9 @@ public class EnvayaSmsResource {
 				&& messageType.equalsIgnoreCase("sms")){
 			Map<String, Object> o = mp.process(from, message);
 			o.put("source","sms");
-			if (null!=o.get("action")){
-				o.put("service","37coins");
-				o.put("gateway", phoneNumber);
+			o.put("service","37coins");
+			o.put("gateway", phoneNumber);
+			if (null!=o.get("action") && !((String)o.get("action")).contains("error")){
 				switch (Action.fromString((String)o.get("action"))) {
 				case CREATE:
 				case BALANCE:
@@ -86,11 +94,26 @@ public class EnvayaSmsResource {
 							.executeCommand(o);
 					}
 					break;
+				case HELP:
+					if (test==null){
+						try {
+							qc.send(o,MailServletConfig.queueUri, (String)o.get("gateway"),"amq.direct","SmsResource"+new Date());
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+					break;
 				default:
-					System.out.println("could not match action");
+					throw new WebApplicationException("could not match action",Response.Status.NOT_FOUND);
 				}
 			}else{
-				System.out.println("could not parse message: " + message);
+				if (test==null){
+					try {
+						qc.send(o,MailServletConfig.queueUri, (String)o.get("gateway"),"amq.direct","SmsResource"+new Date());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
 			}
 		}else if (action.equalsIgnoreCase("send_status")){
 			System.out.println("id " + id);
@@ -98,8 +121,10 @@ public class EnvayaSmsResource {
 			System.out.println("error " + error);
 		}else if (action.equalsIgnoreCase("amqp_started")){
 			System.out.println("consumerTag " + consumerTag);
+		}else{
+			throw new WebApplicationException("not implemented",Response.Status.NOT_FOUND);
 		}
-			rv.put("events", new ArrayList());
+		rv.put("events", new ArrayList());
 		return rv;
 	}
 	

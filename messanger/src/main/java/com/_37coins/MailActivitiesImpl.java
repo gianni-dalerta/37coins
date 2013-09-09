@@ -4,13 +4,15 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Map;
 
-
 import com._37coins.activities.MailActivities;
 import com._37coins.envaya.QueueClient;
 import com._37coins.sendMail.MailTransporter;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContext;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContextProvider;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContextProviderImpl;
+import com.amazonaws.services.simpleworkflow.flow.DecisionContextProvider;
+import com.amazonaws.services.simpleworkflow.flow.DecisionContextProviderImpl;
+import com.amazonaws.services.simpleworkflow.flow.WorkflowClock;
 import com.amazonaws.services.simpleworkflow.flow.annotations.ManualActivityCompletion;
 import com.google.inject.Inject;
 
@@ -29,7 +31,9 @@ public class MailActivitiesImpl implements MailActivities {
 			if (((String)rsp.get("source")).equalsIgnoreCase("email")){
 				mt.sendMessage(rsp);
 			}else{
-				qc.send(rsp,MailServletConfig.queueUri, (String)rsp.get("gateway"),"amq.direct");
+				String runId = contextProvider.getActivityExecutionContext().getWorkflowExecution().getRunId();
+				String taskId = contextProvider.getActivityExecutionContext().getTask().getActivityId();
+				qc.send(rsp,MailServletConfig.queueUri, (String)rsp.get("gateway"),"amq.direct",runId+"::"+taskId);
 			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -53,7 +57,9 @@ public class MailActivitiesImpl implements MailActivities {
 			if (((String)data.get("source")).equalsIgnoreCase("email")){
 				mt.sendMessage(data);
 			}else{
-				qc.send(data,MailServletConfig.queueUri, (String)data.get("gateway"),"amq.direct");
+				String runId = contextProvider.getActivityExecutionContext().getWorkflowExecution().getRunId();
+				String taskId = contextProvider.getActivityExecutionContext().getTask().getActivityId();
+				qc.send(data,MailServletConfig.queueUri, (String)data.get("gateway"),"amq.direct",runId+"::"+taskId);
 			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);

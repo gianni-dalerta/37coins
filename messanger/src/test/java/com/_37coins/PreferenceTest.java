@@ -129,12 +129,29 @@ public class PreferenceTest  extends AbstractDataHelper {
 	}
 	
 	@Test
-	public void testEnvaya() {
+	public void testEnvayaBalance() {
 		given()
-			.formParam("action", "incomming")
+			.formParam("action", "incoming")
 			.formParam("message", "balance")
 			.formParam("test", "true")
-			.queryParam("phone_number", "010982392349")
+			.formParam("phone_number", "010982392349")
+			.formParam("from", "01027423984")
+			.formParam("message_type","sms")
+		.expect()
+			.statusCode(200)
+		.when()
+			.post(restUrl + EnvayaSmsResource.PATH);
+	}
+	
+	@Test
+	public void testEnvayaHelp() {
+		given()
+			.formParam("action", "incoming")
+			.formParam("message", "help")
+			.formParam("test", "true")
+			.formParam("phone_number", "010982392349")
+			.formParam("from", "01027423984")
+			.formParam("message_type","sms")
 		.expect()
 			.statusCode(200)
 		.when()

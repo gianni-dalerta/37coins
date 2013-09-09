@@ -4,11 +4,9 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Date;
 import java.util.Map;
 
 import org.apache.commons.lang.StringEscapeUtils;
-
 
 import com._37coins.pojo.SendAction;
 import com.google.inject.Inject;
@@ -38,12 +36,12 @@ public class QueueClient {
 		channel = connection.createChannel();
 	}
 	
-	public void send(Map<String, Object> cmd, String uri, String gateway, String exchangeName) throws IOException, TemplateException, KeyManagementException, NoSuchAlgorithmException, URISyntaxException {
+	public void send(Map<String, Object> cmd, String uri, String gateway, String exchangeName, String id) throws IOException, TemplateException, KeyManagementException, NoSuchAlgorithmException, URISyntaxException {
 		if (null==connection || !connection.isOpen()){
 			connect(uri, exchangeName);
 		}
 		String message = StringEscapeUtils.escapeJava(msgFactory.construct(cmd, sendAction));
-		String msg = "{\"event\":\"send\",\"messages\":[{\"id\":\""+new Date()+"\",\"to\":\""+cmd.get("msgAddress")+"\",\"message\":\""+message+"\"}]}";
+		String msg = "{\"event\":\"send\",\"messages\":[{\"id\":\""+id+"\",\"to\":\""+cmd.get("msgAddress")+"\",\"message\":\""+message+"\"}]}";
 		channel.basicPublish(exchangeName,gateway,null, msg.getBytes());
 	}
 	

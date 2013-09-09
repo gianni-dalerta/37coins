@@ -1,1 +1,1 @@
-${msg("DepositReq",bcAddress)}
+${msg("DepositReqSms",bcAddress)}

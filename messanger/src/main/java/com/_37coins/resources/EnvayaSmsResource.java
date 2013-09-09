@@ -73,19 +73,21 @@ public class EnvayaSmsResource {
 				case CREATE:
 				case BALANCE:
 				case DEPOSIT:
-					o.put("action", o.get("action"));
-					i.getInstance(DepositWorkflowClientExternal.class)
+					if (test==null){
+						i.getInstance(DepositWorkflowClientExternal.class)
 							.executeCommand(o);
+					}
 					break;
 				case SEND_CONFIRM:
 				case SEND:
-					o.put("action", o.get("action"));
-					if (test!=null){
+					if (test==null){
 						i.getInstance(
 							WithdrawalWorkflowClientExternal.class)
 							.executeCommand(o);
 					}
 					break;
+				default:
+					System.out.println("could not match action");
 				}
 			}else{
 				System.out.println("could not parse message: " + message);

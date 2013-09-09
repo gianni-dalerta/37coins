@@ -40,9 +40,14 @@ public class MailActivitiesImpl implements MailActivities {
 	@Override
 	public void notifyMoveReceiver(Map<String, Object> data) {
 		data.put("action", "received");
-		String receiver = (data.get("receiverEmail")!=null)
-				?(String)data.get("receiverEmail")
-					:(String)data.get("receiverPhone");
+		String receiver = null;
+		if (data.get("receiverEmail")!=null){
+			receiver = (String)data.get("receiverEmail");
+			data.put("source", "email");
+		}else{
+			receiver = (String)data.get("receiverPhone");
+			data.put("source", "sms");
+		}
 		data.put("msgAddress", receiver);
 		try {
 			if (((String)data.get("source")).equalsIgnoreCase("email")){

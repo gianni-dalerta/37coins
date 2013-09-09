@@ -53,5 +53,9 @@
 <#escape x as x?html?replace('\n', '<br>')>
 ${msg("byebye","37Coins")}
 </#escape>
+<footer>
+Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${msgAddress}">email settings</a>. 
+</footer>
+
 </body>
 </html>

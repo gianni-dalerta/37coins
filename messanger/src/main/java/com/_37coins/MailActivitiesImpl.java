@@ -10,9 +10,6 @@ import com._37coins.sendMail.MailTransporter;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContext;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContextProvider;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContextProviderImpl;
-import com.amazonaws.services.simpleworkflow.flow.DecisionContextProvider;
-import com.amazonaws.services.simpleworkflow.flow.DecisionContextProviderImpl;
-import com.amazonaws.services.simpleworkflow.flow.WorkflowClock;
 import com.amazonaws.services.simpleworkflow.flow.annotations.ManualActivityCompletion;
 import com.google.inject.Inject;
 

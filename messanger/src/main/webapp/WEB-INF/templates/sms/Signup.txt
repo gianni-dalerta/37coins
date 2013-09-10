@@ -1,2 +1,2 @@
 ${msg("Signup","37Coins")}
-${msg.MoreInfoSms}
+${msg("HelpSms","37Coins")}

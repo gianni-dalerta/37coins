@@ -32,23 +32,22 @@ import com.wordnik.swagger.annotations.ApiOperation;
 @Produces(MediaType.APPLICATION_JSON)
 public class EnvayaSmsResource {
 	public final static String PATH = "/envayasms";
-	
+
 	@Inject
 	protected MessageProcessor mp;
-	
+
 	@Inject
 	QueueClient qc;
-	
+
 	@Inject
 	Injector i;
 
 	@SuppressWarnings("rawtypes")
 	@POST
 	@ApiOperation(value = "aprove withdrawal", notes = "")
-    @ApiErrors(value = { @ApiError(code = 500, reason = "Internal Server Error.")})
-	public Map<String,Object> receive(
+	@ApiErrors(value = { @ApiError(code = 500, reason = "Internal Server Error.") })
+	public Map<String, Object> receive(
 			@HeaderParam("X-Request-Signature") String signature,
-			@FormParam("test") String test,
 			@FormParam("version") int version,
 			@FormParam("phone_number") String phoneNumber,
 			@FormParam("log") String logMsg,
@@ -58,74 +57,71 @@ public class EnvayaSmsResource {
 			@FormParam("battery") int battery,
 			@FormParam("power") int power,
 			@FormParam("action") String action,
-			//incoming
+			// incoming
 			@FormParam("from") String from,
 			@FormParam("message_type") String messageType,
 			@FormParam("message") String message,
 			@FormParam("timestamp") long timestamp,
-			//send_status
-			@FormParam("id") String id,
-			@FormParam("status") String status,
+			// send_status
+			@FormParam("id") String id, @FormParam("status") String status,
 			@FormParam("error") String error,
-			//amqp_started
+			// amqp_started
 			@FormParam("consumer_tag") String consumerTag) {
-		Map<String,Object> rv = new HashMap<>();
-		if (action.equalsIgnoreCase("incoming") 
-				&& messageType.equalsIgnoreCase("sms")){
+		Map<String, Object> rv = new HashMap<>();
+		if (action.equalsIgnoreCase("incoming")
+				&& messageType.equalsIgnoreCase("sms")) {
 			Map<String, Object> o = mp.process(from, message);
-			o.put("source","sms");
-			o.put("service","37coins");
+			o.put("source", "sms");
+			o.put("service", "37coins");
 			o.put("gateway", phoneNumber);
-			if (null!=o.get("action") && !((String)o.get("action")).contains("error")){
-				switch (Action.fromString((String)o.get("action"))) {
+			if (null != o.get("action")
+					&& !((String) o.get("action")).contains("error")) {
+				switch (Action.fromString((String) o.get("action"))) {
 				case CREATE:
 				case BALANCE:
 				case DEPOSIT:
-					if (test==null){
-						i.getInstance(DepositWorkflowClientExternal.class)
+					i.getInstance(DepositWorkflowClientExternal.class)
 							.executeCommand(o);
-					}
 					break;
 				case SEND_CONFIRM:
 				case SEND:
-					if (test==null){
-						i.getInstance(
-							WithdrawalWorkflowClientExternal.class)
+					i.getInstance(WithdrawalWorkflowClientExternal.class)
 							.executeCommand(o);
-					}
 					break;
 				case HELP:
-					if (test==null){
-						try {
-							qc.send(o,MailServletConfig.queueUri, (String)o.get("gateway"),"amq.direct","SmsResource"+new Date());
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-					break;
-				default:
-					throw new WebApplicationException("could not match action",Response.Status.NOT_FOUND);
-				}
-			}else{
-				if (test==null){
 					try {
-						qc.send(o,MailServletConfig.queueUri, (String)o.get("gateway"),"amq.direct","SmsResource"+new Date());
+						qc.send(o, MailServletConfig.queueUri,
+								(String) o.get("gateway"), "amq.direct",
+								"SmsResource" + new Date());
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
+					break;
+				default:
+					throw new WebApplicationException("could not match action",
+							Response.Status.NOT_FOUND);
+				}
+			} else {
+				try {
+					qc.send(o, MailServletConfig.queueUri,
+							(String) o.get("gateway"), "amq.direct",
+							"SmsResource" + new Date());
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
-		}else if (action.equalsIgnoreCase("send_status")){
+		} else if (action.equalsIgnoreCase("send_status")) {
 			System.out.println("id " + id);
 			System.out.println("status " + status);
 			System.out.println("error " + error);
-		}else if (action.equalsIgnoreCase("amqp_started")){
+		} else if (action.equalsIgnoreCase("amqp_started")) {
 			System.out.println("consumerTag " + consumerTag);
-		}else{
-			throw new WebApplicationException("not implemented",Response.Status.NOT_FOUND);
+		} else {
+			throw new WebApplicationException("not implemented",
+					Response.Status.NOT_FOUND);
 		}
 		rv.put("events", new ArrayList());
 		return rv;
 	}
-	
+
 }

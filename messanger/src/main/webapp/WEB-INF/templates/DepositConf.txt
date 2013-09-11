@@ -1,6 +1,0 @@
-${msg("DepositConf",amount)}
-<#if txid??>
-${msg("TransactionDetails",txid)}
-</#if>
-
-${msg("byebye","37Coins")}

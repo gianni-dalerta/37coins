@@ -15,7 +15,6 @@
 
 	<modules>
 		<module>interface</module>
-		<module>persistence</module>
 		<module>messanger</module>
 		<module>bitcoindManager</module>
 	</modules>

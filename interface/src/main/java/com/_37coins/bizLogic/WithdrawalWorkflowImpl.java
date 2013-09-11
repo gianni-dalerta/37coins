@@ -1,17 +1,19 @@
 package com._37coins.bizLogic;
 
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.concurrent.CancellationException;
-
 
 import com._37coins.activities.BitcoindActivitiesClient;
 import com._37coins.activities.BitcoindActivitiesClientImpl;
-import com._37coins.activities.CoreActivitiesClient;
-import com._37coins.activities.CoreActivitiesClientImpl;
-import com._37coins.activities.MailActivitiesClient;
-import com._37coins.activities.MailActivitiesClientImpl;
+import com._37coins.activities.MessagingActivitiesClient;
+import com._37coins.activities.MessagingActivitiesClientImpl;
 import com._37coins.workflow.WithdrawalWorkflow;
+import com._37coins.workflow.pojo.MessageAddress.MsgType;
+import com._37coins.workflow.pojo.Deposit;
+import com._37coins.workflow.pojo.Request;
+import com._37coins.workflow.pojo.Response;
+import com._37coins.workflow.pojo.Response.RspAction;
+import com._37coins.workflow.pojo.Withdrawal;
 import com.amazonaws.services.simpleworkflow.flow.DecisionContext;
 import com.amazonaws.services.simpleworkflow.flow.DecisionContextProvider;
 import com.amazonaws.services.simpleworkflow.flow.DecisionContextProviderImpl;
@@ -25,142 +27,103 @@ import com.amazonaws.services.simpleworkflow.flow.core.TryCatch;
 
 public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 
-    CoreActivitiesClient dbClient = new CoreActivitiesClientImpl();
     BitcoindActivitiesClient bcdClient = new BitcoindActivitiesClientImpl();
-    MailActivitiesClient mailClient = new MailActivitiesClientImpl();
+    MessagingActivitiesClient msgClient = new MessagingActivitiesClientImpl();
     private final int confirmationPeriod = 3500;
     DecisionContextProvider provider = new DecisionContextProviderImpl();
     DecisionContext context = provider.getDecisionContext();
     private WorkflowClock clock = context.getWorkflowClock();
 
+    
     @Override
-    public void executeCommand(final Map<String,Object> data) {
-    	final Settable<Map<String,Object>> account = new Settable<>();
-    	new TryCatch() {
+    public void executeCommand(final Request req) {
+    	Promise<BigDecimal> balance = bcdClient.getAccountBalance(req.getAccountId());
+    	handleAccount(balance, req);
+    }
+    
+    @Asynchronous
+    public void handleAccount(Promise<BigDecimal> balance, Request req){
+		final Settable<Response> confirm = new Settable<>();
+    	Withdrawal w = (Withdrawal)req.getPayload();
+    	BigDecimal amount = w.getAmount();
+    	BigDecimal fee = w.getFee();
+    	if (balance.get().compareTo(amount.add(fee))<0){
+    		Response rsp = new Response()
+    			.respondTo(req)
+    			.setAction(RspAction.INSUFISSIENT_FUNDS);
+    		Promise<Void> fail = msgClient.sendMessage(rsp);
+    		fail(fail);
+    		return;
+    	}else{
+			if (req.getFrom().getAddressType()==MsgType.EMAIL){
+				final Response rsp = new Response()
+					.respondTo(req)
+					.setAction(RspAction.SEND_CONFIRM);
+				final Promise<Void> response = msgClient.sendConfirmation(rsp);
+				final OrPromise confirmOrTimer = new OrPromise(startDaemonTimer(confirmationPeriod), response);
+			   	new TryCatch() {
+					@Override
+		            protected void doTry() throws Throwable {
+						setConfirm(confirm, confirmOrTimer, response, rsp);
+					}
+		            @Override
+		            protected void doCatch(Throwable e) throws Throwable {
+		            	rsp.setAction(RspAction.TIMEOUT);
+		    			msgClient.sendMessage(rsp);
+		            	cancel(e);
+					}
+				};
+			}else{
+				final Response rsp = new Response()
+					.respondTo(req);
+				confirm.set(rsp);
+			}
+    	}
+		handleTransaction(confirm);
+    }
+    
+    @Asynchronous
+    public void handleTransaction(final Promise<Response> rsp){
+		new TryCatch() {
 			@Override
             protected void doTry() throws Throwable {
-				setAccount(account, dbClient.findAccountByMsgAddress(data));
-			}
+	    		//define transaction
+				Withdrawal w = (Withdrawal)rsp.get().getPayload();
+	    		Promise<String> tx = bcdClient.sendTransaction(
+	    				w.getAmount(), 
+	    				w.getFee(), 
+	    				rsp.get().getAccountId(), 
+	    				(w.getPayDest().getAddressType()==com._37coins.workflow.pojo.PaymentAddress.PaymentType.ACCOUNT)?Long.parseLong(w.getPayDest().getAddress()):null, 
+	    						(w.getPayDest().getAddressType()==com._37coins.workflow.pojo.PaymentAddress.PaymentType.BTC)?w.getPayDest().getAddress():null);
+	    		afterSend(tx, rsp.get());
+            }
             @Override
             protected void doCatch(Throwable e) throws Throwable {
-            	data.put("action", "error001");
-            	mailClient.sendMail(data);
-            	account.set(data);
-			}
+            	rsp.get().setAction(RspAction.TX_FAILED);
+    			msgClient.sendMessage(rsp);
+            	cancel(e);
+            }
 		};
-		handleReceiver(account);
     }
     
     @Asynchronous
-    public void handleReceiver(final Promise<Map<String,Object>> data){
-    	if (((String)data.get().get("action")).contains("error")){
-    		throw new CancellationException("account not found");
-    	}
-    	
-    	final Settable<Map<String,Object>> account = new Settable<>();
-    	if (data.get().get("receiver")!=null){
-    		setAccount(account, bcdClient.getAccount(data));
-    	}else{
-    		new TryCatch() {
-				@Override
-	            protected void doTry() throws Throwable {
-				   	if (data.get().get("receiverEmail")!=null){
-				   		setAccount(account, dbClient.findReceiverAccount(data));
-			    	}else if (data.get().get("receiverPhone")!=null){
-			    		setAccount(account, dbClient.findReceiverAccount(data));
-			    	}
-				}
-	            @Override
-	            protected void doCatch(Throwable e) throws Throwable {
-	            	data.get().put("action", "error003");
-	    			mailClient.sendMail(data);
-	            	account.set(data.get());
-				}
-			};
-    	}
-    	handleConfirm(account);
-    }
-    
-    @Asynchronous
-    public void handleConfirm(final Promise<Map<String,Object>> data){
-    	if (data.get().get("receiver")==null && data.get().get("receiverAccount")==null){
-    		throw new CancellationException("receiver not found");
-    	}
-
-		final Settable<Map<String,Object>> confirm = new Settable<>();
-		if (((String)data.get().get("source")).equalsIgnoreCase("email")){
-			data.get().put("action", "confirmSend");
-			final Promise<Void> response = mailClient.sendConfirmation(data);
-			final OrPromise confirmOrTimer = new OrPromise(startDaemonTimer(confirmationPeriod), response);
-		   	new TryCatch() {
-				@Override
-	            protected void doTry() throws Throwable {
-					setConfirm(confirm, confirmOrTimer, response, data);
-				}
-	            @Override
-	            protected void doCatch(Throwable e) throws Throwable {
-	            	data.get().put("action", "error003");
-	    			mailClient.sendMail(data);
-	            	cancel(e);
-				}
-			};
-		}else{
-			setAccount(confirm, data);
-		}
-		//read balanace
-		Promise<Map<String,Object>> balance = bcdClient.getAccountBalance(confirm);
-		handleBalance(balance);
-    }
-    
-    @Asynchronous
-    public void handleBalance(final Promise<Map<String,Object>> data){
-    	BigDecimal balance = (BigDecimal)data.get().get("balance");
-    	BigDecimal amount = (BigDecimal)data.get().get("amount");
-    	BigDecimal fee = (BigDecimal)data.get().get("fee");
-    	data.get().put("action", "send");
-    	data.get().remove("fee");
-    	if (balance.compareTo(amount.add(fee))<0){
-    		data.get().put("action", "error005");
-    		Promise<Void> fail = mailClient.sendMail(data);
-    		fail(fail);
-    	}else{
-    		new TryCatch() {
-    			@Override
-                protected void doTry() throws Throwable {
-		    		//define transaction
-		    		Promise<Map<String,Object>> tx = bcdClient.sendTransaction(data);
-		    		afterSend(tx);
-                }
-                @Override
-                protected void doCatch(Throwable e) throws Throwable {
-	            	data.get().put("action", "error003");
-	    			mailClient.sendMail(data);
-	            	cancel(e);
-                }
-    		};
-    	}
-    }
-    
-    @Asynchronous
-    public void afterSend(Promise<Map<String,Object>> data){
-    	if (data.get().get("txid")!=null && data.get().get("receiver")!=null){
-    		//only confirm to sender
-    		mailClient.sendMail(data);
-    		//blockchain will notify receiver
-    	}else if (data.get().get("receiverAccount")!=null){
-    		//send confirmation to sender
-    		mailClient.sendMail(data);
-    		//send notification to receiver
-    		mailClient.notifyMoveReceiver(data);
-    	}else{
-    		throw new RuntimeException("no tx but also no move?");
+    public void afterSend(Promise<String> data, Response rsp){
+    	msgClient.sendMessage(rsp);
+    	if (data.get()==null){
+    		Withdrawal w = (Withdrawal)rsp.getPayload();
+    		Response rsp2 = new Response()
+    			.setTo(w.getMsgDest())
+    			.setPayload(new Deposit()
+    				.setAmount(w.getAmount())
+    				.setCurrency(w.getCurrency()));
+    		msgClient.sendMessage(rsp2);
     	}
     }
     
 	@Asynchronous
-	public void setConfirm(@NoWait Settable<Map<String,Object>> account, OrPromise trigger, Promise<Void> response, Promise<Map<String,Object>> data) throws Throwable{
+	public void setConfirm(@NoWait Settable<Response> account, OrPromise trigger, Promise<Void> response, Response data) throws Throwable{
 		if (response.isReady()){
-			account.set(data.get());
+			account.set(data);
 		}else{
 			throw new Throwable("user did not confirm transaction.");
 		}
@@ -171,11 +134,7 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 	public void fail(Promise<Void> data){
 		throw new CancellationException("insufficient funds");
 	}
-    
-	@Asynchronous
-	public void setAccount(@NoWait Settable<Map<String,Object>> account, Promise<Map<String,Object>> data){
-		account.set(data.get());
-	}
+
 	
 	@Asynchronous(daemon = true)
     private Promise<Void> startDaemonTimer(int seconds) {

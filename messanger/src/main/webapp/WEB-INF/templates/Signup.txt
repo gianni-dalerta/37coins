@@ -1,7 +1,0 @@
-
-
-${msg("Signup","37Coins")}
-${msg("DepositReq",bcAddress)}
-${msg("MoreInfoEmail",bizUrl)}
-
-${msg("byebye","37Coins")}

@@ -2,7 +2,10 @@ package com._37coins;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 
 import javax.mail.internet.AddressException;
@@ -14,12 +17,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import com._37coins.activities.BitcoindActivities;
-import com._37coins.activities.CoreActivities;
-import com._37coins.activities.MailActivities;
+import com._37coins.activities.MessagingActivities;
+import com._37coins.bcJsonRpc.pojo.Transaction;
 import com._37coins.bizLogic.WithdrawalWorkflowImpl;
 import com._37coins.workflow.WithdrawalWorkflowClient;
 import com._37coins.workflow.WithdrawalWorkflowClientFactory;
 import com._37coins.workflow.WithdrawalWorkflowClientFactoryImpl;
+import com._37coins.workflow.pojo.Response;
 import com.amazonaws.services.simpleworkflow.flow.core.Promise;
 import com.amazonaws.services.simpleworkflow.flow.core.TryCatch;
 import com.amazonaws.services.simpleworkflow.flow.junit.AsyncAssert;
@@ -32,7 +36,7 @@ public class WithdrawalWorkflowTest {
 	@Rule
 	public WorkflowTest workflowTest = new WorkflowTest();
 
-	final Map<String, Object> trace = new HashMap<>();
+	final Set<Response> trace = new HashSet<>();
 
 	private WithdrawalWorkflowClientFactory workflowFactory = new WithdrawalWorkflowClientFactoryImpl();
 
@@ -42,96 +46,50 @@ public class WithdrawalWorkflowTest {
 		// test run
 		BitcoindActivities activities = new BitcoindActivities() {
 			@Override
-			public Map<String, Object> sendTransaction(Map<String, Object> rsp) {
-				rsp.put("txid", "txid2038942304");
-				return rsp;
+			public String sendTransaction(BigDecimal amount, BigDecimal fee,
+					Long fromId, Long toId, String toAddress) {
+				return "txid2038942304";
 			}
 
 			@Override
-			public Map<String, Object> getAccountBalance(Map<String, Object> rsp) {
-				rsp.put("balance", new BigDecimal("2.5"));
-				return rsp;
+			public BigDecimal getAccountBalance(Long accountId) {
+				return new BigDecimal("2.5");
 			}
 
 			@Override
-			public Map<String, Object> createBcAccount(Map<String, Object> rsp) {
+			public String getNewAddress(Long accountId) {
 				return null;
 			}
 
 			@Override
-			public Map<String, Object> getNewAddress(Map<String, Object> rsp) {
-				return null;
-			}
-
-			@Override
-			public Map<String, Object> getAccount(Map<String, Object> rsp) {
-				if (((String)rsp.get("receiver")).equalsIgnoreCase("123")){
-					rsp.put("receiverAccount", "2");
+			public Long getAccount(String bcAddress) {
+				if (bcAddress.equalsIgnoreCase("123")){
+					return 2L;
 				}
-				return rsp;
+				return null;
+			}
+
+			@Override
+			public List<Transaction> getAccountTransactions(Long accountId) {
+				// TODO Auto-generated method stub
+				return null;
 			}
 		};
-		MailActivities mailActivities = new MailActivities() {
+		MessagingActivities mailActivities = new MessagingActivities() {
 
 			@Override
-			public void sendMail(Map<String, Object> rsp) {
-				trace.putAll(rsp);
+			public void sendMessage(Response rsp) {
+				trace.add(rsp);
 			}
 
 			@Override
-			public void sendConfirmation(Map<String, Object> rsp) {
-			}
-
-			@Override
-			public String requestWithdrawalConfirm(Map<String, Object> cmd) {
-				return null;
-			}
-
-			@Override
-			public String requestWithdrawalReview(Map<String, Object> cmd) {
-				return null;
-			}
-
-			@Override
-			public void notifyMoveReceiver(Map<String, Object> rsp) {
+			public void sendConfirmation(Response rsp) {
 			}
 
 		};
-		CoreActivities coreActivities = new CoreActivities() {
-			@Override
-			public Map<String, Object> findAccountByMsgAddress(
-					Map<String, Object> data) {
-				if (!((String) data.get("action")).equalsIgnoreCase("create")
-						&& ((String) data.get("msgAddress"))
-								.equalsIgnoreCase("01027423984")) {
-					data.put("account", "1");
-				} else {
-					throw new RuntimeException("not found");
-				}
-				return data;
-			}
-			@Override
-			public Map<String, Object> createDbAccount(Map<String, Object> data) {
-				return null;
-			}
-			@Override
-			public Map<String, Object> readAccount(Map<String, Object> data) {
-				return null;
-			}
-			@Override
-			public Map<String, Object> findReceiverAccount(Map<String, Object> data) {
-				if ((data.get("receiverEmail")!=null && ((String)data.get("receiverEmail")).equalsIgnoreCase("receiver@37coins.com"))
-						||(data.get("receiverPhone")!=null && ((String)data.get("receiverPhone")).equalsIgnoreCase("987654321"))){
-					data.put("receiverAccount","2");
-				}else{
-					throw new RuntimeException("not found");
-				}
-				return data;
-			}
-		};
+		
 		workflowTest.addActivitiesImplementation(activities);
 		workflowTest.addActivitiesImplementation(mailActivities);
-		workflowTest.addActivitiesImplementation(coreActivities);
 		workflowTest
 				.addWorkflowImplementationType(WithdrawalWorkflowImpl.class);
 	}

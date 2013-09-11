@@ -54,7 +54,7 @@ public class PreferenceTest  extends AbstractDataHelper {
 			@Override
 			protected void configure() {
 				install(new FactoryModuleBuilder()
-			     .implement(JaxRsApplication.class, CoinsApplication.class)
+			     .implement(JaxRsApplication.class, MessagingApplication.class)
 			     .build(ContextFactory.class));
 			}
 			@Provides @Singleton @SuppressWarnings("unused")

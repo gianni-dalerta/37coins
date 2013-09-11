@@ -1,6 +1,0 @@
-You have received ${amount} bitcoins through 37Coins. 
-We have created a wallet for you. For more information visit http://www.37coins.com or send an email to pay@37coins.com with the subject "Help".
-
-Best regards,
-
-37Coins

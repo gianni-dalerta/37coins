@@ -7,13 +7,12 @@ import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Locale;
-import java.util.Map;
 import java.util.ResourceBundle;
 
 import javax.servlet.ServletContext;
 
 import com._37coins.pojo.SendAction;
+import com._37coins.workflow.pojo.Response;
 
 import freemarker.ext.beans.BeansWrapper;
 import freemarker.ext.beans.ResourceBundleModel;
@@ -34,8 +33,8 @@ public class EmailFactory {
 	public static final String LOCAL_RESOURCE_PATH = "src/main/webapp/WEB-INF/templates/";
 	public static final String CT_TEXT_HTML = "text/html";
 	public static final String CT_PLAIN_TEXT = "text/plain";
-	public static final String TEXT_ENDING = ".txt";
-	public static final String HTML_ENDING = ".html";
+	public static final String TEXT_FOLDER = "text/";
+	public static final String HTML_FOLDER = "html/";
 
 	private final Configuration cfg;
 	private final ServletContext servletContext;
@@ -60,8 +59,8 @@ public class EmailFactory {
 		}
 	}
 
-	private void prepare(Map<String, Object> data) throws MalformedURLException {
-		if (null == data.get("msg")) {
+	private void prepare(Response rsp) throws MalformedURLException {
+		if (null == rsp.getResBundle()) {
 			ClassLoader loader = null;
 			if (null==servletContext){
 				File file = new File(LOCAL_RESOURCE_PATH+"../classes");
@@ -70,49 +69,46 @@ public class EmailFactory {
 			}else{
 				loader = EmailFactory.class.getClassLoader();
 			}
-			if (data.get("locale") instanceof String){
-				data.put("locale", new Locale((String)data.get("locale")));
-			}
 			rb = ResourceBundle.
-					getBundle((String)data.get("service"),(Locale) data.get("locale"),loader);
-			data.put("msg", new ResourceBundleModel(rb, new BeansWrapper()));
+					getBundle(rsp.getService(),rsp.getLocale(),loader);
+			rsp.setResBundle(new ResourceBundleModel(rb, new BeansWrapper()));
 		}
 	}
 
-	public String constructHtml(Map<String, Object> data, SendAction sendAction)
+	public String constructHtml(Response rsp, SendAction sendAction)
 			throws IOException, TemplateException {
-		prepare(data);
-		return processTemplate(data, sendAction, HTML_ENDING);
+		prepare(rsp);
+		return processTemplate(rsp, sendAction, HTML_FOLDER);
 	}
 
-	public String constructTxt(Map<String, Object> data, SendAction sendAction)
+	public String constructTxt(Response rsp, SendAction sendAction)
 			throws IOException, TemplateException {
-		prepare(data);
-		return processTemplate(data, sendAction, TEXT_ENDING);
+		prepare(rsp);
+		return processTemplate(rsp, sendAction, TEXT_FOLDER);
 	}
 
-	public String constructSubject(Map<String, Object> data, SendAction sendAction) throws IOException, TemplateException {
-		prepare(data);
-		String subjectPrefix= sendAction.getTemplateId((String)data.get("action"));
+	public String constructSubject(Response rsp, SendAction sendAction) throws IOException, TemplateException {
+		prepare(rsp);
+		String subjectPrefix= sendAction.getTemplateId(rsp.getAction().getText());
 		Template template = new Template("name", rb.getString(subjectPrefix+"Subject"),new Configuration()); 
 		Writer out = new StringWriter(); 
-		template.process(data, out); 
+		template.process(rsp, out); 
 		return out.toString();
 	}
 
-	public String processTemplate(Map<String, Object> data,
-			SendAction sendAction, String fileEnding) throws IOException,
+	public String processTemplate(Response rsp,
+			SendAction sendAction, String folder) throws IOException,
 			TemplateException {
 
 		// make email template
-		Template template = cfg.getTemplate(sendAction
-				.getTemplateId((String) data.get("action")) + fileEnding);
+		Template template = cfg.getTemplate(folder + sendAction
+				.getTemplateId(rsp.getAction().getText()) + ((folder.contains("html"))?".html":".txt"));
 
 		Writer stringWriter = null;
 
 		// create html mail part
 		stringWriter = new StringWriter();
-		template.process(data, stringWriter);
+		template.process(rsp, stringWriter);
 
 		stringWriter.flush();
 		return stringWriter.toString();

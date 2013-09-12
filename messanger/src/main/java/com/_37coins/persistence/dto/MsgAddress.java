@@ -1,5 +1,7 @@
 package com._37coins.persistence.dto;
 
+import java.util.Locale;
+
 import javax.jdo.annotations.Discriminator;
 import javax.jdo.annotations.DiscriminatorStrategy;
 import javax.jdo.annotations.Index;
@@ -8,6 +10,8 @@ import javax.jdo.annotations.Persistent;
 import javax.validation.constraints.NotNull;
 
 import org.restnucleus.dao.Model;
+
+import com._37coins.workflow.pojo.MessageAddress.MsgType;
 
 @PersistenceCapable
 @Discriminator(strategy = DiscriminatorStrategy.CLASS_NAME)
@@ -20,13 +24,13 @@ public class MsgAddress extends Model {
 	private Account owner;
 	
 	@Persistent
-	private String locale;
+	private Locale locale;
 	
 	@Persistent
 	private String address;
 	
 	@Persistent
-	private String type;
+	private MsgType type;
 	
 
 	public Account getOwner() {
@@ -38,11 +42,11 @@ public class MsgAddress extends Model {
 		return this;
 	}
 
-	public String getLocale() {
+	public Locale getLocale() {
 		return locale;
 	}
 
-	public MsgAddress setLocale(String locale) {
+	public MsgAddress setLocale(Locale locale) {
 		this.locale = locale;
 		return this;
 	}
@@ -56,12 +60,12 @@ public class MsgAddress extends Model {
 		return this;
 	}
 
-	public String getType() {
+	public MsgType getType() {
 		return type;
 	}
 
-	public MsgAddress setType(String type) {
-		this.type = type;
+	public MsgAddress setType(MsgType msgType) {
+		this.type = msgType;
 		return this;
 	}
 	

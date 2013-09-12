@@ -14,6 +14,30 @@ public class Withdrawal {
 	private BigDecimal fee;
 	
 	private Currency currency;
+	
+	private String txId;
+	
+	private String taskToken;
+	
+	private String confLink;
+
+	public String getTaskToken() {
+		return taskToken;
+	}
+
+	public Withdrawal setTaskToken(String taskToken) {
+		this.taskToken = taskToken;
+		return this;
+	}
+
+	public String getConfLink() {
+		return confLink;
+	}
+
+	public Withdrawal setConfLink(String confLink) {
+		this.confLink = confLink;
+		return this;
+	}
 
 	public MessageAddress getMsgDest() {
 		return msgDest;
@@ -57,6 +81,15 @@ public class Withdrawal {
 
 	public Withdrawal setFee(BigDecimal fee) {
 		this.fee = fee;
+		return this;
+	}
+
+	public String getTxId() {
+		return txId;
+	}
+
+	public Withdrawal setTxId(String txId) {
+		this.txId = txId;
 		return this;
 	}
 	

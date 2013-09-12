@@ -1,2 +1,2 @@
-${msg.UnknownAccount}
-${msg.MoreInfoSms}
+${resBundle.UnknownAccount}
+${resBundle.MoreInfoSms}

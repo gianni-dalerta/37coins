@@ -108,9 +108,10 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     
     @Asynchronous
     public void afterSend(Promise<String> data, Response rsp){
+    	Withdrawal w = (Withdrawal)rsp.getPayload();
+    	w.setTxId(data.get());
     	msgClient.sendMessage(rsp);
     	if (data.get()==null){
-    		Withdrawal w = (Withdrawal)rsp.getPayload();
     		Response rsp2 = new Response()
     			.setTo(w.getMsgDest())
     			.setPayload(new Deposit()

@@ -1,9 +1,15 @@
 package com._37coins.parse;
 
+import org.restnucleus.dao.GenericRepository;
+import org.restnucleus.dao.RNQuery;
+
+import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.workflow.pojo.IncompleteException;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.Request;
 import com._37coins.workflow.pojo.Response;
+import com._37coins.workflow.pojo.Request.ReqAction;
+import com._37coins.workflow.pojo.Response.RspAction;
 
 public abstract class RequestInterpreter{
 	
@@ -14,6 +20,7 @@ public abstract class RequestInterpreter{
 	}
 	
 	public void process(MessageAddress sender, String subject) {
+		GenericRepository dao = new GenericRepository();
 		Object rv = null;
 		try {
 			rv = mp.process(sender, subject);
@@ -24,14 +31,22 @@ public abstract class RequestInterpreter{
 		}
 		if (rv instanceof Request){
 			Request req = (Request)rv;
-			if (req.getAction()==null){
-				//we did not understand the command
-				//but if the user comes writes for the first time,
-				//then we just want to greet him and create an account
-				//check if adr exists in db
-				//if yes, respond with error
-				//if no, change action to create and process
+			RNQuery q = new RNQuery().addFilter("address", req.getFrom().getAddress());
+			MsgAddress ma = dao.queryEntity(q, MsgAddress.class, false);
+			if (null!=ma){
+				req.setAccountId(ma.getOwner().getId());
+				if (req.getAction()==null){
+					respond(new Response().respondTo(req).setAction(RspAction.UNKNOWN_COMMAND));
+				}
+			}else{
+				ma = new MsgAddress()
+					.setAddress(req.getFrom().getAddress())
+					.setLocale(req.getLocale())
+					.setType(req.getFrom().getAddressType());
+				dao.add(ma);
+				req.setAction(ReqAction.CREATE);
 			}
+			dao.closePersistenceManager();
 			switch (req.getAction()){
 			case BALANCE:
 			case CREATE:
@@ -45,8 +60,6 @@ public abstract class RequestInterpreter{
 			case HELP:
 				respond(new Response().respondTo(req));
 				break;
-			default:
-				respond(new Response().respondTo(req));
 			}
 		}else{
 			respond((Response)rv);

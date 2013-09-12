@@ -49,16 +49,16 @@
 <article class="se-content">
 	<h3 id="head2">Confirm Send</h3>
 	<p class="text">
-	${msg("WithdrawalReq",amount?string("##0.####"),receiver)}
+	${resBundle("WithdrawalReq",payload.amount?string("##0.####"),receiver)}
 
-${msg("WebConfirm",confLink)}
-${msg.EmailConfirm}
+${resBundle("WebConfirm",confLink)}
+${resBundle.EmailConfirm}
 
-${msg("byebye","37Coins")}
+${resBundle("byebye","37Coins")}
 	</p>
 </article>
 <footer>
-Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${msgAddress}">email settings</a>. 
+Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${to.address}">email settings</a>. 
 </footer>
 
 </body>

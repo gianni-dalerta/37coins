@@ -17,7 +17,7 @@ public class Response {
 		DEPOSIT("deposit"), // request a bitcoin address to receive a payment
 		SEND("send"), // send a payment
 		REQUEST("request"), // send a payment
-		SEND_CONFIRM("confirm"), 
+		SEND_CONFIRM("confirmSend"), 
 		BALANCE("balance"), // request the balance
 		RECEIVED("received"),
 		HELP("help"),
@@ -69,6 +69,10 @@ public class Response {
 	private Long accountId;
 	
 	private ResourceBundleModel resBundle;
+	
+	private String sendHash;
+	
+	private String bizUrl;
 	
 	public Response respondTo(Request req){
 		setLocale(req.getLocale());
@@ -174,6 +178,24 @@ public class Response {
 
 	public Response setResBundle(ResourceBundleModel resBundle) {
 		this.resBundle = resBundle;
+		return this;
+	}
+
+	public String getSendHash() {
+		return sendHash;
+	}
+
+	public Response setSendHash(String sendHash) {
+		this.sendHash = sendHash;
+		return this;
+	}
+
+	public String getBizUrl() {
+		return bizUrl;
+	}
+
+	public Response setBizUrl(String bizUrl) {
+		this.bizUrl = bizUrl;
 		return this;
 	}
 

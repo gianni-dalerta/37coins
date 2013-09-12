@@ -49,14 +49,14 @@
 <article class="se-content">
 	<h3 id="head2">Transaction Completed</h3>
 	<p class="text">
-	${msg("WithdrawalConf",amount,receiver)}
-	${msg("TransactionDetails",txid)}
+	${resBundle("WithdrawalConf",payload.amount,payload.receiver)}
+	${resBundle("TransactionDetails",payload.txId)}
 	
-	${msg("byebye","37Coins")}
+	${resBundle("byebye","37Coins")}
 </p>
 </article>
 <footer>
-Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${msgAddress}">email settings</a>. 
+Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${to.address}">email settings</a>. 
 </footer>
 
 </body>

@@ -1,9 +1,11 @@
 package com._37coins;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import com._37coins.activities.BitcoindActivities;
 import com._37coins.bcJsonRpc.BitcoindInterface;
+import com._37coins.bcJsonRpc.pojo.Transaction;
 import com.google.inject.Inject;
 
 public class BitcoindActivitiesImpl implements BitcoindActivities {
@@ -39,6 +41,12 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 	public Long getAccount(String bcAddress) {
 		String rv = client.getaccount(bcAddress);
 		return Long.parseLong(rv);
+	}
+
+	@Override
+	public List<Transaction> getAccountTransactions(Long accountId) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

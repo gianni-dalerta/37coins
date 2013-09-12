@@ -1,2 +1,2 @@
-${msg("Signup","37Coins")}
-${msg("HelpSms","37Coins")}
+${resBundle("Signup","37Coins")}
+${resBundle("HelpSms","37Coins")}

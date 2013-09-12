@@ -1,1 +1,1 @@
-${msg("DepositConf",amount)}
+${resBundle("DepositConf",payload.amount)}

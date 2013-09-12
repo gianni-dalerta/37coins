@@ -48,14 +48,14 @@
 <div class="big-letter-image"></div>
 <article class="se-content">
 	<h3 id="head2">Account Created</h3>
-	<p class="text">${msg("Signup","37Coins")}
-${msg("DepositReq",bcAddress)}
-${msg("MoreInfoEmail",bizUrl)}</p>
+	<p class="text">${resBundle("Signup","37Coins")}
+${resBundle("DepositReq",payload.address)}
+${resBundle("MoreInfoEmail",bizUrl)}</p>
 
-${msg("byebye","37Coins")}
+${resBundle("byebye","37Coins")}
 </article>
 <footer>
-Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${msgAddress}">email settings</a>. 
+Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${to.address}">email settings</a>. 
 </footer>
 </body>
 </html>

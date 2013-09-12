@@ -49,15 +49,15 @@
 <article class="se-content">
 	<h3 id="head2">Account Information</h3>
 	<p class="text">
-		${msg("DepositReq",bcAddress)}
-		${msg("MoreInfoEmail",bizUrl)}
+		${resBundle("DepositReq",payload.address)}
+		${resBundle("MoreInfoEmail",bizUrl)}
 		
-		${msg("byebye","37Coins")}
+		${resBundle("byebye","37Coins")}
 	</p>
 </article>
 
 <footer>
-Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${msgAddress}">email settings</a>. 
+Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${to.address}">email settings</a>. 
 </footer>
 
 </body>

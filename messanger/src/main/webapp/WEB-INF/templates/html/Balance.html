@@ -1,6 +1,6 @@
 <html>
 <head>
-	<title>${msg.BalanceSubject}</title>
+	<title>${resBundle.BalanceSubject}</title>
 	<style type="text/css">
 		  body {
 		  	background-color: #14486c;
@@ -47,14 +47,14 @@
 <body>
 <div class="big-letter-image"></div>
 <article class="se-content">
-	<h3 id="head2">${msg.BalanceSubject}</h3>
-	<p class="text">${msg("Balance",balance)}
+	<h3 id="head2">${resBundle.BalanceSubject}</h3>
+	<p class="text">${resBundle("Balance",payload.amount)}
 </article><br>
 <#escape x as x?html?replace('\n', '<br>')>
-${msg("byebye","37Coins")}
+${resBundle("byebye","37Coins")}
 </#escape>
 <footer>
-Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${msgAddress}">email settings</a>. 
+Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${to.address}">email settings</a>. 
 </footer>
 
 </body>

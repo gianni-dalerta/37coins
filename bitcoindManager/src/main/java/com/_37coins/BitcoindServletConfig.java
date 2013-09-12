@@ -31,8 +31,8 @@ import com._37coins.bcJsonRpc.BitcoindInterface;
 import com._37coins.bcJsonRpc.events.WalletListener;
 import com._37coins.bcJsonRpc.pojo.Transaction;
 import com._37coins.resources.HealthCheckResource;
-import com._37coins.workflow.DepositWorkflowClientExternal;
-import com._37coins.workflow.DepositWorkflowClientExternalFactoryImpl;
+import com._37coins.workflow.NonTxWorkflowClientExternal;
+import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
@@ -101,7 +101,7 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 					Transaction t = (Transaction)arg;
 					Map<String,Object> data = BitcoindClientFactory.txToMap(t);
 					if (null!= data.get("receive") && ((List<Map<String,Object>>)data.get("receive")).size() > 0){
-						i.getInstance(DepositWorkflowClientExternal.class).executeCommand(data);
+						i.getInstance(NonTxWorkflowClientExternal.class).executeCommand(data);
 					}else{
 						System.out.println("received unrelevant transaction: "+data.get("txid"));
 					}
@@ -180,9 +180,9 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 			}
 			
 			@Provides @Singleton @SuppressWarnings("unused")
-			public DepositWorkflowClientExternal getSWorkflowClientExternal(
+			public NonTxWorkflowClientExternal getSWorkflowClientExternal(
 					@Named("wfClient") AmazonSimpleWorkflow workflowClient) {
-				return new DepositWorkflowClientExternalFactoryImpl(
+				return new NonTxWorkflowClientExternalFactoryImpl(
 						workflowClient, domainName).getClient();
 			}
 

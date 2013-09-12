@@ -42,7 +42,7 @@ public class MessageFactory {
 		this.servletContext = servletContext;
 		if (servletContext == null) {
 			try {
-				cfg.setDirectoryForTemplateLoading(new File(LOCAL_RESOURCE_PATH+"sms/"));
+				cfg.setDirectoryForTemplateLoading(new File(LOCAL_RESOURCE_PATH+"text/"));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

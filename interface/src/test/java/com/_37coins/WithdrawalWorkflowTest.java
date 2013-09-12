@@ -19,7 +19,10 @@ import com._37coins.workflow.WithdrawalWorkflowClient;
 import com._37coins.workflow.WithdrawalWorkflowClientFactory;
 import com._37coins.workflow.WithdrawalWorkflowClientFactoryImpl;
 import com._37coins.workflow.pojo.MessageAddress;
+import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.Request;
+import com._37coins.workflow.pojo.MessageAddress.MsgType;
+import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
 import com._37coins.workflow.pojo.Request.ReqAction;
 import com._37coins.workflow.pojo.Response;
 import com._37coins.workflow.pojo.Response.RspAction;
@@ -104,20 +107,27 @@ public class WithdrawalWorkflowTest {
 		Request req = new Request()
 			.setAction(ReqAction.SEND)
 			.setAccountId(0L)
+			.setFrom(new MessageAddress()
+				.setAddressType(MsgType.SMS))
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.5").setScale(8))
 				.setFee(new BigDecimal("0.0005").setScale(8))
-				.setMsgDest(new MessageAddress()
-					.setAddress("1")));
+				.setPayDest(new PaymentAddress()
+					.setAddress("2")
+					.setAddressType(PaymentType.ACCOUNT)));
 		Promise<Void> booked = workflow.executeCommand(req);
 		Response expected = new Response()
 			.setAction(RspAction.SEND)
-			.setAccountId(0L)
+			.setService("37coins")
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.5").setScale(8))
 				.setFee(new BigDecimal("0.0005").setScale(8))
-			.setMsgDest(new MessageAddress()
-			.setAddress("1")));
+				.setTxId("txid2038942304")
+				.setPayDest(new PaymentAddress()
+					.setAddress("2")
+					.setAddressType(PaymentType.ACCOUNT)))
+			.setTo(new MessageAddress()
+				.setAddressType(MsgType.SMS));
 		AsyncAssert.assertEqualsWaitFor("successfull create", expected, trace, booked);
 	}
 

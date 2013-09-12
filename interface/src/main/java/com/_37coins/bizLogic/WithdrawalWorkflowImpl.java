@@ -8,8 +8,9 @@ import com._37coins.activities.BitcoindActivitiesClientImpl;
 import com._37coins.activities.MessagingActivitiesClient;
 import com._37coins.activities.MessagingActivitiesClientImpl;
 import com._37coins.workflow.WithdrawalWorkflow;
-import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.Deposit;
+import com._37coins.workflow.pojo.MessageAddress.MsgType;
+import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
 import com._37coins.workflow.pojo.Request;
 import com._37coins.workflow.pojo.Response;
 import com._37coins.workflow.pojo.Response.RspAction;
@@ -93,8 +94,8 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 	    				w.getAmount(), 
 	    				w.getFee(), 
 	    				rsp.get().getAccountId(), 
-	    				(w.getPayDest().getAddressType()==com._37coins.workflow.pojo.PaymentAddress.PaymentType.ACCOUNT)?Long.parseLong(w.getPayDest().getAddress()):null, 
-	    						(w.getPayDest().getAddressType()==com._37coins.workflow.pojo.PaymentAddress.PaymentType.BTC)?w.getPayDest().getAddress():null);
+	    				(w.getPayDest().getAddressType()==PaymentType.ACCOUNT)?Long.parseLong(w.getPayDest().getAddress()):null, 
+	    						(w.getPayDest().getAddressType()==PaymentType.BTC)?w.getPayDest().getAddress():null);
 	    		afterSend(tx, rsp.get());
             }
             @Override

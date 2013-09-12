@@ -174,7 +174,7 @@ public class MessageParser {
 		
 		if (req.getAction() == ReqAction.SEND){
 			int pos = (ca[1].length() > ca[2].length()) ? 1 : 2;
-			Withdrawal w = (Withdrawal)req.getPayload();
+			Withdrawal w = new Withdrawal();
 			if (!readReceiver(w, ca[pos]) 
 					|| !readAmount(w, ca[(pos == 1) ? 2 : 1])) {
 				return new Response()
@@ -182,6 +182,7 @@ public class MessageParser {
 					.setAction(RspAction.FORMAT_ERROR)
 					.validate();
 			}
+			req.setPayload(w);
 		}
 		return req;
 	}

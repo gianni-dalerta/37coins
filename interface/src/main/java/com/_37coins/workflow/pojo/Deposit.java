@@ -3,6 +3,10 @@ package com._37coins.workflow.pojo;
 import java.math.BigDecimal;
 import java.util.Currency;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
+@JsonInclude(Include.NON_NULL)
 public class Deposit {
 	
 	private BigDecimal amount;

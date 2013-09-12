@@ -1,14 +1,17 @@
 package com._37coins.parse;
 
+import java.util.Locale;
+
 import org.restnucleus.dao.GenericRepository;
 import org.restnucleus.dao.RNQuery;
 
+import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.workflow.pojo.IncompleteException;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.Request;
-import com._37coins.workflow.pojo.Response;
 import com._37coins.workflow.pojo.Request.ReqAction;
+import com._37coins.workflow.pojo.Response;
 import com._37coins.workflow.pojo.Response.RspAction;
 
 public abstract class RequestInterpreter{
@@ -42,9 +45,14 @@ public abstract class RequestInterpreter{
 				ma = new MsgAddress()
 					.setAddress(req.getFrom().getAddress())
 					.setLocale(req.getLocale())
-					.setType(req.getFrom().getAddressType());
+					.setType(req.getFrom().getAddressType())
+					.setOwner(new Account());
 				dao.add(ma);
 				req.setAction(ReqAction.CREATE);
+				req.setAccountId(ma.getOwner().getId());
+				if (null==req.getLocale()){
+					req.setLocale(new Locale("en"));
+				}
 			}
 			dao.closePersistenceManager();
 			switch (req.getAction()){

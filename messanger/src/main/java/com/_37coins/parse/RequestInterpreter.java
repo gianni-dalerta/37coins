@@ -81,6 +81,7 @@ public abstract class RequestInterpreter{
 					}
 					RNQuery gwQ = new RNQuery().addFilter("address", req.getFrom().getGateway());
 					Gateway gw = dao.queryEntity(gwQ, Gateway.class);
+					System.out.println("fee read from db:"+gw.getFee().setScale(8));
 					w.setFee(gw.getFee().setScale(8,RoundingMode.UP));
 					w.setFeeAccount(gw.getOwner().getId().toString());
 					startWithdrawal(req);

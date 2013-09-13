@@ -47,6 +47,7 @@ public class smsIT {
 	static NonTxWorkflowClientExternalFactory factory;
 	ObjectMapper om = new ObjectMapper();
 	static Set<String> created = new HashSet<>();
+	static BigDecimal FEE = new BigDecimal("0.0001").setScale(8);
 	static String GATEWAY = "821012345678";
 	static String SENDER1 = "01027423984";
 	static String SENDER2 = "01023456789";
@@ -66,7 +67,7 @@ public class smsIT {
 		given()
 			.formParam("ownerAddress", "schatzmeister@37coins.com")
 			.formParam("address", GATEWAY)
-			.formParam("fee", "0.0001")
+			.formParam("fee", FEE)
 		.when()
 			.post(restUrl + GatewayResource.PATH);
 		//connect to message bus
@@ -216,8 +217,15 @@ public class smsIT {
 	}
 	
 	@Test
-	public void testInsufficientFunds(){
-		throw new RuntimeException("not implemented");
+	public void testInsufficientFunds() throws JsonParseException, JsonMappingException, IOException{
+		BigDecimal amount = new BigDecimal("1000.01").setScale(8);
+		create(SENDER2);
+		create(SENDER1);
+		exec("send "+amount.setScale(2)+" 01023456789");
+		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
+		System.out.println(message);
+		Assert.assertTrue(message.contains("BTC, required for transaction: "+amount.add(FEE)+" BTC."));
+		Assert.assertTrue(message.length()<160);
 	}
 
 }

@@ -1,0 +1,2 @@
+<#setting locale=locale>
+${resBundle("InsufficientFunds",payload.balance?string("#,##0.########"),payload.amount?string("#,##0.########"))}

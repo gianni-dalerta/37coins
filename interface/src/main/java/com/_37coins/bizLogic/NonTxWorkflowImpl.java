@@ -70,8 +70,7 @@ public class NonTxWorkflowImpl implements NonTxWorkflow {
 		Response rsp = new Response()
 			.respondTo(req)
 			.setPayload(new Deposit()
-				.setAmount(balance.get())
-				.setCurrency(null));
+				.setBalance(balance.get()));
 		msgClient.sendMessage(rsp);
 	}
 	

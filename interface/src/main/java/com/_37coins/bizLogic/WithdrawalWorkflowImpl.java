@@ -52,11 +52,14 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     	if (w.getCurrency()!=null){
     		throw new RuntimeException("currency conversion not implemented");
     	}
-    	BigDecimal amount = w.getAmount();
-    	BigDecimal fee = w.getFee();
-    	if (balance.get().compareTo(amount.add(fee))<0){
+    	BigDecimal amount = w.getAmount().setScale(8);
+    	BigDecimal fee = w.getFee().setScale(8);
+    	if (balance.get().compareTo(amount.add(fee).setScale(8))<0){
     		Response rsp = new Response()
     			.respondTo(req)
+    			.setPayload(new Deposit()
+    				.setAmount(amount.add(fee).setScale(8))
+    				.setBalance(balance.get()))
     			.setAction(RspAction.INSUFISSIENT_FUNDS);
     		Promise<Void> fail = msgClient.sendMessage(rsp);
     		fail(fail);

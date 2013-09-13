@@ -1,1 +1,1 @@
-${resBundle("Balance",payload.amount)}
+${resBundle("Balance",payload.balance)}

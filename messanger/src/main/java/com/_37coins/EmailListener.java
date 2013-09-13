@@ -11,8 +11,8 @@ import javax.mail.internet.InternetAddress;
 import com._37coins.parse.MessageParser;
 import com._37coins.parse.RequestInterpreter;
 import com._37coins.sendMail.MailTransporter;
-import com._37coins.workflow.NonTxWorkflowClientExternal;
-import com._37coins.workflow.WithdrawalWorkflowClientExternal;
+import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
+import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.Request;
@@ -24,10 +24,10 @@ import freemarker.template.TemplateException;
 public class EmailListener implements MessageCountListener{
 	
 	@Inject 
-	WithdrawalWorkflowClientExternal withdrawalClient;
+	WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory;
 	
 	@Inject 
-	NonTxWorkflowClientExternal nonTxClient;
+	NonTxWorkflowClientExternalFactoryImpl nonTxFactory;
 	
 	@Inject
 	MailTransporter mt;
@@ -62,11 +62,11 @@ public class EmailListener implements MessageCountListener{
 			RequestInterpreter ri = new RequestInterpreter(mp) {							
 				@Override
 				public void startWithdrawal(Request req) {
-					withdrawalClient.executeCommand(req);
+					withdrawalFactory.getClient().executeCommand(req);
 				}
 				@Override
 				public void startDeposit(Request req) {
-					nonTxClient.executeCommand(req);
+					nonTxFactory.getClient().executeCommand(req);
 				}
 				@Override
 				public void respond(Response rsp) {

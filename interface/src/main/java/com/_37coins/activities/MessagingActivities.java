@@ -15,5 +15,9 @@ public interface MessagingActivities {
     @Activity(name = "SendConfirmation", version = "0.4")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 3600)	
 	void sendConfirmation(Response rsp);
+
+    @Activity(name = "ReadMessageAddress", version = "0.2")
+    @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 10)
+    Response readMessageAddress(Response data);
     
 }

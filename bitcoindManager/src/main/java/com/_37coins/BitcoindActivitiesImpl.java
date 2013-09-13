@@ -1,6 +1,7 @@
 package com._37coins;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import com._37coins.activities.BitcoindActivities;
@@ -14,9 +15,9 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 	BitcoindInterface client;
 
 	@Override
-	public String sendTransaction(BigDecimal amount, BigDecimal fee, Long fromId, Long toId, String toAddress){
+	public String sendTransaction(BigDecimal amount, BigDecimal fee, Long fromId, String toId, String toAddress){
 		if (null!=toId){
-			boolean rv = client.move(fromId.toString(), toId.toString(), amount);
+			boolean rv = client.move(fromId.toString(), toId, amount);
 			if (!rv){
 				throw new RuntimeException("move failed."); 
 			}
@@ -29,7 +30,9 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 
 	@Override
 	public BigDecimal getAccountBalance(Long accountId) {
-		return client.getbalance(accountId.toString(), 0);
+		BigDecimal rv = client.getbalance(accountId.toString(), 0);
+		rv = rv.setScale(8, RoundingMode.DOWN);
+		return rv;
 	}
 	
 	@Override

@@ -13,7 +13,10 @@ public class Deposit {
 	
 	private Currency currency;
 
-
+	private BigDecimal balance;
+	
+	private String txId;
+	
 	public BigDecimal getAmount() {
 		return amount;
 	}
@@ -32,5 +35,24 @@ public class Deposit {
 		return this;
 	}
 
+	public BigDecimal getBalance() {
+		return balance;
+	}
+
+	public Deposit setBalance(BigDecimal balance) {
+		this.balance = balance;
+		return this;
+	}
+
+	public String getTxId() {
+		return txId;
+	}
+
+	public Deposit setTxId(String txId) {
+		this.txId = txId;
+		return this;
+	}
+
+	
 	
 }

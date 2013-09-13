@@ -30,6 +30,7 @@ import com._37coins.pojo.SendAction;
 import com._37coins.pojo.ServiceEntry;
 import com._37coins.pojo.ServiceList;
 import com._37coins.resources.EnvayaSmsResource;
+import com._37coins.resources.GatewayResource;
 import com._37coins.resources.HealthCheckResource;
 import com._37coins.resources.PreferenceResource;
 import com._37coins.resources.WithdrawalResource;
@@ -37,9 +38,7 @@ import com._37coins.sendMail.AmazonEmailClient;
 import com._37coins.sendMail.EmailFactory;
 import com._37coins.sendMail.MailServiceClient;
 import com._37coins.sendMail.SmtpEmailClient;
-import com._37coins.workflow.NonTxWorkflowClientExternal;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
-import com._37coins.workflow.WithdrawalWorkflowClientExternal;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -153,6 +152,7 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 				cs.add(EnvayaSmsResource.class);
 				cs.add(WithdrawalResource.class);
 				cs.add(HealthCheckResource.class);
+				cs.add(GatewayResource.class);
 				return cs;
 			}
 			
@@ -214,22 +214,18 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 				return workflowWorker;
 			}
 			
-			@Provides
-			@Singleton
-			@SuppressWarnings("unused")
-			public NonTxWorkflowClientExternal getDWorkflowClientExternal(
+			@Provides @Singleton @SuppressWarnings("unused")
+			public NonTxWorkflowClientExternalFactoryImpl getDWorkflowClientExternal(
 					@Named("wfClient") AmazonSimpleWorkflow workflowClient) {
 				return new NonTxWorkflowClientExternalFactoryImpl(
-						workflowClient, domainName).getClient();
+						workflowClient, domainName);
 			}
 
-			@Provides
-			@Singleton
-			@SuppressWarnings("unused")
-			public WithdrawalWorkflowClientExternal getSWorkflowClientExternal(
+			@Provides @Singleton @SuppressWarnings("unused")
+			public WithdrawalWorkflowClientExternalFactoryImpl getSWorkflowClientExternal(
 					@Named("wfClient") AmazonSimpleWorkflow workflowClient) {
 				return new WithdrawalWorkflowClientExternalFactoryImpl(
-						workflowClient, domainName).getClient();
+						workflowClient, domainName);
 			}
 			
 			@Provides @Named("wfClient") @Singleton @SuppressWarnings("unused")

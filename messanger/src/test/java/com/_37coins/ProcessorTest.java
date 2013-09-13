@@ -1,6 +1,7 @@
 package com._37coins;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,11 +18,12 @@ import org.restnucleus.dao.Model;
 import com._37coins.parse.MessageParser;
 import com._37coins.parse.RequestInterpreter;
 import com._37coins.persistence.dto.Account;
+import com._37coins.persistence.dto.Gateway;
 import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.PaymentAddress;
-import com._37coins.workflow.pojo.Request;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
+import com._37coins.workflow.pojo.Request;
 import com._37coins.workflow.pojo.Request.ReqAction;
 import com._37coins.workflow.pojo.Response;
 import com._37coins.workflow.pojo.Response.RspAction;
@@ -30,6 +32,8 @@ import com._37coins.workflow.pojo.Withdrawal;
 public class ProcessorTest{
 	static MessageParser ep =null;
 	GenericRepository gr = null;
+	static final MessageAddress SENDER1= new MessageAddress().setAddress("testtest@37coins.com").setGateway("123");
+	static final MessageAddress SENDER2= new MessageAddress().setAddress("test3@37coins.com").setGateway("123");
 	
 	@Before
 	public void before(){
@@ -38,8 +42,13 @@ public class ProcessorTest{
 			gr = new GenericRepository();
 			List<Account> accounts = new ArrayList<>();
 			accounts.add(new Account());
+			accounts.add(new Account());
+			List<Gateway> gws = new ArrayList<>();
+			gws.add(new Gateway().setOwner(accounts.get(0)).setAddress("123").setFee(new BigDecimal("0.002").setScale(8,RoundingMode.UP)));
 			List<MsgAddress> addrs = new ArrayList<>();
-			addrs.add(new MsgAddress().setAddress("test@37coins.com").setOwner(accounts.get(0)));
+			addrs.add(new MsgAddress().setAddress("testtest@37coins.com").setOwner(accounts.get(0)).setGateway(gws.get(0)));
+			addrs.add(new MsgAddress().setAddress("test2@37coins.com").setOwner(accounts.get(1)));
+			addrs.add(new MsgAddress().setAddress("01029382039").setOwner(accounts.get(1)).setGateway(gws.get(0)));
 			Map<Class<? extends Model>, List<? extends Model>> data = new HashMap<Class<? extends Model>, List<? extends Model>>();
 			data.put(Account.class, accounts);
 			data.put(MsgAddress.class, addrs);
@@ -83,14 +92,13 @@ public class ProcessorTest{
 					.setAction(ReqAction.BALANCE)
 					.setLocale(new Locale("en"))
 					.setAccountId(req.getAccountId())
-					.setFrom(new MessageAddress()
-						.setAddress("test@37coins.com"));
+					.setFrom(SENDER1);
 				Assert.assertEquals(expected, req);
 			}
 			@Override
 			public void respond(Response rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(new MessageAddress().setAddress("test@37coins.com"), " balance");
+		ri.process(SENDER1, " balance");
 	}
 	
 	@Test
@@ -106,14 +114,13 @@ public class ProcessorTest{
 					.setAccountId(0L)
 					.setService("37coins")
 					.setLocale(new Locale("en"))
-					.setFrom(new MessageAddress()
-						.setAddress("test@37coins.com"));
+					.setFrom(SENDER1);
 				Assert.assertEquals(expected, req);
 			}
 			@Override
 			public void respond(Response rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(new MessageAddress().setAddress("test@37coins.com"), "Create");
+		ri.process(SENDER1, "Create");
 	}
 	
 	@Test
@@ -127,14 +134,14 @@ public class ProcessorTest{
 			public void respond(Response rsp) {
 				Response expected = new Response()
 				.setAction(RspAction.HELP)
+				.setAccountId(0L)
 				.setLocale(new Locale("ko"))
 				.setService("37coins")
-				.setTo(new MessageAddress()
-					.setAddress("test@37coins.com"));
+				.setTo(SENDER1);
 			Assert.assertEquals(expected, rsp);
 			}
 		};
-		ri.process(new MessageAddress().setAddress("test@37coins.com"), "도움");
+		ri.process(SENDER1, "도움");
 	}
 	
 	@Test
@@ -146,16 +153,15 @@ public class ProcessorTest{
 			public void startDeposit(Request req) {
 				Request expected = new Request()
 					.setAction(ReqAction.CREATE)
-					.setAccountId(1L)
+					.setAccountId(req.getAccountId())
 					.setLocale(new Locale("en"))
-					.setFrom(new MessageAddress()
-						.setAddress("test3@37coins.com"));
+					.setFrom(SENDER2);
 				Assert.assertEquals(expected, req);
 			}
 			@Override
 			public void respond(Response rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(new MessageAddress().setAddress("test3@37coins.com"), "bla");
+		ri.process(SENDER2, "bla");
 	}
 	
 	@Test
@@ -169,14 +175,13 @@ public class ProcessorTest{
 					.setAction(ReqAction.DEPOSIT)
 					.setLocale(new Locale("en"))
 					.setAccountId(0L)
-					.setFrom(new MessageAddress()
-						.setAddress("test@37coins.com"));
+					.setFrom(SENDER1);
 				Assert.assertEquals(expected, req);
 			}
 			@Override
 			public void respond(Response rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(new MessageAddress().setAddress("test@37coins.com"), "DEPOSIT ");
+		ri.process(SENDER1, "DEPOSIT ");
 	}
 	
 	@Test
@@ -189,12 +194,16 @@ public class ProcessorTest{
 				.setLocale(new Locale("en"))
 				.setService("37coins")
 				.setAccountId(0L)
-				.setFrom(new MessageAddress()
-					.setAddress("test@37coins.com"))
+				.setFrom(SENDER1)
 				.setPayload(new Withdrawal()
 					.setAmount(new BigDecimal("0.1"))
 					.setMsgDest(new MessageAddress()
-						.setAddress("test2@37coins.com")));
+						.setAddress("test2@37coins.com"))
+					.setPayDest(new PaymentAddress()
+						.setAddress("0")
+						.setAddressType(PaymentType.ACCOUNT))
+					.setFee(new BigDecimal("0.002"))
+					.setFeeAccount("0"));
 				Assert.assertEquals(expected, req);
 			}
 			@Override
@@ -202,7 +211,7 @@ public class ProcessorTest{
 			@Override
 			public void respond(Response rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(new MessageAddress().setAddress("test@37coins.com"), "send 0.1 test2@37coins.com");
+		ri.process(SENDER1, "send 0.1 test2@37coins.com");
 	}
 	
 	
@@ -216,12 +225,16 @@ public class ProcessorTest{
 				.setLocale(new Locale("en"))
 				.setService("37coins")
 				.setAccountId(0L)
-				.setFrom(new MessageAddress()
-					.setAddress("test@37coins.com"))
+				.setFrom(SENDER1)
 				.setPayload(new Withdrawal()
 					.setAmount(new BigDecimal("0.1"))
 					.setMsgDest(new MessageAddress()
-						.setAddress("test2@37coins.com")));
+						.setAddress("test2@37coins.com"))
+					.setPayDest(new PaymentAddress()
+						.setAddress("0")
+						.setAddressType(PaymentType.ACCOUNT))
+					.setFee(new BigDecimal("0.002"))
+					.setFeeAccount("0"));
 				Assert.assertEquals(expected, req);
 			}
 			@Override
@@ -229,7 +242,7 @@ public class ProcessorTest{
 			@Override
 			public void respond(Response rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(new MessageAddress().setAddress("test@37coins.com"), "send test2@37coins.com 0.1");
+		ri.process(SENDER1, "send test2@37coins.com 0.1");
 	}
 	
 	@Test
@@ -241,12 +254,16 @@ public class ProcessorTest{
 					.setAction(ReqAction.SEND)
 					.setLocale(new Locale("en"))
 					.setAccountId(0L)
-					.setFrom(new MessageAddress()
-						.setAddress("test@37coins.com"))
+					.setFrom(SENDER1)
 					.setPayload(new Withdrawal()
-						.setAmount(new BigDecimal("0.1"))
+						.setAmount(new BigDecimal("0.1").setScale(8))
 						.setMsgDest(new MessageAddress()
-							.setAddress("01029382039")));
+							.setAddress("01029382039"))
+						.setPayDest(new PaymentAddress()
+							.setAddress("0")
+							.setAddressType(PaymentType.ACCOUNT))
+						.setFee(new BigDecimal("0.002"))
+						.setFeeAccount("0"));
 				Assert.assertEquals(expected, req);
 			}
 			@Override
@@ -254,7 +271,7 @@ public class ProcessorTest{
 			@Override
 			public void respond(Response rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(new MessageAddress().setAddress("test@37coins.com"), "send 0.1 01029382039");
+		ri.process(SENDER1, "send 0.1 01029382039");
 	}
 	
 	@Test
@@ -267,13 +284,14 @@ public class ProcessorTest{
 					.setLocale(new Locale("en"))
 					.setAccountId(0L)
 					.setService("37coins")
-					.setFrom(new MessageAddress()
-						.setAddress("test@37coins.com"))
+					.setFrom(SENDER1)
 					.setPayload(new Withdrawal()
-						.setAmount(new BigDecimal("0.1"))
+						.setAmount(new BigDecimal("0.1").setScale(8))
 						.setPayDest(new PaymentAddress()
 							.setAddress("1BLyr8ydFDcbgU9TUPy7NiGSCbq89hBiUf")
-							.setAddressType(PaymentType.BTC)));
+							.setAddressType(PaymentType.BTC))
+						.setFee(new BigDecimal("0.002").setScale(8))
+						.setFeeAccount("0"));
 				Assert.assertEquals(expected, req);
 				}
 			@Override
@@ -281,7 +299,7 @@ public class ProcessorTest{
 			@Override
 			public void respond(Response rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(new MessageAddress().setAddress("test@37coins.com"), "send 0.1 1BLyr8ydFDcbgU9TUPy7NiGSCbq89hBiUf");
+		ri.process(SENDER1, "send 0.1 1BLyr8ydFDcbgU9TUPy7NiGSCbq89hBiUf");
 	}	
 	
 	@Test
@@ -293,13 +311,14 @@ public class ProcessorTest{
 					.setAction(ReqAction.SEND)
 					.setLocale(new Locale("en"))
 					.setAccountId(0L)
-					.setFrom(new MessageAddress()
-						.setAddress("test@37coins.com"))
+					.setFrom(SENDER1)
 					.setPayload(new Withdrawal()
-						.setAmount(new BigDecimal("0.1"))
+						.setAmount(new BigDecimal("0.1").setScale(8))
 						.setPayDest(new PaymentAddress()
 							.setAddress("mhYxdhvp9kuLypKC3ux6oMPyKTfGm5GaVP")
-							.setAddressType(PaymentType.BTC)));
+							.setAddressType(PaymentType.BTC))
+						.setFee(new BigDecimal("0.002").setScale(8))
+						.setFeeAccount("0"));
 				Assert.assertEquals(expected, req);
 			}
 			@Override
@@ -307,7 +326,7 @@ public class ProcessorTest{
 			@Override
 			public void respond(Response rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(new MessageAddress().setAddress("test@37coins.com"), "send 0.1 mhYxdhvp9kuLypKC3ux6oMPyKTfGm5GaVP");
+		ri.process(SENDER1, "send 0.1 mhYxdhvp9kuLypKC3ux6oMPyKTfGm5GaVP");
 	}	
 	
 	@Test
@@ -323,12 +342,11 @@ public class ProcessorTest{
 				.setAction(RspAction.FORMAT_ERROR)
 				.setLocale(new Locale("en"))
 				.setService("37coins")
-				.setTo(new MessageAddress()
-					.setAddress("test@37coins.com"));
+				.setTo(SENDER1);
 			Assert.assertEquals(expected, rsp);
 			}
 		};
-		ri.process(new MessageAddress().setAddress("test@37coins.com"), "send 0.1 mhYxdhvp9kuLypKC3u123MPyKTfGm5GaVP");
+		ri.process(SENDER1, "send 0.1 mhYxdhvp9kuLypKC3u123MPyKTfGm5GaVP");
 	}	
 	
 	@Test
@@ -343,8 +361,7 @@ public class ProcessorTest{
 				Response expected = new Response()
 				.setAction(RspAction.REQUEST)
 				.setLocale(new Locale("en"))
-				.setTo(new MessageAddress()
-					.setAddress("test@37coins.com"))
+				.setTo(SENDER1)
 				.setPayload(new Withdrawal()
 					.setAmount(new BigDecimal("0.1"))
 					.setMsgDest(new MessageAddress()
@@ -352,6 +369,6 @@ public class ProcessorTest{
 			Assert.assertEquals(expected, rsp);
 			}
 		};
-		ri.process(new MessageAddress().setAddress("test@37coins.com"), "request test2@37coins.com 0.1");
+		ri.process(SENDER1, "request test2@37coins.com 0.1");
 	}
 }

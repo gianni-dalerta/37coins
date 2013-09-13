@@ -33,22 +33,22 @@ public class NonTxWorkflowImpl implements NonTxWorkflow {
 					||req.getAction()==ReqAction.CREATE){
 				Promise<String> bcAddress = bcdClient.getNewAddress(req.getAccountId());
 				respondDeposit(bcAddress, req);
-			}
-
-			if (req.getAction()==ReqAction.BALANCE){
+			}else if (req.getAction()==ReqAction.BALANCE){
 				Promise<BigDecimal> balance = bcdClient.getAccountBalance(req.getAccountId());
 				respondBalance(balance, req);
-			}
-			
-			if (req.getAction()==ReqAction.TRANSACTION){
+			}else if (req.getAction()==ReqAction.TRANSACTION){
 				Promise<List<Transaction>> transactions = bcdClient.getAccountTransactions(req.getAccountId());
 				respondTransactions(transactions, req);
+			}else{
+				throw new RuntimeException("unknown action");
 			}
-		}else{
+		}else {
 			Response rsp = (Response)msg;
 			if (rsp.getAction() == RspAction.RECEIVED){
 				Promise<BigDecimal> balance = bcdClient.getAccountBalance(rsp.getAccountId());
 				respondReceived(balance, rsp);
+			}else{
+				throw new RuntimeException("unknown action");
 			}
 		}
 		
@@ -85,10 +85,10 @@ public class NonTxWorkflowImpl implements NonTxWorkflow {
 	
 	@Asynchronous
 	public void respondReceived(Promise<BigDecimal> balance,Response rsp){
-		rsp.setPayload(new Deposit()
-			.setAmount(balance.get())
-			.setCurrency(null));
-		msgClient.sendMessage(rsp);
+		Deposit dep = (Deposit)rsp.getPayload();
+		dep.setBalance(balance.get());
+		Promise<Response> addr = msgClient.readMessageAddress(rsp);
+		msgClient.sendMessage(addr);
 	}
 
 }

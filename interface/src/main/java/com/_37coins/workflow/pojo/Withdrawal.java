@@ -17,6 +17,8 @@ public class Withdrawal {
 	
 	private BigDecimal fee;
 	
+	private String feeAccount;
+	
 	private Currency currency;
 	
 	private String txId;
@@ -24,6 +26,7 @@ public class Withdrawal {
 	private String taskToken;
 	
 	private String confLink;
+
 
 	public String getTaskToken() {
 		return taskToken;
@@ -94,6 +97,15 @@ public class Withdrawal {
 
 	public Withdrawal setTxId(String txId) {
 		this.txId = txId;
+		return this;
+	}
+
+	public String getFeeAccount() {
+		return feeAccount;
+	}
+
+	public Withdrawal setFeeAccount(String feeAccount) {
+		this.feeAccount = feeAccount;
 		return this;
 	}
 	

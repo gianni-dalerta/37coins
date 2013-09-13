@@ -18,7 +18,7 @@ import org.restnucleus.inject.ContextFactory;
 import org.restnucleus.inject.PersistenceModule;
 import org.restnucleus.test.AbstractDataHelper;
 
-import com._37coins.persistence.dto.MailAddress;
+import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.persistence.dto.SendJournal;
 import com._37coins.pojo.SendAction;
 import com._37coins.pojo.ServiceEntry;
@@ -80,13 +80,13 @@ public class PreferenceTest  extends AbstractDataHelper {
 	@Override
 	public Map<Class<? extends Model>, List<? extends Model>> getData() {
 		sl = ServiceList.initialize(null);
-		List<MailAddress> mails = new ArrayList<>();
-		MailAddress ma = MailAddress.prepareNewMail("test@37coins.com", new ServiceList("37coins", sl));
+		List<MsgAddress> mails = new ArrayList<>();
+		MsgAddress ma = MsgAddress.prepareNewMail("test@37coins.com", new ServiceList("37coins", sl));
 		mails.add(ma);
 		List<SendJournal> journals = new ArrayList<>();
 		journals.add(new SendJournal().setHash("123").setDestination(ma));
 		Map<Class<? extends Model>, List<? extends Model>> data = new HashMap<Class<? extends Model>, List<? extends Model>>();
-		data.put(MailAddress.class, mails);
+		data.put(MsgAddress.class, mails);
 		data.put(SendJournal.class, journals);
 		return data;
 	}

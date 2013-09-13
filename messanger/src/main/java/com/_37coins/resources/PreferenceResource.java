@@ -12,13 +12,12 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restnucleus.dao.GenericRepository;
 import org.restnucleus.dao.RNQuery;
 
-import com._37coins.persistence.dto.MailAddress;
+import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.persistence.dto.SendJournal;
 import com._37coins.pojo.ServiceEntry;
 import com._37coins.pojo.ServiceList;
@@ -65,7 +64,7 @@ public class PreferenceResource {
 			@QueryParam("address") String addressString,
 			@QueryParam("service") String serviceName,
 			@QueryParam("hash") String hash) {
-		MailAddress address = dao.queryEntity(
+		MsgAddress address = dao.queryEntity(
 				new RNQuery().addFilter("hash", hash),SendJournal.class)
 				.getDestination();
 		if (!address.getAddress().equalsIgnoreCase(addressString)){

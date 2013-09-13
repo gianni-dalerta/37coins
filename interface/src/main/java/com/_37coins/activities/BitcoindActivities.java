@@ -11,9 +11,9 @@ import com.amazonaws.services.simpleworkflow.flow.annotations.ActivityRegistrati
 @Activities
 public interface BitcoindActivities {
 	
-    @Activity(name = "SendTransaction", version = "0.3")
+    @Activity(name = "SendTransaction", version = "0.4")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
-    String sendTransaction(BigDecimal amount, BigDecimal fee, Long fromId, Long toId, String toAddress);
+    String sendTransaction(BigDecimal amount, BigDecimal fee, Long fromId, String toId, String toAddress);
     
     @Activity(name = "getAccountBalance", version = "0.2")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)

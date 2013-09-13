@@ -2,15 +2,19 @@ package com._37coins;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Set;
@@ -30,9 +34,12 @@ import com._37coins.bcJsonRpc.BitcoindClientFactory;
 import com._37coins.bcJsonRpc.BitcoindInterface;
 import com._37coins.bcJsonRpc.events.WalletListener;
 import com._37coins.bcJsonRpc.pojo.Transaction;
+import com._37coins.bcJsonRpc.pojo.Transaction.Category;
 import com._37coins.resources.HealthCheckResource;
-import com._37coins.workflow.NonTxWorkflowClientExternal;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
+import com._37coins.workflow.pojo.Deposit;
+import com._37coins.workflow.pojo.Response;
+import com._37coins.workflow.pojo.Response.RspAction;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
@@ -58,8 +65,6 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 	public static URL bcdUrl;
 	public static String bcdUser;
 	public static String bcdPassword;
-	public static BigDecimal fee;
-	public static String feeAddress;
 	public static Logger log = LoggerFactory.getLogger(BitcoindServletConfig.class);
 	static {
 		JaxrsApiReader.setFormatString("");
@@ -77,8 +82,6 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 		}
 		bcdUser = System.getProperty("user");
 		bcdPassword = System.getProperty("password");
-		fee = new BigDecimal(System.getProperty("fee"));
-		feeAddress = System.getProperty("feeAddress");
 	}
 	private ServletContext servletContext;
 	private ActivityWorker activityWorker;
@@ -95,15 +98,35 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 		
 		try {
 			new WalletListener(client).addObserver(new Observer() {
-				@SuppressWarnings("unchecked")
 				@Override
 				public void update(Observable o, Object arg) {
 					Transaction t = (Transaction)arg;
-					Map<String,Object> data = BitcoindClientFactory.txToMap(t);
-					if (null!= data.get("receive") && ((List<Map<String,Object>>)data.get("receive")).size() > 0){
-						i.getInstance(NonTxWorkflowClientExternal.class).executeCommand(data);
-					}else{
-						System.out.println("received unrelevant transaction: "+data.get("txid"));
+					//group transaction inputs by account
+					Map<String,List<Transaction>> txGrouping = new HashMap<>();
+					for (Transaction tx : t.getDetails()){
+						if (tx.getCategory()==Category.RECEIVE && tx.getAccount()!=null){
+							if (txGrouping.containsKey(tx.getAccount())){
+								txGrouping.get(tx.getAccount()).add(tx);
+							}else{
+								List<Transaction> set = new ArrayList<>();
+								set.add(tx);
+								txGrouping.put(tx.getAccount(), set);
+							}
+						}
+					}					
+					//start a workflow for each account concerned by transaction
+					for (Entry<String,List<Transaction>> e : txGrouping.entrySet()){
+						BigDecimal sum = BigDecimal.ZERO.setScale(0); 
+						for (Transaction tx : e.getValue()){
+							sum = sum.add(tx.getAmount().setScale(8,RoundingMode.UNNECESSARY)).setScale(0, RoundingMode.UNNECESSARY);
+						}
+						Response rsp = new Response()
+						.setAccountId(Long.parseLong(e.getKey()))
+						.setPayload(new Deposit()
+							.setTxId(t.getTxid())
+							.setAmount(sum.setScale(8, RoundingMode.FLOOR)))
+						.setAction(RspAction.RECEIVED);
+						i.getInstance(NonTxWorkflowClientExternalFactoryImpl.class).getClient().executeCommand(rsp);
 					}
 				}
 			});
@@ -180,10 +203,10 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 			}
 			
 			@Provides @Singleton @SuppressWarnings("unused")
-			public NonTxWorkflowClientExternal getSWorkflowClientExternal(
+			public NonTxWorkflowClientExternalFactoryImpl getSWorkflowClientExternal(
 					@Named("wfClient") AmazonSimpleWorkflow workflowClient) {
 				return new NonTxWorkflowClientExternalFactoryImpl(
-						workflowClient, domainName).getClient();
+						workflowClient, domainName);
 			}
 
 		});

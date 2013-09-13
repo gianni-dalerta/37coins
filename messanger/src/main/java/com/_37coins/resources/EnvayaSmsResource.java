@@ -19,8 +19,8 @@ import com._37coins.MessagingServletConfig;
 import com._37coins.envaya.QueueClient;
 import com._37coins.parse.MessageParser;
 import com._37coins.parse.RequestInterpreter;
-import com._37coins.workflow.NonTxWorkflowClientExternal;
-import com._37coins.workflow.WithdrawalWorkflowClientExternal;
+import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
+import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.Request;
@@ -46,6 +46,12 @@ public class EnvayaSmsResource {
 
 	@Inject
 	Injector i;
+	
+	@Inject
+	NonTxWorkflowClientExternalFactoryImpl nonTxFactory;
+	
+	@Inject
+	WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory;
 	
 	@Log
 	Logger log;
@@ -87,21 +93,20 @@ public class EnvayaSmsResource {
 			break;
 		case "incoming":
 			if (messageType.equalsIgnoreCase("sms")) {
-				
 				MessageAddress md = new MessageAddress()
-				.setAddress(from)
-				.setAddressType(MsgType.SMS)
-				.setGateway(phoneNumber);
+					.setAddress(from)
+					.setAddressType(MsgType.SMS)
+					.setGateway(phoneNumber);
 				
 				//implement actions
 				RequestInterpreter ri = new RequestInterpreter(mp) {							
 					@Override
 					public void startWithdrawal(Request req) {
-						i.getInstance(WithdrawalWorkflowClientExternal.class).executeCommand(req);
+						withdrawalFactory.getClient().executeCommand(req);
 					}
 					@Override
 					public void startDeposit(Request req) {
-						i.getInstance(NonTxWorkflowClientExternal.class).executeCommand(req);
+						nonTxFactory.getClient().executeCommand(req);
 					}
 					@Override
 					public void respond(Response rsp) {

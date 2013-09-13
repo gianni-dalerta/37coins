@@ -2,10 +2,16 @@ package com._37coins;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Set;
+
+import org.restnucleus.dao.GenericRepository;
 
 import com._37coins.activities.MessagingActivities;
 import com._37coins.envaya.QueueClient;
+import com._37coins.persistence.dto.Account;
+import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.sendMail.MailTransporter;
+import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.Response;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContext;
@@ -59,6 +65,28 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 	}
 
 
+	@Override
+	public Response readMessageAddress(Response data) {
+		GenericRepository dao = new GenericRepository();
+		try{
+			Account a = dao.getObjectById(data.getAccountId(), Account.class);
+			MsgAddress ma = pickMsgAddress(a.getMsgAddresses());
+			MessageAddress to =  new MessageAddress()
+				.setAddress(ma.getAddress())
+				.setAddressType(ma.getType())
+				.setGateway(ma.getGateway().getAddress());
+			return data.setTo(to)
+				.setLocale(ma.getLocale())
+				.setService("37coins");
+		}finally{
+			dao.closePersistenceManager();
+		}
+	}
+
+	public MsgAddress pickMsgAddress(Set<MsgAddress> list){
+		//TODO: get a strategy here
+		return list.iterator().next();
+	}
 
 
 }

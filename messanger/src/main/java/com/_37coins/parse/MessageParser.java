@@ -2,6 +2,7 @@ package com._37coins.parse;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -152,12 +153,14 @@ public class MessageParser {
 			} else {
 				rv = new BigDecimal(cv.getIntegerPart());
 			}
-			w.setAmount(rv);
+			rv = rv.setScale(8, RoundingMode.UP);//rounding up, better send to much, isn't it?
 			//null represents BITCOIN, probably not a good idea
 			w.setCurrency(null);
-			if (cv.getCurrency() != null && cv.getCurrency().length() > 0) {	
-				w.setCurrency(Currency.getInstance(cv.getCurrency())); 
-			} 
+			if (cv.getCurrency() != null && cv.getCurrency().length() > 0) {
+				w.setCurrency(Currency.getInstance(cv.getCurrency()));
+				rv = rv.setScale(w.getCurrency().getDefaultFractionDigits(), RoundingMode.UP);
+			}
+			w.setAmount(rv);
 			return true;
 		} else {
 			return false;

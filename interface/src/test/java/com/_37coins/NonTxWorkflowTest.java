@@ -20,6 +20,7 @@ import com._37coins.workflow.NonTxWorkflowClientFactory;
 import com._37coins.workflow.NonTxWorkflowClientFactoryImpl;
 import com._37coins.workflow.pojo.Deposit;
 import com._37coins.workflow.pojo.MessageAddress;
+import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
 import com._37coins.workflow.pojo.Request;
@@ -46,7 +47,7 @@ public class NonTxWorkflowTest {
         BitcoindActivities activities = new BitcoindActivities() {
 			@Override
 			public String sendTransaction(BigDecimal amount, BigDecimal fee, Long fromId,
-					Long toId, String toAddress) {
+					String toId, String toAddress) {
 				return null;
 			}
 			@Override
@@ -78,6 +79,13 @@ public class NonTxWorkflowTest {
 			}
 			@Override
 			public void sendConfirmation(Response rsp) {
+			}
+			@Override
+			public Response readMessageAddress(Response data) {
+				return data.setTo(new MessageAddress()
+					.setAddress("")
+					.setAddressType(MsgType.SMS)
+					.setGateway(""));
 			}
 
         };

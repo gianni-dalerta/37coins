@@ -79,10 +79,13 @@ public class Response {
 	
 	public Response respondTo(Request req){
 		setLocale(req.getLocale());
-		setAction(RspAction.fromString(req.getAction().getText()));
+		if (null!=req.getAction()){
+			setAction(RspAction.fromString(req.getAction().getText()));
+		}
 		setTo(req.getFrom());
 		setPayload(req.getPayload());
 		setService(req.getService());
+		setAccountId(req.getAccountId());
 		return this;
 	}
 	

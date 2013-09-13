@@ -18,7 +18,7 @@ public class SendJournal extends Model {
 	private String hash;
 	
 	@Persistent
-	private MailAddress destination;
+	private MsgAddress destination;
 	
 	
 	public String getHash() {
@@ -32,12 +32,12 @@ public class SendJournal extends Model {
 	}
 
 
-	public MailAddress getDestination() {
+	public MsgAddress getDestination() {
 		return destination;
 	}
 
 
-	public SendJournal setDestination(MailAddress destination) {
+	public SendJournal setDestination(MsgAddress destination) {
 		this.destination = destination;
 		return this;
 	}

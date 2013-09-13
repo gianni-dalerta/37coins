@@ -7,6 +7,8 @@ import com._37coins.activities.BitcoindActivitiesClient;
 import com._37coins.activities.BitcoindActivitiesClientImpl;
 import com._37coins.activities.MessagingActivitiesClient;
 import com._37coins.activities.MessagingActivitiesClientImpl;
+import com._37coins.workflow.NonTxWorkflowClientFactory;
+import com._37coins.workflow.NonTxWorkflowClientFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflow;
 import com._37coins.workflow.pojo.Deposit;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
@@ -30,6 +32,7 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 
     BitcoindActivitiesClient bcdClient = new BitcoindActivitiesClientImpl();
     MessagingActivitiesClient msgClient = new MessagingActivitiesClientImpl();
+    NonTxWorkflowClientFactory factory = new NonTxWorkflowClientFactoryImpl();
     private final int confirmationPeriod = 3500;
     DecisionContextProvider provider = new DecisionContextProviderImpl();
     DecisionContext context = provider.getDecisionContext();
@@ -46,6 +49,9 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     public void handleAccount(Promise<BigDecimal> balance, Request req){
 		final Settable<Response> confirm = new Settable<>();
     	Withdrawal w = (Withdrawal)req.getPayload();
+    	if (w.getCurrency()!=null){
+    		throw new RuntimeException("currency conversion not implemented");
+    	}
     	BigDecimal amount = w.getAmount();
     	BigDecimal fee = w.getFee();
     	if (balance.get().compareTo(amount.add(fee))<0){
@@ -94,7 +100,7 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 	    				w.getAmount(), 
 	    				w.getFee(), 
 	    				rsp.get().getAccountId(), 
-	    				(w.getPayDest().getAddressType()==PaymentType.ACCOUNT)?Long.parseLong(w.getPayDest().getAddress()):null, 
+	    				(w.getPayDest().getAddressType()==PaymentType.ACCOUNT)?w.getPayDest().getAddress():null, 
 	    						(w.getPayDest().getAddressType()==PaymentType.BTC)?w.getPayDest().getAddress():null);
 	    		afterSend(tx, rsp.get());
             }
@@ -102,30 +108,39 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
             protected void doCatch(Throwable e) throws Throwable {
             	rsp.get().setAction(RspAction.TX_FAILED);
     			msgClient.sendMessage(rsp);
+    			e.printStackTrace();
             	cancel(e);
             }
 		};
     }
     
     @Asynchronous
-    public void afterSend(Promise<String> data, Response rsp){
+    public void afterSend(Promise<String> data, Response rsp) throws Throwable{
     	Withdrawal w = (Withdrawal)rsp.getPayload();
+    	bcdClient.sendTransaction(w.getFee(), BigDecimal.ZERO, rsp.getAccountId(), w.getFeeAccount(), null);
     	w.setTxId(data.get());
     	msgClient.sendMessage(rsp);
-    	if (data.get()==null){
+    	if (w.getPayDest().getAddressType()==PaymentType.ACCOUNT){
+    		//start child workflow to tell receiver about his luck
     		Response rsp2 = new Response()
-    			.setTo(w.getMsgDest())
+    			.setAction(RspAction.RECEIVED)
+    			.setAccountId(Long.parseLong(w.getPayDest().getAddress()))
     			.setPayload(new Deposit()
     				.setAmount(w.getAmount())
-    				.setCurrency(w.getCurrency()));
-    		msgClient.sendMessage(rsp2);
+    				.setTxId(context.getWorkflowContext().getWorkflowExecution().getRunId()));
+    		Promise<Void> rv = factory.getClient().executeCommand(rsp2);
+    		setConfirm(null, null, rv, rsp2);
     	}
     }
     
 	@Asynchronous
 	public void setConfirm(@NoWait Settable<Response> account, OrPromise trigger, Promise<Void> response, Response data) throws Throwable{
 		if (response.isReady()){
-			account.set(data);
+			if (null!=account){
+				account.set(data);
+			}else{
+				//do nothing
+			}
 		}else{
 			throw new Throwable("user did not confirm transaction.");
 		}

@@ -1,2 +1,0 @@
-${msg.UnknownAccount}
-${msg.MoreInfoSms}

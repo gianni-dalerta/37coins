@@ -1,0 +1,1 @@
+${resBundle("WithdrawalConf",payload.amount,payload.msgDest.address)}

@@ -1,7 +1,6 @@
 package com._37coins.resources;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,14 +11,20 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
-import com._37coins.MailServletConfig;
-import com._37coins.MessageProcessor;
-import com._37coins.MessageProcessor.Action;
+import org.restnucleus.log.Log;
+import org.slf4j.Logger;
+
+import com._37coins.MessagingServletConfig;
 import com._37coins.envaya.QueueClient;
-import com._37coins.workflow.DepositWorkflowClientExternal;
-import com._37coins.workflow.WithdrawalWorkflowClientExternal;
+import com._37coins.parse.MessageParser;
+import com._37coins.parse.RequestInterpreter;
+import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
+import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
+import com._37coins.workflow.pojo.MessageAddress;
+import com._37coins.workflow.pojo.MessageAddress.MsgType;
+import com._37coins.workflow.pojo.Request;
+import com._37coins.workflow.pojo.Response;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.wordnik.swagger.annotations.Api;
@@ -32,23 +37,31 @@ import com.wordnik.swagger.annotations.ApiOperation;
 @Produces(MediaType.APPLICATION_JSON)
 public class EnvayaSmsResource {
 	public final static String PATH = "/envayasms";
-	
+
 	@Inject
-	protected MessageProcessor mp;
-	
+	protected MessageParser mp;
+
 	@Inject
 	QueueClient qc;
-	
+
 	@Inject
 	Injector i;
+	
+	@Inject
+	NonTxWorkflowClientExternalFactoryImpl nonTxFactory;
+	
+	@Inject
+	WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory;
+	
+	@Log
+	Logger log;
 
 	@SuppressWarnings("rawtypes")
 	@POST
 	@ApiOperation(value = "aprove withdrawal", notes = "")
-    @ApiErrors(value = { @ApiError(code = 500, reason = "Internal Server Error.")})
-	public Map<String,Object> receive(
+	@ApiErrors(value = { @ApiError(code = 500, reason = "Internal Server Error.") })
+	public Map<String, Object> receive(
 			@HeaderParam("X-Request-Signature") String signature,
-			@FormParam("test") String test,
 			@FormParam("version") int version,
 			@FormParam("phone_number") String phoneNumber,
 			@FormParam("log") String logMsg,
@@ -58,74 +71,65 @@ public class EnvayaSmsResource {
 			@FormParam("battery") int battery,
 			@FormParam("power") int power,
 			@FormParam("action") String action,
-			//incoming
+			// incoming
 			@FormParam("from") String from,
 			@FormParam("message_type") String messageType,
 			@FormParam("message") String message,
 			@FormParam("timestamp") long timestamp,
-			//send_status
-			@FormParam("id") String id,
-			@FormParam("status") String status,
+			// send_status
+			@FormParam("id") String id, @FormParam("status") String status,
 			@FormParam("error") String error,
-			//amqp_started
+			// amqp_started
 			@FormParam("consumer_tag") String consumerTag) {
-		Map<String,Object> rv = new HashMap<>();
-		if (action.equalsIgnoreCase("incoming") 
-				&& messageType.equalsIgnoreCase("sms")){
-			Map<String, Object> o = mp.process(from, message);
-			o.put("source","sms");
-			o.put("service","37coins");
-			o.put("gateway", phoneNumber);
-			if (null!=o.get("action") && !((String)o.get("action")).contains("error")){
-				switch (Action.fromString((String)o.get("action"))) {
-				case CREATE:
-				case BALANCE:
-				case DEPOSIT:
-					if (test==null){
-						i.getInstance(DepositWorkflowClientExternal.class)
-							.executeCommand(o);
+		Map<String, Object> rv = new HashMap<>();
+		switch (action) {
+		case "status":
+			log.info("id " + id);
+			log.info("status " + status);
+			log.info("error " + error);
+			break;
+		case "amqp_started":
+			log.info("consumerTag " + consumerTag);
+			break;
+		case "incoming":
+			if (messageType.equalsIgnoreCase("sms")) {
+				MessageAddress md = new MessageAddress()
+					.setAddress(from)
+					.setAddressType(MsgType.SMS)
+					.setGateway(phoneNumber);
+				
+				//implement actions
+				RequestInterpreter ri = new RequestInterpreter(mp) {							
+					@Override
+					public void startWithdrawal(Request req) {
+						withdrawalFactory.getClient().executeCommand(req);
 					}
-					break;
-				case SEND_CONFIRM:
-				case SEND:
-					if (test==null){
-						i.getInstance(
-							WithdrawalWorkflowClientExternal.class)
-							.executeCommand(o);
+					@Override
+					public void startDeposit(Request req) {
+						nonTxFactory.getClient().executeCommand(req);
 					}
-					break;
-				case HELP:
-					if (test==null){
+					@Override
+					public void respond(Response rsp) {
 						try {
-							qc.send(o,MailServletConfig.queueUri, (String)o.get("gateway"),"amq.direct","SmsResource"+new Date());
+							qc.send(rsp, MessagingServletConfig.queueUri,
+									(String) rsp.getTo().getGateway(), "amq.direct",
+									"SmsResource" + System.currentTimeMillis());
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
 					}
-					break;
-				default:
-					throw new WebApplicationException("could not match action",Response.Status.NOT_FOUND);
-				}
-			}else{
-				if (test==null){
-					try {
-						qc.send(o,MailServletConfig.queueUri, (String)o.get("gateway"),"amq.direct","SmsResource"+new Date());
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
+				};
+
+				//interprete received message/command
+				ri.process(md, message);
 			}
-		}else if (action.equalsIgnoreCase("send_status")){
-			System.out.println("id " + id);
-			System.out.println("status " + status);
-			System.out.println("error " + error);
-		}else if (action.equalsIgnoreCase("amqp_started")){
-			System.out.println("consumerTag " + consumerTag);
-		}else{
-			throw new WebApplicationException("not implemented",Response.Status.NOT_FOUND);
+			break;
+		default:
+			throw new WebApplicationException("not implemented",
+					javax.ws.rs.core.Response.Status.NOT_FOUND);
 		}
 		rv.put("events", new ArrayList());
 		return rv;
 	}
-	
+
 }

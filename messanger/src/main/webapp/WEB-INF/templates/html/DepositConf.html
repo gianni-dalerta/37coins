@@ -1,0 +1,55 @@
+<html>
+<head>
+	<title>${resBundle.DepositConfSubject}</title>
+	<style type="text/css">
+		  body {
+		  	background-color: #14486c;
+		  }
+		  article{
+		  	z-index:11;
+		  	color: white;
+		  	font-size: 18px;
+		  	line-height: 24px;
+		  	font-family: serif;
+		  }
+		  h3{
+		  	color: white;
+		  	font-size: 60px;
+		  	position: relative;
+		  	display: inline-block;
+		  	height: 80px;
+		  	line-height: 80px;
+		  	font-family: 'Bitter', 'Trebuchet MS', Arial;
+		  	font-weight: normal;
+		  	margin-top: 0px;
+		  	margin-bottom: 0px;
+		  }
+		  .text{
+		  	color: white;
+		  }
+		  p{
+		  	margin-left: 50px;
+		  	font-family: 'Helvetica Neue',Helvetica, Arial, sans-serif;
+		  }
+	</style>
+</head>
+<body>
+<div class="big-letter-image"></div>
+	<article class="se-content">
+		<h3 id="head2">${resBundle.DepositConfSubject}</h3>
+		<p class="text">
+			${resBundle("DepositConf",payload.amount)}<br>
+			<#if txid??>
+				${resBundle("TransactionDetails",payload.txId)}
+			</#if>	
+		</p>
+		<#escape x as x?html?replace('\n', '<br>')>
+				${resBundle("byebye","37Coins")}
+		</#escape>
+	</article>
+<footer>
+Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${to.address}">email settings</a>. 
+</footer>
+
+</body>
+</html>

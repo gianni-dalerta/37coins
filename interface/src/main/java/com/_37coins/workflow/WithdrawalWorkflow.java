@@ -1,7 +1,6 @@
 package com._37coins.workflow;
 
-import java.util.Map;
-
+import com._37coins.workflow.pojo.Request;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Execute;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Workflow;
 import com.amazonaws.services.simpleworkflow.flow.annotations.WorkflowRegistrationOptions;
@@ -10,7 +9,7 @@ import com.amazonaws.services.simpleworkflow.flow.annotations.WorkflowRegistrati
 @WorkflowRegistrationOptions(defaultExecutionStartToCloseTimeoutSeconds = 3700)
 public interface WithdrawalWorkflow {
 	
-    @Execute(version = "0.2")
-    void executeCommand(Map<String,Object> data);
+    @Execute(version = "0.3")
+    void executeCommand(Request req);
 
 }

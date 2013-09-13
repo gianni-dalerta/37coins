@@ -1,9 +1,8 @@
 package com._37coins;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CancellationException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.mail.internet.AddressException;
 
@@ -14,17 +13,29 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import com._37coins.activities.BitcoindActivities;
-import com._37coins.activities.CoreActivities;
-import com._37coins.activities.MailActivities;
+import com._37coins.activities.MessagingActivities;
+import com._37coins.bcJsonRpc.pojo.Transaction;
+import com._37coins.bizLogic.NonTxWorkflowImpl;
 import com._37coins.bizLogic.WithdrawalWorkflowImpl;
 import com._37coins.workflow.WithdrawalWorkflowClient;
 import com._37coins.workflow.WithdrawalWorkflowClientFactory;
 import com._37coins.workflow.WithdrawalWorkflowClientFactoryImpl;
+import com._37coins.workflow.pojo.MessageAddress;
+import com._37coins.workflow.pojo.MessageAddress.MsgType;
+import com._37coins.workflow.pojo.PaymentAddress;
+import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
+import com._37coins.workflow.pojo.Request;
+import com._37coins.workflow.pojo.Request.ReqAction;
+import com._37coins.workflow.pojo.Response;
+import com._37coins.workflow.pojo.Response.RspAction;
+import com._37coins.workflow.pojo.Withdrawal;
+import com.amazonaws.services.simpleworkflow.flow.annotations.Asynchronous;
 import com.amazonaws.services.simpleworkflow.flow.core.Promise;
-import com.amazonaws.services.simpleworkflow.flow.core.TryCatch;
 import com.amazonaws.services.simpleworkflow.flow.junit.AsyncAssert;
 import com.amazonaws.services.simpleworkflow.flow.junit.FlowBlockJUnit4ClassRunner;
 import com.amazonaws.services.simpleworkflow.flow.junit.WorkflowTest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RunWith(FlowBlockJUnit4ClassRunner.class)
 public class WithdrawalWorkflowTest {
@@ -32,7 +43,7 @@ public class WithdrawalWorkflowTest {
 	@Rule
 	public WorkflowTest workflowTest = new WorkflowTest();
 
-	final Map<String, Object> trace = new HashMap<>();
+	final List<Response> trace = new ArrayList<>();
 
 	private WithdrawalWorkflowClientFactory workflowFactory = new WithdrawalWorkflowClientFactoryImpl();
 
@@ -42,98 +53,68 @@ public class WithdrawalWorkflowTest {
 		// test run
 		BitcoindActivities activities = new BitcoindActivities() {
 			@Override
-			public Map<String, Object> sendTransaction(Map<String, Object> rsp) {
-				rsp.put("txid", "txid2038942304");
-				return rsp;
-			}
-
-			@Override
-			public Map<String, Object> getAccountBalance(Map<String, Object> rsp) {
-				rsp.put("balance", new BigDecimal("2.5"));
-				return rsp;
-			}
-
-			@Override
-			public Map<String, Object> createBcAccount(Map<String, Object> rsp) {
-				return null;
-			}
-
-			@Override
-			public Map<String, Object> getNewAddress(Map<String, Object> rsp) {
-				return null;
-			}
-
-			@Override
-			public Map<String, Object> getAccount(Map<String, Object> rsp) {
-				if (((String)rsp.get("receiver")).equalsIgnoreCase("123")){
-					rsp.put("receiverAccount", "2");
-				}
-				return rsp;
-			}
-		};
-		MailActivities mailActivities = new MailActivities() {
-
-			@Override
-			public void sendMail(Map<String, Object> rsp) {
-				trace.putAll(rsp);
-			}
-
-			@Override
-			public void sendConfirmation(Map<String, Object> rsp) {
-			}
-
-			@Override
-			public String requestWithdrawalConfirm(Map<String, Object> cmd) {
-				return null;
-			}
-
-			@Override
-			public String requestWithdrawalReview(Map<String, Object> cmd) {
-				return null;
-			}
-
-			@Override
-			public void notifyMoveReceiver(Map<String, Object> rsp) {
-			}
-
-		};
-		CoreActivities coreActivities = new CoreActivities() {
-			@Override
-			public Map<String, Object> findAccountByMsgAddress(
-					Map<String, Object> data) {
-				if (!((String) data.get("action")).equalsIgnoreCase("create")
-						&& ((String) data.get("msgAddress"))
-								.equalsIgnoreCase("01027423984")) {
-					data.put("account", "1");
-				} else {
-					throw new RuntimeException("not found");
-				}
-				return data;
-			}
-			@Override
-			public Map<String, Object> createDbAccount(Map<String, Object> data) {
-				return null;
-			}
-			@Override
-			public Map<String, Object> readAccount(Map<String, Object> data) {
-				return null;
-			}
-			@Override
-			public Map<String, Object> findReceiverAccount(Map<String, Object> data) {
-				if ((data.get("receiverEmail")!=null && ((String)data.get("receiverEmail")).equalsIgnoreCase("receiver@37coins.com"))
-						||(data.get("receiverPhone")!=null && ((String)data.get("receiverPhone")).equalsIgnoreCase("987654321"))){
-					data.put("receiverAccount","2");
+			public String sendTransaction(BigDecimal amount, BigDecimal fee,
+					Long fromId, String toId, String toAddress) {
+				if (null!=amount && null!=fee && null!=fromId &&(null!=toId || null!=toAddress)){
+					return "txid2038942304";
 				}else{
-					throw new RuntimeException("not found");
+					throw new RuntimeException("param missing");
 				}
-				return data;
+			}
+
+			@Override
+			public BigDecimal getAccountBalance(Long accountId) {
+				return new BigDecimal("2.5");
+			}
+
+			@Override
+			public String getNewAddress(Long accountId) {
+				return null;
+			}
+
+			@Override
+			public Long getAccount(String bcAddress) {
+				if (bcAddress.equalsIgnoreCase("123")){
+					return 2L;
+				}
+				return null;
+			}
+
+			@Override
+			public List<Transaction> getAccountTransactions(Long accountId) {
+				// TODO Auto-generated method stub
+				return null;
 			}
 		};
+		MessagingActivities mailActivities = new MessagingActivities() {
+
+			@Override
+			public void sendMessage(Response rsp) {
+				try {
+					System.out.println(new ObjectMapper().writeValueAsString(rsp));
+				} catch (JsonProcessingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				trace.add(rsp);
+			}
+
+			@Override
+			public void sendConfirmation(Response rsp) {
+			}
+			@Override
+			public Response readMessageAddress(Response data) {
+				return data.setTo(new MessageAddress()
+					.setAddress("")
+					.setAddressType(MsgType.SMS)
+					.setGateway(""));
+			}
+		};
+		
 		workflowTest.addActivitiesImplementation(activities);
 		workflowTest.addActivitiesImplementation(mailActivities);
-		workflowTest.addActivitiesImplementation(coreActivities);
-		workflowTest
-				.addWorkflowImplementationType(WithdrawalWorkflowImpl.class);
+		workflowTest.addWorkflowImplementationType(WithdrawalWorkflowImpl.class);
+		workflowTest.addWorkflowImplementationType(NonTxWorkflowImpl.class);
 	}
 
 	@After
@@ -144,206 +125,39 @@ public class WithdrawalWorkflowTest {
 	@Test
 	public void testSend() throws AddressException {
 		WithdrawalWorkflowClient workflow = workflowFactory.getClient();
-		Map<String, Object> cmd = new HashMap<>();
-		cmd.put("action", "send");
-		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", new BigDecimal("0.5"));
-		cmd.put("fee", new BigDecimal("0.0005"));
-		cmd.put("source", "sms");
-		cmd.put("receiver", "456");
-		Promise<Void> booked = workflow.executeCommand(cmd);
-		Map<String, Object> expected = new HashMap<>();
-		expected.put("account", "1");
-		expected.put("amount", new BigDecimal("0.5"));
-		expected.put("balance", new BigDecimal("2.5"));
-		expected.put("action", "send");
-		expected.put("txid", "txid2038942304");
-		expected.put("msgAddress", "01027423984");
-		expected.put("receiver", "456");
-		expected.put("source", "sms");
-		AsyncAssert.assertEqualsWaitFor("successfull create", expected, trace,
-				booked);
-	}
-
-	@Test
-	public void testSendNoAccount() throws AddressException {
-		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
-		final Map<String, Object> cmd = new HashMap<>();
-		cmd.put("action", "send");
-		cmd.put("msgAddress", "11027423985");
-		cmd.put("receiver", "456");
-		cmd.put("source", "sms");
-		new TryCatch() {
-			@Override
-            protected void doTry() throws Throwable {
-				Promise<Void> booked = workflow.executeCommand(cmd);
-				AsyncAssert.assertEquals("should have aborded because msgAddress not found", 0, booked);
-			}
-            @Override
-            protected void doCatch(Throwable e) throws Throwable {
-            	if (e.getCause()!=null && e.getCause().getClass() == CancellationException.class){
-    				Map<String, Object> expected = new HashMap<>();
-    				expected.put("action", "error001");
-    				expected.put("msgAddress", "11027423985");
-    				expected.put("receiver", "456");
-    				expected.put("source", "sms");
-    				AsyncAssert.assertEqualsWaitFor("failed send", expected, trace);
-            	}else{
-            		throw e;
-            	}
-			}
-		};
+		Request req = new Request()
+			.setAction(ReqAction.SEND)
+			.setAccountId(0L)
+			.setFrom(new MessageAddress()
+				.setAddressType(MsgType.SMS))
+			.setPayload(new Withdrawal()
+				.setAmount(new BigDecimal("0.5").setScale(8))
+				.setFee(new BigDecimal("0.0005").setScale(8))
+				.setFeeAccount("1")
+				.setPayDest(new PaymentAddress()
+					.setAddress("2")
+					.setAddressType(PaymentType.ACCOUNT)));
+		Promise<Void> booked = workflow.executeCommand(req);
+		Response expected = new Response()
+			.setAction(RspAction.SEND)
+			.setService("37coins")
+			.setAccountId(0L)
+			.setPayload(new Withdrawal()
+				.setAmount(new BigDecimal("0.5").setScale(8))
+				.setFee(new BigDecimal("0.0005").setScale(8))
+				.setFeeAccount("1")
+				.setTxId("txid2038942304")
+				.setPayDest(new PaymentAddress()
+					.setAddress("2")
+					.setAddressType(PaymentType.ACCOUNT)))
+			.setTo(new MessageAddress()
+				.setAddressType(MsgType.SMS));
+		validate("successfull create", expected, trace, booked);
 	}
 	
-	@Test
-	public void testSendNoMoney() throws AddressException {
-		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
-		final Map<String, Object> cmd = new HashMap<>();
-		cmd.put("action", "send");
-		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", new BigDecimal("5.5"));
-		cmd.put("fee", new BigDecimal("0.0005"));
-		cmd.put("receiver", "456");
-		cmd.put("source", "sms");
-		new TryCatch() {
-			@Override
-            protected void doTry() throws Throwable {
-				Promise<Void> booked = workflow.executeCommand(cmd);
-				AsyncAssert.assertEquals("should have aborded because unsuficient funds", 0, booked);
-			}
-            @Override
-            protected void doCatch(Throwable e) throws Throwable {
-            	if (e.getCause()!=null && e.getCause().getClass() == CancellationException.class){
-    				Map<String, Object> expected = new HashMap<>();
-    				expected.put("action", "error005");
-    				expected.put("msgAddress", "01027423984");
-    				expected.put("source", "sms");
-    				expected.put("amount",new BigDecimal("5.5"));
-    				expected.put("balance",new BigDecimal("2.5"));
-    				expected.put("receiver", "456");
-    				expected.put("account","1");
-    				AsyncAssert.assertEqualsWaitFor("failed send", expected, trace);
-            	}else{
-            		throw e;
-            	}
-			}
-		};
-	}
-	
-	@Test
-	public void testSendEmail() {
-		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
-		final Map<String, Object> cmd = new HashMap<>();
-		cmd.put("action", "send");
-		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", new BigDecimal("0.1"));
-		cmd.put("fee", new BigDecimal("0.0005"));
-		cmd.put("source", "sms");
-		cmd.put("receiverEmail", "receiver@37coins.com");
-		Promise<Void> booked = workflow.executeCommand(cmd);
-		Map<String, Object> expected = new HashMap<>();
-		expected.put("account", "1");
-		expected.put("amount", new BigDecimal("0.1"));
-		expected.put("balance", new BigDecimal("2.5"));
-		expected.put("action", "send");
-		expected.put("txid", "txid2038942304");
-		expected.put("msgAddress", "01027423984");
-		expected.put("source", "sms");
-		expected.put("receiverAccount", "2");
-		expected.put("receiverEmail", "receiver@37coins.com");
-		AsyncAssert.assertEqualsWaitFor("successfull move account", expected, trace, booked);
-	}
-	
-	@Test
-	public void testSendNoEmail() {
-		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
-		final Map<String, Object> cmd = new HashMap<>();
-		cmd.put("action", "send");
-		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", new BigDecimal("0.1"));
-		cmd.put("fee", new BigDecimal("0.0005"));
-		cmd.put("source", "sms");
-		cmd.put("receiverEmail", "receiver2@37coins.com");
-		new TryCatch() {
-			@Override
-            protected void doTry() throws Throwable {
-				Promise<Void> booked = workflow.executeCommand(cmd);
-				AsyncAssert.assertEquals("should have aborded because receiver not found", 0, booked);
-			}
-            @Override
-            protected void doCatch(Throwable e) throws Throwable {
-            	if (e.getCause()!=null && e.getCause().getClass() == CancellationException.class){
-    				Map<String, Object> expected = new HashMap<>();
-    				expected.put("action", "error003");
-    				expected.put("msgAddress", "01027423984");
-    				expected.put("source", "sms");
-    				expected.put("amount",new BigDecimal("0.1"));
-    				expected.put("fee", new BigDecimal("0.0005"));
-    				expected.put("account","1");
-    				expected.put("receiverEmail", "receiver2@37coins.com");
-    				AsyncAssert.assertEqualsWaitFor("failed move", expected, trace);
-            	}else{
-            		throw e;
-            	}
-			}
-		};
-	}
-	
-	@Test
-	public void testSendPhone() {
-		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
-		final Map<String, Object> cmd = new HashMap<>();
-		cmd.put("action", "send");
-		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", new BigDecimal("0.1"));
-		cmd.put("fee", new BigDecimal("0.0005"));
-		cmd.put("source", "sms");
-		cmd.put("receiverPhone", "987654321");
-		Promise<Void> booked = workflow.executeCommand(cmd);
-		Map<String, Object> expected = new HashMap<>();
-		expected.put("account", "1");
-		expected.put("amount", new BigDecimal("0.1"));
-		expected.put("balance", new BigDecimal("2.5"));
-		expected.put("action", "send");
-		expected.put("txid", "txid2038942304");
-		expected.put("msgAddress", "01027423984");
-		expected.put("source", "sms");
-		expected.put("receiverPhone", "987654321");
-		expected.put("receiverAccount", "2");
-		AsyncAssert.assertEqualsWaitFor("successfull move account2", expected, trace, booked);
-	}
-	
-	@Test
-	public void testSendNoPhone() {
-		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
-		final Map<String, Object> cmd = new HashMap<>();
-		cmd.put("action", "send");
-		cmd.put("msgAddress", "01027423984");
-		cmd.put("amount", new BigDecimal("0.1"));
-		cmd.put("fee", new BigDecimal("0.0005"));
-		cmd.put("receiverPhone", "12345678");
-		new TryCatch() {
-			@Override
-            protected void doTry() throws Throwable {
-				Promise<Void> booked = workflow.executeCommand(cmd);
-				AsyncAssert.assertEquals("should have aborded because receiver not found", 0, booked);
-			}
-            @Override
-            protected void doCatch(Throwable e) throws Throwable {
-            	if (e.getCause()!=null && e.getCause().getClass() == CancellationException.class){
-    				Map<String, Object> expected = new HashMap<>();
-    				expected.put("action", "error003");
-    				expected.put("msgAddress", "01027423984");
-    				expected.put("amount",new BigDecimal("0.1"));
-    				expected.put("fee", new BigDecimal("0.0005"));
-    				expected.put("account","1");
-    				expected.put("receiverPhone", "12345678");
-    				AsyncAssert.assertEqualsWaitFor("failed move account2", expected, trace);
-            	}else{
-            		throw e;
-            	}
-			}
-		};
+	@Asynchronous
+	public void validate(String desc, Object expected, List<Response> l,Promise<Void> booked){
+		AsyncAssert.assertEqualsWaitFor(desc, expected, l.get(0), booked);
 	}
 
 }

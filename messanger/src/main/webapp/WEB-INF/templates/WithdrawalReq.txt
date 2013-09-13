@@ -1,7 +1,0 @@
-
-${msg("WithdrawalReq",amount?string("##0.####"),receiver)}
-
-${msg("WebConfirm",confLink)}
-${msg.EmailConfirm}
-
-${msg("byebye","37Coins")}

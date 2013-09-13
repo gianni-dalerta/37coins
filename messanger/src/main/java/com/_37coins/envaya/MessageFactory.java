@@ -7,14 +7,13 @@ import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Locale;
-import java.util.Map;
 import java.util.ResourceBundle;
 
 import javax.servlet.ServletContext;
 
 import com._37coins.pojo.SendAction;
 import com._37coins.sendMail.EmailFactory;
+import com._37coins.workflow.pojo.Response;
 
 import freemarker.ext.beans.BeansWrapper;
 import freemarker.ext.beans.ResourceBundleModel;
@@ -43,18 +42,18 @@ public class MessageFactory {
 		this.servletContext = servletContext;
 		if (servletContext == null) {
 			try {
-				cfg.setDirectoryForTemplateLoading(new File(LOCAL_RESOURCE_PATH+"sms/"));
+				cfg.setDirectoryForTemplateLoading(new File(LOCAL_RESOURCE_PATH+"text/"));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		} else {
 			cfg.setServletContextForTemplateLoading(servletContext,
-					RESOURCE_PATH+"sms/");
+					RESOURCE_PATH+"text/");
 		}
 	}
 
-	private void prepare(Map<String, Object> data) throws MalformedURLException {
-		if (null == data.get("msg")) {
+	private void prepare(Response rsp) throws MalformedURLException {
+		if (null == rsp.getResBundle()) {
 			ClassLoader loader = null;
 			if (null==servletContext){
 				File file = new File(LOCAL_RESOURCE_PATH+"../classes");
@@ -63,27 +62,24 @@ public class MessageFactory {
 			}else{
 				loader = EmailFactory.class.getClassLoader();
 			}
-			if (data.get("locale") instanceof String){
-				data.put("locale", new Locale((String)data.get("locale")));
-			}
-			rb = ResourceBundle.
-					getBundle((String)data.get("service"),(Locale) data.get("locale"),loader);
-			data.put("msg", new ResourceBundleModel(rb, new BeansWrapper()));
+			rb = ResourceBundle.getBundle(rsp.getService(),rsp.getLocale(),loader);
+			rsp.setResBundle(new ResourceBundleModel(rb, new BeansWrapper()));
 		}
 	}
 	
-	public String construct(Map<String, Object> data,
+	public String construct(Response rsp,
 			SendAction sendAction) throws IOException,
 			TemplateException {
-		prepare(data);
+		
+		prepare(rsp);
 
 		Template template = cfg.getTemplate(sendAction
-				.getTemplateId((String) data.get("action")) + TEXT_ENDING);
+				.getTemplateId(rsp.getAction().getText()) + TEXT_ENDING);
 
 		Writer stringWriter = null;
 
 		stringWriter = new StringWriter();
-		template.process(data, stringWriter);
+		template.process(rsp, stringWriter);
 
 		stringWriter.flush();
 		return stringWriter.toString();

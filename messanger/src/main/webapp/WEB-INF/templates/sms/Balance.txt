@@ -1,1 +1,0 @@
-${msg("Balance",balance)}

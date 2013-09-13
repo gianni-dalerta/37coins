@@ -1,0 +1,1 @@
+${resBundle("WithdrawalReq",payload.amount?string("##0.####"),receiver)}

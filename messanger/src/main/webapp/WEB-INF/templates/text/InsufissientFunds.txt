@@ -1,0 +1,2 @@
+${resBundle.InsufissientFunds}
+${resBundle.MoreInfoSms}

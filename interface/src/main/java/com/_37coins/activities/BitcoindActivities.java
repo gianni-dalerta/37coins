@@ -1,7 +1,9 @@
 package com._37coins.activities;
 
-import java.util.Map;
+import java.math.BigDecimal;
+import java.util.List;
 
+import com._37coins.bcJsonRpc.pojo.Transaction;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Activities;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Activity;
 import com.amazonaws.services.simpleworkflow.flow.annotations.ActivityRegistrationOptions;
@@ -9,24 +11,24 @@ import com.amazonaws.services.simpleworkflow.flow.annotations.ActivityRegistrati
 @Activities
 public interface BitcoindActivities {
 	
-    @Activity(name = "SendTransaction", version = "0.2")
+    @Activity(name = "SendTransaction", version = "0.4")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
-    Map<String,Object> sendTransaction(Map<String,Object> rsp);
+    String sendTransaction(BigDecimal amount, BigDecimal fee, Long fromId, String toId, String toAddress);
     
-    @Activity(name = "getAccountBalance", version = "0.1")
+    @Activity(name = "getAccountBalance", version = "0.2")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
-    Map<String,Object> getAccountBalance(Map<String,Object> rsp);    
+    BigDecimal getAccountBalance(Long accountId);    
     
-    @Activity(name = "createBcAccount", version = "0.1")
+    @Activity(name = "getNewAddress", version = "0.2")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
-    Map<String,Object> createBcAccount(Map<String,Object> rsp);
+    String getNewAddress(Long accountId);
     
-    @Activity(name = "getNewAddress", version = "0.1")
+    @Activity(name = "getAccount", version = "0.2")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
-    Map<String,Object> getNewAddress(Map<String,Object> rsp);
+    Long getAccount(String bcAddress);
     
-    @Activity(name = "getAccount", version = "0.1")
+    @Activity(name = "getAccountTransactions", version = "0.1")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
-    Map<String,Object> getAccount(Map<String,Object> rsp);
+    List<Transaction> getAccountTransactions(Long accountId);
     
 }

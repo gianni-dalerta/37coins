@@ -7,7 +7,7 @@
 	
 	<filter>
 		<filter-name>guiceFilter</filter-name>
-		<filter-class>com._37coins.Filter</filter-class>
+		<filter-class>com.google.inject.servlet.GuiceFilter</filter-class>
 	</filter>
 	
 	<filter-mapping>
@@ -17,7 +17,7 @@
 	
 
 	<listener>
-		<listener-class>com._37coins.MailServletConfig</listener-class>
+		<listener-class>com._37coins.MessagingServletConfig</listener-class>
 	</listener>
 
 </web-app>

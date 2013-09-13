@@ -1,0 +1,2 @@
+${resBundle("Signup","37Coins")}
+${resBundle("HelpSms","37Coins")}

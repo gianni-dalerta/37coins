@@ -1,1 +1,2 @@
+<#setting locale=locale>
 ${resBundle("HelpSms","37Coins")}

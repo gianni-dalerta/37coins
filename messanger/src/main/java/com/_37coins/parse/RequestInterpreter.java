@@ -9,7 +9,7 @@ import org.restnucleus.dao.RNQuery;
 import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.Gateway;
 import com._37coins.persistence.dto.MsgAddress;
-import com._37coins.persistence.dto.TaskToken;
+import com._37coins.persistence.dto.Transaction;
 import com._37coins.workflow.pojo.IncompleteException;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.PaymentAddress;
@@ -92,18 +92,20 @@ public abstract class RequestInterpreter{
 					}
 					RNQuery gwQ = new RNQuery().addFilter("address", req.getFrom().getGateway());
 					Gateway gw = dao.queryEntity(gwQ, Gateway.class);
-					System.out.println("fee read from db:"+gw.getFee().setScale(8));
 					w.setFee(gw.getFee().setScale(8,RoundingMode.UP));
 					w.setFeeAccount(gw.getOwner().getId().toString());
-					startWithdrawal(req);
+					Transaction t = new Transaction()
+						.setKey(Transaction.generateKey());
+					dao.add(t);
+					startWithdrawal(req,t.getKey());
 					break;
 				case SEND_CONFIRM:
 					RNQuery ttQuery = new RNQuery().addFilter("key", (String)req.getPayload());
-					TaskToken tt = dao.queryEntity(ttQuery, TaskToken.class);
+					Transaction tx = dao.queryEntity(ttQuery, Transaction.class);
 			        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
-			        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tt.getTaskToken());
+			        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());
 			        manualCompletionClient.complete(null);
-			        dao.delete(tt.getId(), TaskToken.class);
+			        //don't delete, to guarantee unique keys
 			        break;
 				case HELP:
 					respond(new Response().respondTo(req));
@@ -121,7 +123,7 @@ public abstract class RequestInterpreter{
 		}
 	}
 	
-	public abstract void startWithdrawal(Request req);
+	public abstract void startWithdrawal(Request req,String workflowId);
 	
 	public abstract void startDeposit(Request req);
 	

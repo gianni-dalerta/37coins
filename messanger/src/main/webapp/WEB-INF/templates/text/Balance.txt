@@ -1,1 +1,2 @@
-${resBundle("Balance",payload.balance)}
+<#setting locale=locale>
+${resBundle("Balance",payload.balance?string("#,##0.########"))}

@@ -66,8 +66,8 @@ public class EmailListener implements MessageCountListener{
 			//implement actions
 			RequestInterpreter ri = new RequestInterpreter(mp,swfService) {							
 				@Override
-				public void startWithdrawal(Request req) {
-					withdrawalFactory.getClient().executeCommand(req);
+				public void startWithdrawal(Request req, String workflowId) {
+					withdrawalFactory.getClient(workflowId).executeCommand(req);
 				}
 				@Override
 				public void startDeposit(Request req) {

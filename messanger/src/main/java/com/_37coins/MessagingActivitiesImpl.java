@@ -9,7 +9,7 @@ import com._37coins.activities.MessagingActivities;
 import com._37coins.envaya.QueueClient;
 import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.MsgAddress;
-import com._37coins.persistence.dto.TaskToken;
+import com._37coins.persistence.dto.Transaction;
 import com._37coins.sendMail.MailTransporter;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
@@ -52,9 +52,9 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 		String taskToken = executionContext.getTaskToken();
 		GenericRepository dao = new GenericRepository();
 		try{
-			TaskToken tt = new TaskToken()
+			Transaction tt = new Transaction()
 				.setTaskToken(taskToken)
-				.setKey(TaskToken.generateKey());
+				.setKey(Transaction.generateKey());
 			dao.add(tt);
 			String confLink = MessagingServletConfig.basePath + "/rest/withdrawal/approve?key="+URLEncoder.encode(tt.getKey(),"UTF-8");
 			Withdrawal w = (Withdrawal)rsp.getPayload();

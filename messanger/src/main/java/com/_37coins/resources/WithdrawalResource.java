@@ -13,7 +13,7 @@ import org.restlet.representation.StringRepresentation;
 import org.restnucleus.dao.GenericRepository;
 import org.restnucleus.dao.RNQuery;
 
-import com._37coins.persistence.dto.TaskToken;
+import com._37coins.persistence.dto.Transaction;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClient;
 import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactory;
@@ -44,11 +44,11 @@ public class WithdrawalResource {
     @ApiErrors(value = { @ApiError(code = 500, reason = "Internal Server Error.")})
 	public Representation aprove(@QueryParam("key") String key) throws UnsupportedEncodingException{
 		RNQuery q = new RNQuery().addFilter("key", key);
-		TaskToken tt = dao.queryEntity(q, TaskToken.class);
+		Transaction tt = dao.queryEntity(q, Transaction.class);
         ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
         ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tt.getTaskToken());
         manualCompletionClient.complete(null);
-        dao.delete(tt.getId(), TaskToken.class);
+        dao.delete(tt.getId(), Transaction.class);
 		return new StringRepresentation(HTML_RESPONSE_DONE,
 				org.restlet.data.MediaType.TEXT_HTML);
 	}
@@ -59,11 +59,11 @@ public class WithdrawalResource {
     @ApiErrors(value = { @ApiError(code = 500, reason = "Internal Server Error.")})
 	public Representation deny(@QueryParam("taskToken") String key){
 		RNQuery q = new RNQuery().addFilter("key", key);
-		TaskToken tt = dao.queryEntity(q, TaskToken.class);
+		Transaction tt = dao.queryEntity(q, Transaction.class);
         ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
         ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tt.getTaskToken());
         manualCompletionClient.fail(new Throwable("denied by user or admin"));
-        dao.delete(tt.getId(), TaskToken.class);
+        dao.delete(tt.getId(), Transaction.class);
 		return new StringRepresentation(HTML_RESPONSE_DONE,
 				org.restlet.data.MediaType.TEXT_HTML);
 	}

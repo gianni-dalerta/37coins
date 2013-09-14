@@ -2,12 +2,15 @@ package com._37coins;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com._37coins.bcJsonRpc.pojo.Transaction;
 import com._37coins.pojo.SendAction;
 import com._37coins.sendMail.EmailFactory;
 import com._37coins.workflow.pojo.Deposit;
@@ -120,7 +123,7 @@ public class LocalizationTest {
 	public void test37coinsBalance() throws IOException, TemplateException {
 		rsp.setAction(RspAction.BALANCE)
 			.setPayload(new Deposit()
-				.setAmount(new BigDecimal("0.05")));
+				.setBalance(new BigDecimal("0.05")));
 		System.out.println("BALANCE:");
 		String s = ef.constructTxt(rsp, sendAction);
 		System.out.println(s);
@@ -154,6 +157,32 @@ public class LocalizationTest {
 		System.out.println(s);
 		Assert.assertTrue(s.contains("1.000,051"));
 		Assert.assertTrue(s.contains("0,51234568"));
+		ef.constructHtml(rsp, sendAction);
+		ef.constructSubject(rsp, sendAction);
+		Assert.assertTrue("SMS to long",s.getBytes().length<140);
+	}
+	
+	@Test
+	public void testTransactions() throws IOException, TemplateException {
+		List<Transaction> list = new ArrayList<>();
+		list.add(new Transaction().setTime(System.currentTimeMillis()).setComment("hallo").setAmount(new BigDecimal("0.4")).setTo("hast@test.com"));
+		rsp.setAction(RspAction.TRANSACTION)
+			.setLocale(new Locale("de"))
+			.setPayload(list);
+		String s = ef.constructTxt(rsp, sendAction);
+		ef.constructHtml(rsp, sendAction);
+		ef.constructSubject(rsp, sendAction);
+		Assert.assertTrue("SMS to long",s.getBytes().length<140);
+	}
+	
+	@Test
+	public void testEmptyTransactions() throws IOException, TemplateException {
+		List<Transaction> list = null;//new ArrayList<>();
+		rsp.setAction(RspAction.TRANSACTION)
+			.setLocale(new Locale("de"))
+			.setPayload(list);
+		String s = ef.constructTxt(rsp, sendAction);
+		System.out.println(s);
 		ef.constructHtml(rsp, sendAction);
 		ef.constructSubject(rsp, sendAction);
 		Assert.assertTrue("SMS to long",s.getBytes().length<140);

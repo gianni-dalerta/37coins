@@ -1,67 +1,21 @@
-<html>
-<head>
-	<title>${resBundle("WithdrawalReqSubject",payload.confKey)}</title>
-	<style type="text/css">
-		  body {
-		  	background-color: #14486c;
-		  	font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-		  }
-		  article{
-		  	z-index:11;
-		  	color: white;
-		  	font-size: 18px;
-		  	line-height: 24px;
-		  	font-family: serif;
-		  	margin-top: -70px;
-		  }
-		  h3{
-		  	color: white;
-		  	font-size: 60px;
-		  	position: relative;
-		  	display: inline-block;
-		  	padding: 10px 30px 8px 30px;
-		  	height: 80px;
-		  	line-height: 80px;
-		  	font-family: 'Bitter', 'Trebuchet MS', Arial;
-		  	font-weight: normal;
-		  	margin-top: 0px;
-		  	margin-bottom: 0px;
-		  }
-		  .text{
-		  	color: white;
-		  }
-		  div.big-letter-image{
-		  	width: 300px;
-		  	height: 209px; 
-		  	background-image: url('http://payjet.me/assets/img/letter_img.png');
-		  }
-		  p{
-		  	margin-left: 50px;
-		  	font-family: 'Helvetica Neue',Helvetica, Arial, sans-serif;
-		  }
-		  img{
-		  	margin-left: 40px;
-		  }
-	</style>
-</head>
-<body>
-<div class="big-letter-image"></div>
-<article class="se-content">
-	<h3 id="head2">${resBundle("WithdrawalReqSubject",payload.confKey)}</h3>
-	<p class="text">
 <#setting locale=locale>
-${resBundle("WithdrawalReq",payload.amount?string("#,##0.########"),payload.msgDest.address)}
-${resBundle("WithdrawalReqIstr",payload.confKey)}
-
-${resBundle("WebConfirm",payload.confLink)}
-${resBundle.EmailConfirm}
-
-${resBundle("byebye","37Coins")}
-	</p>
-	<#escape x as x?html?replace('\n', '<br>')>
-		${resBundle("byebye","37Coins")}
-	</#escape>
-</article>
-
-</body>
+<html>
+	<head>
+		<title>${resBundle("WithdrawalReqSubject",payload.confKey)}</title>
+		<#include "style.css">
+	</head>
+	<body>
+		<article class="se-content">
+			<h3 id="head2">${resBundle("WithdrawalReqSubject",payload.confKey)}</h3>
+			<p class="text">
+				<#setting locale=locale>
+				${resBundle("WithdrawalReq",payload.amount?string("#,##0.########"),payload.msgDest.address)}
+				${resBundle("WithdrawalReqIstr",payload.confKey)}
+				
+				${resBundle("WebConfirm",payload.confLink)}
+				${resBundle.EmailConfirm}		
+			</p>
+			<#include "footer.html">
+		</article>
+	</body>
 </html>

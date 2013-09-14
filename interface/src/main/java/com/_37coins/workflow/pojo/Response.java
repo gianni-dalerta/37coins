@@ -24,6 +24,7 @@ public class Response {
 		BALANCE("balance"), // request the balance
 		RECEIVED("received"),
 		HELP("help"),
+		TRANSACTION("tx"),
 		FORMAT_ERROR("formErr"),
 		UNKNOWN_COMMAND("cmdErr"), 
 		INSUFISSIENT_FUNDS("insufFund"), 

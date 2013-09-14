@@ -84,7 +84,7 @@ public class ProcessorTest{
 	public void testBalance() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {Assert.assertFalse(true);}
+			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
 			@Override
 			public void startDeposit(Request req) {
 				Assert.assertNotNull(req.getAccountId());
@@ -105,7 +105,7 @@ public class ProcessorTest{
 	public void testCreate() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {Assert.assertFalse(true);}
+			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
 			@Override
 			public void startDeposit(Request req) {
 				Assert.assertNotNull(req.getAccountId());
@@ -127,7 +127,7 @@ public class ProcessorTest{
 	public void testHelp() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {Assert.assertFalse(true);}
+			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
 			@Override
 			public void startDeposit(Request req) {Assert.assertFalse(true);}
 			@Override
@@ -148,7 +148,7 @@ public class ProcessorTest{
 	public void testNonExistingCommand() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {Assert.assertFalse(true);}
+			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
 			@Override
 			public void startDeposit(Request req) {
 				Request expected = new Request()
@@ -168,7 +168,7 @@ public class ProcessorTest{
 	public void testDeposit() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {Assert.assertFalse(true);}
+			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
 			@Override
 			public void startDeposit(Request req) {
 				Request expected = new Request()
@@ -188,7 +188,7 @@ public class ProcessorTest{
 	public void testSend() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {
+			public void startWithdrawal(Request req, String workflowId) {
 				Request expected = new Request()
 				.setAction(ReqAction.SEND)
 				.setLocale(new Locale("en"))
@@ -219,7 +219,7 @@ public class ProcessorTest{
 	public void testSendReverse() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {
+			public void startWithdrawal(Request req, String workflowId) {
 				Request expected = new Request()
 				.setAction(ReqAction.SEND)
 				.setLocale(new Locale("en"))
@@ -249,7 +249,7 @@ public class ProcessorTest{
 	public void testSendPhone() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {
+			public void startWithdrawal(Request req, String workflowId) {
 				Request expected = new Request()
 					.setAction(ReqAction.SEND)
 					.setLocale(new Locale("en"))
@@ -278,7 +278,7 @@ public class ProcessorTest{
 	public void testSendAddressValid() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {
+			public void startWithdrawal(Request req, String workflowId) {
 				Request expected = new Request()
 					.setAction(ReqAction.SEND)
 					.setLocale(new Locale("en"))
@@ -306,7 +306,7 @@ public class ProcessorTest{
 	public void testSendAddressTestnet() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {
+			public void startWithdrawal(Request req, String workflowId) {
 				Request expected = new Request()
 					.setAction(ReqAction.SEND)
 					.setLocale(new Locale("en"))
@@ -333,7 +333,7 @@ public class ProcessorTest{
 	public void testSendAddressWrong() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {Assert.assertFalse(true);}
+			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
 			@Override
 			public void startDeposit(Request req) {Assert.assertFalse(true);}
 			@Override
@@ -353,7 +353,7 @@ public class ProcessorTest{
 	public void testRequest() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req) {Assert.assertFalse(true);}
+			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
 			@Override
 			public void startDeposit(Request req) {Assert.assertFalse(true);}
 			@Override

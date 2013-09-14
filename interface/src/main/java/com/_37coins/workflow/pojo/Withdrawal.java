@@ -26,6 +26,8 @@ public class Withdrawal {
 	private String confLink;
 	
 	private String confKey;
+	
+	private String comment;
 
 	public String getConfLink() {
 		return confLink;
@@ -105,6 +107,15 @@ public class Withdrawal {
 
 	public Withdrawal setConfKey(String confKey) {
 		this.confKey = confKey;
+		return this;
+	}
+
+	public String getComment() {
+		return comment;
+	}
+
+	public Withdrawal setComment(String comment) {
+		this.comment = comment;
 		return this;
 	}
 	

@@ -55,7 +55,7 @@ public class WithdrawalWorkflowTest {
 		BitcoindActivities activities = new BitcoindActivities() {
 			@Override
 			public String sendTransaction(BigDecimal amount, BigDecimal fee,
-					Long fromId, String toId, String toAddress) {
+					Long fromId, String toId, String toAddress, String id, String comment) {
 				if (null!=amount && null!=fee && null!=fromId &&(null!=toId || null!=toAddress)){
 					return "txid2038942304";
 				}else{

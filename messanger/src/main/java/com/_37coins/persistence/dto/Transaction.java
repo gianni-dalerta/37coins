@@ -17,7 +17,7 @@ import org.restnucleus.dao.Model;
 
 @PersistenceCapable
 @Discriminator(strategy = DiscriminatorStrategy.CLASS_NAME)
-public class TaskToken extends Model {
+public class Transaction extends Model {
 	private static final long serialVersionUID = 2463534722502497789L;
 	
 	static public String generateKey(){
@@ -37,7 +37,7 @@ public class TaskToken extends Model {
 		return key;
 	}
 
-	public TaskToken setKey(String key) {
+	public Transaction setKey(String key) {
 		this.key = key;
 		return this;
 	}
@@ -51,7 +51,7 @@ public class TaskToken extends Model {
 		return null;
 	}
 
-	public TaskToken setTaskToken(String taskToken) {
+	public Transaction setTaskToken(String taskToken) {
 		try {
 			this.taskToken = URLEncoder.encode(taskToken,"UTF-8");
 		} catch (UnsupportedEncodingException e) {

@@ -28,7 +28,7 @@ import com.amazonaws.services.simpleworkflow.flow.core.Settable;
 import com.amazonaws.services.simpleworkflow.flow.core.TryCatch;
 
 public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
-
+	DecisionContextProvider contextProvider = new DecisionContextProviderImpl();
     BitcoindActivitiesClient bcdClient = new BitcoindActivitiesClientImpl();
     MessagingActivitiesClient msgClient = new MessagingActivitiesClientImpl();
     NonTxWorkflowClientFactory factory = new NonTxWorkflowClientFactoryImpl();
@@ -97,7 +97,9 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 	    				w.getFee(), 
 	    				rsp.get().getAccountId(), 
 	    				(w.getPayDest().getAddressType()==PaymentType.ACCOUNT)?w.getPayDest().getAddress():null, 
-	    						(w.getPayDest().getAddressType()==PaymentType.BTC)?w.getPayDest().getAddress():null);
+	    				(w.getPayDest().getAddressType()==PaymentType.BTC)?w.getPayDest().getAddress():null,
+	    				contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId(),
+	    				w.getComment());
 	    		afterSend(tx, rsp.get());
             }
             @Override
@@ -113,7 +115,14 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     @Asynchronous
     public void afterSend(Promise<String> data, Response rsp) throws Throwable{
     	Withdrawal w = (Withdrawal)rsp.getPayload();
-    	bcdClient.sendTransaction(w.getFee(), BigDecimal.ZERO, rsp.getAccountId(), w.getFeeAccount(), null);
+    	bcdClient.sendTransaction(
+    			w.getFee(), 
+    			BigDecimal.ZERO, 
+    			rsp.getAccountId(), 
+    			w.getFeeAccount(), 
+    			null,
+    			contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId(),
+    			"");
     	w.setTxId(data.get());
 		rsp.setAction(RspAction.SEND);
     	msgClient.sendMessage(rsp);

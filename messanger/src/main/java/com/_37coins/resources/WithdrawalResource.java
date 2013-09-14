@@ -10,7 +10,10 @@ import javax.ws.rs.core.MediaType;
 
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
+import org.restnucleus.dao.GenericRepository;
+import org.restnucleus.dao.RNQuery;
 
+import com._37coins.persistence.dto.TaskToken;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClient;
 import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactory;
@@ -31,15 +34,21 @@ public class WithdrawalResource {
 
 	@Inject @Named("wfClient")
 	protected AmazonSimpleWorkflow swfService;
+	
+	@Inject
+	GenericRepository dao;
 
 	@GET
 	@Path("/approve")
 	@ApiOperation(value = "aprove withdrawal", notes = "")
     @ApiErrors(value = { @ApiError(code = 500, reason = "Internal Server Error.")})
-	public Representation aprove(@QueryParam("taskToken") String taskToken) throws UnsupportedEncodingException{
+	public Representation aprove(@QueryParam("key") String key) throws UnsupportedEncodingException{
+		RNQuery q = new RNQuery().addFilter("key", key);
+		TaskToken tt = dao.queryEntity(q, TaskToken.class);
         ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
-        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(taskToken);
+        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tt.getTaskToken());
         manualCompletionClient.complete(null);
+        dao.delete(tt.getId(), TaskToken.class);
 		return new StringRepresentation(HTML_RESPONSE_DONE,
 				org.restlet.data.MediaType.TEXT_HTML);
 	}
@@ -48,10 +57,13 @@ public class WithdrawalResource {
 	@Path("/deny")
 	@ApiOperation(value = "deny withdrawal", notes = "")
     @ApiErrors(value = { @ApiError(code = 500, reason = "Internal Server Error.")})
-	public Representation deny(@QueryParam("taskToken") String taskToken){
+	public Representation deny(@QueryParam("taskToken") String key){
+		RNQuery q = new RNQuery().addFilter("key", key);
+		TaskToken tt = dao.queryEntity(q, TaskToken.class);
         ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
-        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(taskToken);
+        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tt.getTaskToken());
         manualCompletionClient.fail(new Throwable("denied by user or admin"));
+        dao.delete(tt.getId(), TaskToken.class);
 		return new StringRepresentation(HTML_RESPONSE_DONE,
 				org.restlet.data.MediaType.TEXT_HTML);
 	}

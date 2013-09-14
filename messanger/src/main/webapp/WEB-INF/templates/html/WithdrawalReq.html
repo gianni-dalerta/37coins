@@ -1,6 +1,6 @@
 <html>
 <head>
-	<title>Confirm Send</title>
+	<title>${resBundle("WithdrawalReqSubject",payload.confKey)}</title>
 	<style type="text/css">
 		  body {
 		  	background-color: #14486c;
@@ -47,19 +47,21 @@
 <body>
 <div class="big-letter-image"></div>
 <article class="se-content">
-	<h3 id="head2">Confirm Send</h3>
+	<h3 id="head2">${resBundle("WithdrawalReqSubject",payload.confKey)}</h3>
 	<p class="text">
-	${resBundle("WithdrawalReq",payload.amount?string("##0.####"),receiver)}
+<#setting locale=locale>
+${resBundle("WithdrawalReq",payload.amount?string("#,##0.########"),payload.msgDest.address)}
+${resBundle("WithdrawalReqIstr",payload.confKey)}
 
-${resBundle("WebConfirm",confLink)}
+${resBundle("WebConfirm",payload.confLink)}
 ${resBundle.EmailConfirm}
 
 ${resBundle("byebye","37Coins")}
 	</p>
+	<#escape x as x?html?replace('\n', '<br>')>
+		${resBundle("byebye","37Coins")}
+	</#escape>
 </article>
-<footer>
-Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${to.address}">email settings</a>. 
-</footer>
 
 </body>
 </html>

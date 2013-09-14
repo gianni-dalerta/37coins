@@ -25,8 +25,10 @@ import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.Request;
 import com._37coins.workflow.pojo.Response;
+import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import com.google.inject.name.Named;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiError;
 import com.wordnik.swagger.annotations.ApiErrors;
@@ -39,7 +41,7 @@ public class EnvayaSmsResource {
 	public final static String PATH = "/envayasms";
 
 	@Inject
-	protected MessageParser mp;
+	MessageParser mp;
 
 	@Inject
 	QueueClient qc;
@@ -52,6 +54,9 @@ public class EnvayaSmsResource {
 	
 	@Inject
 	WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory;
+	
+	@Inject @Named("wfClient")
+	AmazonSimpleWorkflow swfService;
 	
 	@Log
 	Logger log;
@@ -99,7 +104,7 @@ public class EnvayaSmsResource {
 					.setGateway(phoneNumber);
 				
 				//implement actions
-				RequestInterpreter ri = new RequestInterpreter(mp) {							
+				RequestInterpreter ri = new RequestInterpreter(mp, swfService) {							
 					@Override
 					public void startWithdrawal(Request req) {
 						withdrawalFactory.getClient().executeCommand(req);

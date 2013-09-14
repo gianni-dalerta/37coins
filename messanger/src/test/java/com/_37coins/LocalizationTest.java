@@ -104,7 +104,7 @@ public class LocalizationTest {
 		rsp.setAction(RspAction.SEND_CONFIRM)
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.01"))
-				.setTaskToken("1NN2394238N")
+				.setConfKey("something")
 				.setConfLink("http://37coins.com/rest/something")
 				.setMsgDest(new MessageAddress()
 					.setAddress("other@37coins.com")));

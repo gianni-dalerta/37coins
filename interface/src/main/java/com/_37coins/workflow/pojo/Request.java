@@ -18,7 +18,8 @@ public class Request {
 		DEPOSIT("deposit"), // request a bitcoin address to receive a payment
 		SEND("send"), // send a payment
 		REQUEST("request"), // send a payment
-		SEND_CONFIRM("confirm"), BALANCE("balance"), // request the balance
+		SEND_CONFIRM("confirm"), 
+		BALANCE("balance"), // request the balance
 		HELP("help"), 
 		TRANSACTION("tx");
 		

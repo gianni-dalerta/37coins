@@ -43,13 +43,10 @@
 				${resBundle("TransactionDetails",payload.txId)}
 			</#if>	
 		</p>
-		<#escape x as x?html?replace('\n', '<br>')>
-				${resBundle("byebye","37Coins")}
-		</#escape>
+	<#escape x as x?html?replace('\n', '<br>')>
+		${resBundle("byebye","37Coins")}
+	</#escape>
 	</article>
-<footer>
-Manage your <a class="text" href="http://api.37coins.com/mail/rest/preference?filter=hash=${sendHash}&service=37coins&address=${to.address}">email settings</a>. 
-</footer>
 
 </body>
 </html>

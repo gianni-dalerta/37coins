@@ -96,6 +96,10 @@ public class WithdrawalWorkflowTest {
 
 			@Override
 			public void sendConfirmation(Response rsp) {
+				Withdrawal w = (Withdrawal)rsp.getPayload();
+				w.setConfKey("123");
+				w.setConfLink("http://test.com/123");
+				trace.add(rsp);
 			}
 			@Override
 			public Response readMessageAddress(Response data) {
@@ -134,21 +138,24 @@ public class WithdrawalWorkflowTest {
 					.setAddressType(PaymentType.ACCOUNT)));
 		Promise<Void> booked = workflow.executeCommand(req);
 		Response expected = new Response()
-			.setAction(RspAction.SEND)
+			.setAction(RspAction.SEND_CONFIRM)
 			.setService("37coins")
 			.setAccountId(0L)
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.5").setScale(8))
 				.setFee(new BigDecimal("0.0005").setScale(8))
 				.setFeeAccount("1")
-				.setTxId("txid2038942304")
+				.setConfKey("123")
+				.setConfLink("http://test.com/123")
 				.setPayDest(new PaymentAddress()
 					.setAddress("2")
 					.setAddressType(PaymentType.ACCOUNT)))
 			.setTo(new MessageAddress()
 				.setAddressType(MsgType.SMS));
-		validate("successfull create", expected, trace, booked);
+		validate("send no confirm", expected, trace, booked);
 	}
+	
+	
 	
 	@Test
 	public void testInsufficientFunds() throws AddressException {

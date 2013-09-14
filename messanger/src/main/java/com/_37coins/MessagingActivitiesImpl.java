@@ -1,6 +1,5 @@
 package com._37coins;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Set;
 
@@ -10,10 +9,12 @@ import com._37coins.activities.MessagingActivities;
 import com._37coins.envaya.QueueClient;
 import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.MsgAddress;
+import com._37coins.persistence.dto.TaskToken;
 import com._37coins.sendMail.MailTransporter;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.Response;
+import com._37coins.workflow.pojo.Withdrawal;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContext;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContextProvider;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContextProviderImpl;
@@ -44,23 +45,26 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 		}
 	}
 
-	
-	public String getConfLink() throws UnsupportedEncodingException{
-		ActivityExecutionContext executionContext = contextProvider.getActivityExecutionContext();
-		String taskToken = executionContext.getTaskToken();
-		String confLink = null;
-		confLink = MessagingServletConfig.basePath + "/rest/withdrawal/approve?taskToken="+URLEncoder.encode(taskToken,"UTF-8");
-		return confLink;
-	}
-
 	@Override
 	@ManualActivityCompletion
 	public void sendConfirmation(Response rsp) {
-		try {
-			rsp.setPayload(getConfLink());
-			mt.sendMessage(rsp);
+		ActivityExecutionContext executionContext = contextProvider.getActivityExecutionContext();
+		String taskToken = executionContext.getTaskToken();
+		GenericRepository dao = new GenericRepository();
+		try{
+			TaskToken tt = new TaskToken()
+				.setTaskToken(taskToken)
+				.setKey(TaskToken.generateKey());
+			dao.add(tt);
+			String confLink = MessagingServletConfig.basePath + "/rest/withdrawal/approve?key="+URLEncoder.encode(tt.getKey(),"UTF-8");
+			Withdrawal w = (Withdrawal)rsp.getPayload();
+			w.setConfKey(tt.getKey());
+			w.setConfLink(confLink);
+			sendMessage(rsp);
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			e.printStackTrace();
+		}finally{
+			dao.closePersistenceManager();
 		}
 	}
 

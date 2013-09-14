@@ -17,7 +17,9 @@ import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.Request;
 import com._37coins.workflow.pojo.Response;
+import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 
 import freemarker.template.TemplateException;
 
@@ -34,6 +36,9 @@ public class EmailListener implements MessageCountListener{
 	
 	@Inject
 	MessageParser mp;
+	
+	@Inject @Named("wfClient")
+	AmazonSimpleWorkflow swfService;
 
 	@Override
 	public void messagesRemoved(MessageCountEvent e) {
@@ -59,7 +64,7 @@ public class EmailListener implements MessageCountListener{
 			.setGateway(MessagingServletConfig.imapUser+"@"+MessagingServletConfig.imapHost);
 			
 			//implement actions
-			RequestInterpreter ri = new RequestInterpreter(mp) {							
+			RequestInterpreter ri = new RequestInterpreter(mp,swfService) {							
 				@Override
 				public void startWithdrawal(Request req) {
 					withdrawalFactory.getClient().executeCommand(req);

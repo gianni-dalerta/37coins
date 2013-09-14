@@ -11,7 +11,6 @@ import com._37coins.workflow.NonTxWorkflowClientFactory;
 import com._37coins.workflow.NonTxWorkflowClientFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflow;
 import com._37coins.workflow.pojo.Deposit;
-import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
 import com._37coins.workflow.pojo.Request;
 import com._37coins.workflow.pojo.Response;
@@ -65,29 +64,23 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     		fail(fail);
     		return;
     	}else{
-			if (req.getFrom().getAddressType()==MsgType.EMAIL){
-				final Response rsp = new Response()
-					.respondTo(req)
-					.setAction(RspAction.SEND_CONFIRM);
-				final Promise<Void> response = msgClient.sendConfirmation(rsp);
-				final OrPromise confirmOrTimer = new OrPromise(startDaemonTimer(confirmationPeriod), response);
-			   	new TryCatch() {
-					@Override
-		            protected void doTry() throws Throwable {
-						setConfirm(confirm, confirmOrTimer, response, rsp);
-					}
-		            @Override
-		            protected void doCatch(Throwable e) throws Throwable {
-		            	rsp.setAction(RspAction.TIMEOUT);
-		    			msgClient.sendMessage(rsp);
-		            	cancel(e);
-					}
-				};
-			}else{
-				final Response rsp = new Response()
-					.respondTo(req);
-				confirm.set(rsp);
-			}
+			final Response rsp = new Response()
+				.respondTo(req)
+				.setAction(RspAction.SEND_CONFIRM);
+			final Promise<Void> response = msgClient.sendConfirmation(rsp);
+			final OrPromise confirmOrTimer = new OrPromise(startDaemonTimer(confirmationPeriod), response);
+		   	new TryCatch() {
+				@Override
+	            protected void doTry() throws Throwable {
+					setConfirm(confirm, confirmOrTimer, response, rsp);
+				}
+	            @Override
+	            protected void doCatch(Throwable e) throws Throwable {
+	            	rsp.setAction(RspAction.TIMEOUT);
+	    			msgClient.sendMessage(rsp);
+	            	cancel(e);
+				}
+			};
     	}
 		handleTransaction(confirm);
     }
@@ -122,6 +115,7 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     	Withdrawal w = (Withdrawal)rsp.getPayload();
     	bcdClient.sendTransaction(w.getFee(), BigDecimal.ZERO, rsp.getAccountId(), w.getFeeAccount(), null);
     	w.setTxId(data.get());
+		rsp.setAction(RspAction.SEND);
     	msgClient.sendMessage(rsp);
     	if (w.getPayDest().getAddressType()==PaymentType.ACCOUNT){
     		//start child workflow to tell receiver about his luck

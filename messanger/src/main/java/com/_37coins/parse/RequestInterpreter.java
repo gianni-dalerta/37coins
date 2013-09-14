@@ -9,6 +9,7 @@ import org.restnucleus.dao.RNQuery;
 import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.Gateway;
 import com._37coins.persistence.dto.MsgAddress;
+import com._37coins.persistence.dto.TaskToken;
 import com._37coins.workflow.pojo.IncompleteException;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.PaymentAddress;
@@ -18,13 +19,23 @@ import com._37coins.workflow.pojo.Request.ReqAction;
 import com._37coins.workflow.pojo.Response;
 import com._37coins.workflow.pojo.Response.RspAction;
 import com._37coins.workflow.pojo.Withdrawal;
+import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClient;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactory;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactoryImpl;
 
 public abstract class RequestInterpreter{
 	
 	final private MessageParser mp;
+	private AmazonSimpleWorkflow swfService;
 
 	public RequestInterpreter(MessageParser mp) {
 		this.mp = mp;
+	}
+	
+	public RequestInterpreter(MessageParser mp, AmazonSimpleWorkflow swfService) {
+		this.mp = mp;
+		this.swfService = swfService;
 	}
 	
 	public void process(MessageAddress sender, String subject) {
@@ -87,7 +98,13 @@ public abstract class RequestInterpreter{
 					startWithdrawal(req);
 					break;
 				case SEND_CONFIRM:
-					throw new RuntimeException("not implemented");
+					RNQuery ttQuery = new RNQuery().addFilter("key", (String)req.getPayload());
+					TaskToken tt = dao.queryEntity(ttQuery, TaskToken.class);
+			        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
+			        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tt.getTaskToken());
+			        manualCompletionClient.complete(null);
+			        dao.delete(tt.getId(), TaskToken.class);
+			        break;
 				case HELP:
 					respond(new Response().respondTo(req));
 					break;

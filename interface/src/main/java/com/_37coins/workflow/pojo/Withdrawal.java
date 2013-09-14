@@ -23,19 +23,9 @@ public class Withdrawal {
 	
 	private String txId;
 	
-	private String taskToken;
-	
 	private String confLink;
-
-
-	public String getTaskToken() {
-		return taskToken;
-	}
-
-	public Withdrawal setTaskToken(String taskToken) {
-		this.taskToken = taskToken;
-		return this;
-	}
+	
+	private String confKey;
 
 	public String getConfLink() {
 		return confLink;
@@ -106,6 +96,15 @@ public class Withdrawal {
 
 	public Withdrawal setFeeAccount(String feeAccount) {
 		this.feeAccount = feeAccount;
+		return this;
+	}
+
+	public String getConfKey() {
+		return confKey;
+	}
+
+	public Withdrawal setConfKey(String confKey) {
+		this.confKey = confKey;
 		return this;
 	}
 	

@@ -1,1 +1,3 @@
-${resBundle("WithdrawalReq",payload.amount?string("##0.####"),receiver)}
+<#setting locale=locale>
+${resBundle("WithdrawalReq",payload.amount?string("#,##0.########"),payload.msgDest.address)}
+${resBundle("WithdrawalReqIstr",payload.confKey)}

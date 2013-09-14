@@ -17,6 +17,8 @@ public class Deposit {
 	
 	private String txId;
 	
+	private String comment;
+	
 	public BigDecimal getAmount() {
 		return amount;
 	}
@@ -50,6 +52,15 @@ public class Deposit {
 
 	public Deposit setTxId(String txId) {
 		this.txId = txId;
+		return this;
+	}
+
+	public String getComment() {
+		return comment;
+	}
+
+	public Deposit setComment(String comment) {
+		this.comment = comment;
 		return this;
 	}
 

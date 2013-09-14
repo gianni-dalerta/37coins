@@ -5,7 +5,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -27,12 +26,9 @@ import com._37coins.envaya.MessageFactory;
 import com._37coins.imap.JavaPushMailAccount;
 import com._37coins.parse.MessageParser;
 import com._37coins.pojo.SendAction;
-import com._37coins.pojo.ServiceEntry;
-import com._37coins.pojo.ServiceList;
 import com._37coins.resources.EnvayaSmsResource;
 import com._37coins.resources.GatewayResource;
 import com._37coins.resources.HealthCheckResource;
-import com._37coins.resources.PreferenceResource;
 import com._37coins.resources.WithdrawalResource;
 import com._37coins.sendMail.AmazonEmailClient;
 import com._37coins.sendMail.EmailFactory;
@@ -148,7 +144,6 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 			@Override
 			public Set<Class<?>> getClassList() {
 				Set<Class<?>> cs = new HashSet<>();
-				cs.add(PreferenceResource.class);
 				cs.add(EnvayaSmsResource.class);
 				cs.add(WithdrawalResource.class);
 				cs.add(HealthCheckResource.class);
@@ -258,10 +253,6 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 			public SendAction provideSendAction() {
 				SendAction sa = new SendAction(servletContext);
 				return sa;
-			}
-			@Provides @Singleton @SuppressWarnings("unused")
-			public List<ServiceEntry> provideCategories() {
-				return ServiceList.initialize(servletContext);
 			}
 			
 			@Provides @Singleton @SuppressWarnings("unused")

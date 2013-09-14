@@ -47,7 +47,7 @@ public class NonTxWorkflowTest {
         BitcoindActivities activities = new BitcoindActivities() {
 			@Override
 			public String sendTransaction(BigDecimal amount, BigDecimal fee, Long fromId,
-					String toId, String toAddress) {
+					String toId, String toAddress, String id, String comment) {
 				return null;
 			}
 			@Override
@@ -143,7 +143,7 @@ public class NonTxWorkflowTest {
 		Response rsp = new Response()
 			.respondTo(req)
 			.setPayload(new Deposit()
-				.setAmount(new BigDecimal("2.5")));
+				.setBalance(new BigDecimal("2.5")));
 		AsyncAssert.assertEqualsWaitFor("successfull balance", rsp, trace,
 				booked);
 	}

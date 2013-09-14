@@ -11,7 +11,6 @@ import com._37coins.workflow.NonTxWorkflowClientFactory;
 import com._37coins.workflow.NonTxWorkflowClientFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflow;
 import com._37coins.workflow.pojo.Deposit;
-import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
 import com._37coins.workflow.pojo.Request;
 import com._37coins.workflow.pojo.Response;
@@ -29,7 +28,7 @@ import com.amazonaws.services.simpleworkflow.flow.core.Settable;
 import com.amazonaws.services.simpleworkflow.flow.core.TryCatch;
 
 public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
-
+	DecisionContextProvider contextProvider = new DecisionContextProviderImpl();
     BitcoindActivitiesClient bcdClient = new BitcoindActivitiesClientImpl();
     MessagingActivitiesClient msgClient = new MessagingActivitiesClientImpl();
     NonTxWorkflowClientFactory factory = new NonTxWorkflowClientFactoryImpl();
@@ -52,39 +51,36 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     	if (w.getCurrency()!=null){
     		throw new RuntimeException("currency conversion not implemented");
     	}
-    	BigDecimal amount = w.getAmount();
-    	BigDecimal fee = w.getFee();
-    	if (balance.get().compareTo(amount.add(fee))<0){
+    	BigDecimal amount = w.getAmount().setScale(8);
+    	BigDecimal fee = w.getFee().setScale(8);
+    	if (balance.get().compareTo(amount.add(fee).setScale(8))<0){
     		Response rsp = new Response()
     			.respondTo(req)
+    			.setPayload(new Deposit()
+    				.setAmount(amount.add(fee).setScale(8))
+    				.setBalance(balance.get()))
     			.setAction(RspAction.INSUFISSIENT_FUNDS);
     		Promise<Void> fail = msgClient.sendMessage(rsp);
     		fail(fail);
     		return;
     	}else{
-			if (req.getFrom().getAddressType()==MsgType.EMAIL){
-				final Response rsp = new Response()
-					.respondTo(req)
-					.setAction(RspAction.SEND_CONFIRM);
-				final Promise<Void> response = msgClient.sendConfirmation(rsp);
-				final OrPromise confirmOrTimer = new OrPromise(startDaemonTimer(confirmationPeriod), response);
-			   	new TryCatch() {
-					@Override
-		            protected void doTry() throws Throwable {
-						setConfirm(confirm, confirmOrTimer, response, rsp);
-					}
-		            @Override
-		            protected void doCatch(Throwable e) throws Throwable {
-		            	rsp.setAction(RspAction.TIMEOUT);
-		    			msgClient.sendMessage(rsp);
-		            	cancel(e);
-					}
-				};
-			}else{
-				final Response rsp = new Response()
-					.respondTo(req);
-				confirm.set(rsp);
-			}
+			final Response rsp = new Response()
+				.respondTo(req)
+				.setAction(RspAction.SEND_CONFIRM);
+			final Promise<Void> response = msgClient.sendConfirmation(rsp);
+			final OrPromise confirmOrTimer = new OrPromise(startDaemonTimer(confirmationPeriod), response);
+		   	new TryCatch() {
+				@Override
+	            protected void doTry() throws Throwable {
+					setConfirm(confirm, confirmOrTimer, response, rsp);
+				}
+	            @Override
+	            protected void doCatch(Throwable e) throws Throwable {
+	            	rsp.setAction(RspAction.TIMEOUT);
+	    			msgClient.sendMessage(rsp);
+	            	cancel(e);
+				}
+			};
     	}
 		handleTransaction(confirm);
     }
@@ -101,7 +97,9 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 	    				w.getFee(), 
 	    				rsp.get().getAccountId(), 
 	    				(w.getPayDest().getAddressType()==PaymentType.ACCOUNT)?w.getPayDest().getAddress():null, 
-	    						(w.getPayDest().getAddressType()==PaymentType.BTC)?w.getPayDest().getAddress():null);
+	    				(w.getPayDest().getAddressType()==PaymentType.BTC)?w.getPayDest().getAddress():null,
+	    				contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId(),
+	    				w.getComment());
 	    		afterSend(tx, rsp.get());
             }
             @Override
@@ -117,8 +115,16 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     @Asynchronous
     public void afterSend(Promise<String> data, Response rsp) throws Throwable{
     	Withdrawal w = (Withdrawal)rsp.getPayload();
-    	bcdClient.sendTransaction(w.getFee(), BigDecimal.ZERO, rsp.getAccountId(), w.getFeeAccount(), null);
+    	bcdClient.sendTransaction(
+    			w.getFee(), 
+    			BigDecimal.ZERO, 
+    			rsp.getAccountId(), 
+    			w.getFeeAccount(), 
+    			null,
+    			contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId(),
+    			"");
     	w.setTxId(data.get());
+		rsp.setAction(RspAction.SEND);
     	msgClient.sendMessage(rsp);
     	if (w.getPayDest().getAddressType()==PaymentType.ACCOUNT){
     		//start child workflow to tell receiver about his luck

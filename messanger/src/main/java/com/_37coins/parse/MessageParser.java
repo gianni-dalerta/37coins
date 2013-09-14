@@ -187,6 +187,9 @@ public class MessageParser {
 			}
 			req.setPayload(w);
 		}
+		if (req.getAction() == ReqAction.SEND_CONFIRM){
+			req.setPayload(ca[1]);
+		}
 		return req;
 	}
 

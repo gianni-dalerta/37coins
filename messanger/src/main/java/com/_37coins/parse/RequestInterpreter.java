@@ -9,6 +9,7 @@ import org.restnucleus.dao.RNQuery;
 import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.Gateway;
 import com._37coins.persistence.dto.MsgAddress;
+import com._37coins.persistence.dto.Transaction;
 import com._37coins.workflow.pojo.IncompleteException;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.PaymentAddress;
@@ -18,13 +19,23 @@ import com._37coins.workflow.pojo.Request.ReqAction;
 import com._37coins.workflow.pojo.Response;
 import com._37coins.workflow.pojo.Response.RspAction;
 import com._37coins.workflow.pojo.Withdrawal;
+import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClient;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactory;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactoryImpl;
 
 public abstract class RequestInterpreter{
 	
 	final private MessageParser mp;
+	private AmazonSimpleWorkflow swfService;
 
 	public RequestInterpreter(MessageParser mp) {
 		this.mp = mp;
+	}
+	
+	public RequestInterpreter(MessageParser mp, AmazonSimpleWorkflow swfService) {
+		this.mp = mp;
+		this.swfService = swfService;
 	}
 	
 	public void process(MessageAddress sender, String subject) {
@@ -83,10 +94,19 @@ public abstract class RequestInterpreter{
 					Gateway gw = dao.queryEntity(gwQ, Gateway.class);
 					w.setFee(gw.getFee().setScale(8,RoundingMode.UP));
 					w.setFeeAccount(gw.getOwner().getId().toString());
-					startWithdrawal(req);
+					Transaction t = new Transaction()
+						.setKey(Transaction.generateKey());
+					dao.add(t);
+					startWithdrawal(req,t.getKey());
 					break;
 				case SEND_CONFIRM:
-					throw new RuntimeException("not implemented");
+					RNQuery ttQuery = new RNQuery().addFilter("key", (String)req.getPayload());
+					Transaction tx = dao.queryEntity(ttQuery, Transaction.class);
+			        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
+			        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());
+			        manualCompletionClient.complete(null);
+			        //don't delete, to guarantee unique keys
+			        break;
 				case HELP:
 					respond(new Response().respondTo(req));
 					break;
@@ -103,7 +123,7 @@ public abstract class RequestInterpreter{
 		}
 	}
 	
-	public abstract void startWithdrawal(Request req);
+	public abstract void startWithdrawal(Request req,String workflowId);
 	
 	public abstract void startDeposit(Request req);
 	

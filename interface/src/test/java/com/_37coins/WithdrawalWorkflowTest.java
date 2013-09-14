@@ -3,6 +3,7 @@ package com._37coins;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 import javax.mail.internet.AddressException;
 
@@ -20,6 +21,7 @@ import com._37coins.bizLogic.WithdrawalWorkflowImpl;
 import com._37coins.workflow.WithdrawalWorkflowClient;
 import com._37coins.workflow.WithdrawalWorkflowClientFactory;
 import com._37coins.workflow.WithdrawalWorkflowClientFactoryImpl;
+import com._37coins.workflow.pojo.Deposit;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.PaymentAddress;
@@ -31,11 +33,10 @@ import com._37coins.workflow.pojo.Response.RspAction;
 import com._37coins.workflow.pojo.Withdrawal;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Asynchronous;
 import com.amazonaws.services.simpleworkflow.flow.core.Promise;
+import com.amazonaws.services.simpleworkflow.flow.core.TryCatch;
 import com.amazonaws.services.simpleworkflow.flow.junit.AsyncAssert;
 import com.amazonaws.services.simpleworkflow.flow.junit.FlowBlockJUnit4ClassRunner;
 import com.amazonaws.services.simpleworkflow.flow.junit.WorkflowTest;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RunWith(FlowBlockJUnit4ClassRunner.class)
 public class WithdrawalWorkflowTest {
@@ -54,7 +55,7 @@ public class WithdrawalWorkflowTest {
 		BitcoindActivities activities = new BitcoindActivities() {
 			@Override
 			public String sendTransaction(BigDecimal amount, BigDecimal fee,
-					Long fromId, String toId, String toAddress) {
+					Long fromId, String toId, String toAddress, String id, String comment) {
 				if (null!=amount && null!=fee && null!=fromId &&(null!=toId || null!=toAddress)){
 					return "txid2038942304";
 				}else{
@@ -90,17 +91,15 @@ public class WithdrawalWorkflowTest {
 
 			@Override
 			public void sendMessage(Response rsp) {
-				try {
-					System.out.println(new ObjectMapper().writeValueAsString(rsp));
-				} catch (JsonProcessingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
 				trace.add(rsp);
 			}
 
 			@Override
 			public void sendConfirmation(Response rsp) {
+				Withdrawal w = (Withdrawal)rsp.getPayload();
+				w.setConfKey("123");
+				w.setConfLink("http://test.com/123");
+				trace.add(rsp);
 			}
 			@Override
 			public Response readMessageAddress(Response data) {
@@ -139,20 +138,69 @@ public class WithdrawalWorkflowTest {
 					.setAddressType(PaymentType.ACCOUNT)));
 		Promise<Void> booked = workflow.executeCommand(req);
 		Response expected = new Response()
-			.setAction(RspAction.SEND)
+			.setAction(RspAction.SEND_CONFIRM)
 			.setService("37coins")
 			.setAccountId(0L)
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.5").setScale(8))
 				.setFee(new BigDecimal("0.0005").setScale(8))
 				.setFeeAccount("1")
-				.setTxId("txid2038942304")
+				.setConfKey("123")
+				.setConfLink("http://test.com/123")
 				.setPayDest(new PaymentAddress()
 					.setAddress("2")
 					.setAddressType(PaymentType.ACCOUNT)))
 			.setTo(new MessageAddress()
 				.setAddressType(MsgType.SMS));
-		validate("successfull create", expected, trace, booked);
+		validate("send no confirm", expected, trace, booked);
+	}
+	
+	
+	
+	@Test
+	public void testInsufficientFunds() throws AddressException {
+		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
+		final Request req = new Request()
+			.setAction(ReqAction.SEND)
+			.setAccountId(0L)
+			.setFrom(new MessageAddress()
+				.setAddressType(MsgType.SMS))
+			.setPayload(new Withdrawal()
+				.setAmount(new BigDecimal("100.005").setScale(8))
+				.setFee(new BigDecimal("0.0005").setScale(8))
+				.setFeeAccount("1")
+				.setPayDest(new PaymentAddress()
+					.setAddress("2")
+					.setAddressType(PaymentType.ACCOUNT)));		
+		new TryCatch() {
+			@Override
+			protected void doTry() throws Throwable {
+				Promise<Void> booked = workflow.executeCommand(req);
+				AsyncAssert.assertEquals("should have aborded because receiver not found", 0, booked);
+			}
+            @Override
+            protected void doCatch(Throwable e) throws Throwable {
+            	if (e.getCause()!=null && e.getCause().getClass() == CancellationException.class){
+            		Response expected = new Response()
+	        			.setAction(RspAction.INSUFISSIENT_FUNDS)
+	        			.setService("37coins")
+	        			.setAccountId(0L)
+	        			.setPayload(new Deposit()
+	        				.setAmount(new BigDecimal("100.0055").setScale(8))
+	        				.setBalance(new BigDecimal("2.5").setScale(8)))
+	        			.setTo(new MessageAddress()
+	        				.setAddressType(MsgType.SMS));
+            		validate("insufficient funds", expected, trace);
+            	}else{
+            		throw e;
+            	}
+			}
+		};
+	}	
+
+	@Asynchronous
+	public void validate(String desc, Object expected, List<Response> l){
+		AsyncAssert.assertEqualsWaitFor(desc, expected, l.get(0));
 	}
 	
 	@Asynchronous

@@ -13,6 +13,7 @@ import java.util.Set;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -47,6 +48,7 @@ public class smsIT {
 	static NonTxWorkflowClientExternalFactory factory;
 	ObjectMapper om = new ObjectMapper();
 	static Set<String> created = new HashSet<>();
+	static BigDecimal FEE = new BigDecimal("0.0001").setScale(8);
 	static String GATEWAY = "821012345678";
 	static String SENDER1 = "01027423984";
 	static String SENDER2 = "01023456789";
@@ -66,7 +68,7 @@ public class smsIT {
 		given()
 			.formParam("ownerAddress", "schatzmeister@37coins.com")
 			.formParam("address", GATEWAY)
-			.formParam("fee", "0.0001")
+			.formParam("fee", FEE)
 		.when()
 			.post(restUrl + GatewayResource.PATH);
 		//connect to message bus
@@ -87,6 +89,11 @@ public class smsIT {
 				}
 			}
 		});
+	}
+	
+	@Before
+	public void start(){
+		response.clear();
 	}
 	
 	@After
@@ -117,10 +124,11 @@ public class smsIT {
 		return rv;
 	}
 	
-	public void create(String sender){
+	public void create(String sender) throws JsonParseException, JsonMappingException, IOException{
 		if (!created.contains(sender)){
 			exec("create", GATEWAY, sender);
-			read();
+			String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
+			System.out.println(message);
 		}
 	}
 	
@@ -206,9 +214,15 @@ public class smsIT {
 	public void testEnvayaSend() throws InterruptedException, JsonParseException, JsonMappingException, IOException {
 		create(SENDER2);
 		create(SENDER1);
-		exec("send 0.01 01023456789");
+		exec("send 0.01 "+SENDER2);
 		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		Assert.assertEquals("We have transfered 0.01 BTC from your account to 01023456789.", message);
+		System.out.println(message);
+		Assert.assertTrue(message.contains("We have been ordered to transfer")); 
+		Assert.assertTrue(message.contains("BTC from your account to "+SENDER2));
+		String key = message.substring(message.indexOf("\"conf")+6, message.indexOf("\"conf")+11);
+		exec("conf "+key);
+		message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
+		Assert.assertEquals("We have transfered 0.01 BTC from your account to "+SENDER2+".", message);
 		Assert.assertTrue(message.length()<160);
 		message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
 		Assert.assertEquals("You have received 0.01 in your wallet.", message);
@@ -216,8 +230,15 @@ public class smsIT {
 	}
 	
 	@Test
-	public void testInsufficientFunds(){
-		throw new RuntimeException("not implemented");
+	public void testInsufficientFunds() throws JsonParseException, JsonMappingException, IOException{
+		BigDecimal amount = new BigDecimal("1000.01").setScale(8);
+		create(SENDER2);
+		create(SENDER1);
+		exec("send "+amount.setScale(2)+" "+SENDER2);
+		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
+		System.out.println(message);
+		Assert.assertTrue(message.contains("BTC, required for transaction: "+amount.add(FEE).setScale(4)+" BTC."));
+		Assert.assertTrue(message.length()<160);
 	}
 
 }

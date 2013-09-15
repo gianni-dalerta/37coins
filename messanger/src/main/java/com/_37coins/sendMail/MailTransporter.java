@@ -8,6 +8,7 @@ import javax.mail.internet.AddressException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com._37coins.MessageFactory;
 import com._37coins.MessagingServletConfig;
 import com._37coins.workflow.pojo.Response;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,11 +25,11 @@ import freemarker.template.TemplateException;
 public class MailTransporter {
 
 	final MailServiceClient client;
-	final EmailFactory emailFactory;
+	final MessageFactory emailFactory;
 	public static Logger log = LoggerFactory.getLogger(MailTransporter.class);
 
 	@Inject
-	public MailTransporter(EmailFactory emailFactory,MailServiceClient client) {
+	public MailTransporter(MessageFactory emailFactory,MailServiceClient client) {
 		this.client = client;
 		this.emailFactory = emailFactory;
 	}

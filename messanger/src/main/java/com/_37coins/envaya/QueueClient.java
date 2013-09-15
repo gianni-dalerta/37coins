@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
+import com._37coins.MessageFactory;
 import com._37coins.workflow.pojo.Response;
 import com.google.inject.Inject;
 import com.rabbitmq.client.Channel;
@@ -37,7 +38,7 @@ public class QueueClient {
 		if (null==connection || !connection.isOpen()){
 			connect(uri, exchangeName);
 		}
-		String message = StringEscapeUtils.escapeJava(msgFactory.construct(rsp));
+		String message = StringEscapeUtils.escapeJava(msgFactory.constructTxt(rsp));
 		String msg = "{\"event\":\"send\",\"messages\":[{\"id\":\""+id+"\",\"to\":\""+rsp.getTo().getAddress()+"\",\"message\":\""+message+"\"}]}";
 		channel.basicPublish(exchangeName,gateway,null, msg.getBytes());
 	}

@@ -11,7 +11,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com._37coins.bcJsonRpc.pojo.Transaction;
-import com._37coins.sendMail.EmailFactory;
 import com._37coins.workflow.pojo.Deposit;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.PaymentAddress;
@@ -24,7 +23,7 @@ import freemarker.template.TemplateException;
 public class LocalizationTest {
 	
 	Response rsp;
-	EmailFactory ef = new EmailFactory();
+	MessageFactory ef = new MessageFactory();
 	
 	@Before
 	public void start(){

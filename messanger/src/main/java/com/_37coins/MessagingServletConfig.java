@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import com._37coins.bizLogic.NonTxWorkflowImpl;
 import com._37coins.bizLogic.WithdrawalWorkflowImpl;
-import com._37coins.envaya.MessageFactory;
 import com._37coins.imap.JavaPushMailAccount;
 import com._37coins.parse.MessageParser;
 import com._37coins.resources.EnvayaSmsResource;
@@ -30,7 +29,6 @@ import com._37coins.resources.GatewayResource;
 import com._37coins.resources.HealthCheckResource;
 import com._37coins.resources.WithdrawalResource;
 import com._37coins.sendMail.AmazonEmailClient;
-import com._37coins.sendMail.EmailFactory;
 import com._37coins.sendMail.MailServiceClient;
 import com._37coins.sendMail.SmtpEmailClient;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
@@ -246,11 +244,6 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 					e.printStackTrace();
 				}
 				return activityWorker;
-			}
-			
-			@Provides @Singleton @SuppressWarnings("unused")
-			public EmailFactory provideEmailFactory() {
-				return new EmailFactory(servletContext);
 			}
 			
 			@Provides @Singleton @SuppressWarnings("unused")

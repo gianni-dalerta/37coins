@@ -11,7 +11,7 @@ import java.util.ResourceBundle;
 
 import javax.servlet.ServletContext;
 
-import com._37coins.workflow.pojo.Response;
+import com._37coins.workflow.pojo.DataSet;
 
 import freemarker.ext.beans.BeansWrapper;
 import freemarker.ext.beans.ResourceBundleModel;
@@ -52,7 +52,7 @@ public class MessageFactory {
 		}
 	}
 
-	private void prepare(Response rsp) throws MalformedURLException {
+	private void prepare(DataSet rsp) throws MalformedURLException {
 		if (null == rsp.getResBundle()) {
 			ClassLoader loader = null;
 			if (null==servletContext){
@@ -68,19 +68,19 @@ public class MessageFactory {
 		}
 	}
 
-	public String constructHtml(Response rsp)
+	public String constructHtml(DataSet rsp)
 			throws IOException, TemplateException {
 		prepare(rsp);
 		return processTemplate(rsp, HTML_FOLDER);
 	}
 
-	public String constructTxt(Response rsp)
+	public String constructTxt(DataSet rsp)
 			throws IOException, TemplateException {
 		prepare(rsp);
 		return processTemplate(rsp, TEXT_FOLDER);
 	}
 
-	public String constructSubject(Response rsp) throws IOException, TemplateException {
+	public String constructSubject(DataSet rsp) throws IOException, TemplateException {
 		prepare(rsp);
 		String subjectPrefix= rsp.getAction().getText();
 		Template template = new Template("name", rb.getString(subjectPrefix+"Subject"),new Configuration()); 
@@ -89,7 +89,7 @@ public class MessageFactory {
 		return out.toString();
 	}
 
-	public String processTemplate(Response rsp, String folder) throws IOException,
+	public String processTemplate(DataSet rsp, String folder) throws IOException,
 			TemplateException {
 
 		// make email template

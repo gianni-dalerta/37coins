@@ -17,14 +17,14 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com._37coins.bcJsonRpc.pojo.Transaction;
 import com._37coins.envaya.Command;
 import com._37coins.resources.EnvayaSmsResource;
 import com._37coins.resources.GatewayResource;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactory;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
-import com._37coins.workflow.pojo.Deposit;
-import com._37coins.workflow.pojo.Response;
-import com._37coins.workflow.pojo.Response.RspAction;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
@@ -189,12 +189,12 @@ public class smsIT {
 	@Test
 	public void testEnvayaReceive() throws InterruptedException, JsonParseException, JsonMappingException, IOException {
 		Long account = 1L;
-		Response rsp = new Response()
+		DataSet rsp = new DataSet()
 			.setAccountId(account)
-			.setPayload(new Deposit()
+			.setPayload(new Transaction()
 				.setAmount(new BigDecimal("0.5").setScale(8))
-				.setTxId("1234"))
-			.setAction(RspAction.RECEIVED);
+				.setTxid("1234"))
+			.setAction(Action.DEPOSIT_CONF);
 		factory.getClient().executeCommand(rsp);
 		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
 		Assert.assertEquals("You have received 0.5 in your wallet.", message);

@@ -1,7 +1,6 @@
 package com._37coins.workflow.pojo;
 
 import java.math.BigDecimal;
-import java.util.Currency;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -17,9 +16,9 @@ public class Withdrawal {
 	
 	private BigDecimal fee;
 	
-	private String feeAccount;
+	private BigDecimal balance;
 	
-	private Currency currency;
+	private String feeAccount;
 	
 	private String txId;
 	
@@ -53,15 +52,6 @@ public class Withdrawal {
 
 	public Withdrawal setAmount(BigDecimal amount) {
 		this.amount = amount;
-		return this;
-	}
-
-	public Currency getCurrency() {
-		return currency;
-	}
-
-	public Withdrawal setCurrency(Currency currency) {
-		this.currency = currency;
 		return this;
 	}
 
@@ -118,7 +108,14 @@ public class Withdrawal {
 		this.comment = comment;
 		return this;
 	}
-	
-	
+
+	public BigDecimal getBalance() {
+		return balance;
+	}
+
+	public Withdrawal setBalance(BigDecimal balance) {
+		this.balance = balance;
+		return this;
+	}
 
 }

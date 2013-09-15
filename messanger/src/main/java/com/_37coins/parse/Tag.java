@@ -2,19 +2,19 @@ package com._37coins.parse;
 
 import java.util.Locale;
 
-import com._37coins.workflow.pojo.Request.ReqAction;
+import com._37coins.workflow.pojo.DataSet.Action;
 
 public class Tag {
 	
-	public Tag(ReqAction cmd, Locale lng){
+	public Tag(Action cmd, Locale lng){
 		this.cmd = cmd;
 		this.lng = lng;
 	}
 	
-	private ReqAction cmd;
+	private Action cmd;
 	private Locale lng;
 	
-	public ReqAction getAction(){
+	public Action getAction(){
 		return cmd;
 	}
 	

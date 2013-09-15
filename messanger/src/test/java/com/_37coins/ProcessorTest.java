@@ -20,13 +20,11 @@ import com._37coins.parse.RequestInterpreter;
 import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.Gateway;
 import com._37coins.persistence.dto.MsgAddress;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
-import com._37coins.workflow.pojo.Request;
-import com._37coins.workflow.pojo.Request.ReqAction;
-import com._37coins.workflow.pojo.Response;
-import com._37coins.workflow.pojo.Response.RspAction;
 import com._37coins.workflow.pojo.Withdrawal;
 
 public class ProcessorTest{
@@ -84,19 +82,19 @@ public class ProcessorTest{
 	public void testBalance() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
+			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
-			public void startDeposit(Request req) {
-				Assert.assertNotNull(req.getAccountId());
-				Request expected = new Request()
-					.setAction(ReqAction.BALANCE)
+			public void startDeposit(DataSet data) {
+				Assert.assertNotNull(data.getAccountId());
+				DataSet expected = new DataSet()
+					.setAction(Action.BALANCE)
 					.setLocale(new Locale("en"))
-					.setAccountId(req.getAccountId())
-					.setFrom(SENDER1);
-				Assert.assertEquals(expected, req);
+					.setAccountId(data.getAccountId())
+					.setTo(SENDER1);
+				Assert.assertEquals(expected, data);
 			}
 			@Override
-			public void respond(Response rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, " balance");
 	}
@@ -105,20 +103,20 @@ public class ProcessorTest{
 	public void testCreate() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
+			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
-			public void startDeposit(Request req) {
-				Assert.assertNotNull(req.getAccountId());
-				Request expected = new Request()
-					.setAction(ReqAction.CREATE)
+			public void startDeposit(DataSet data) {
+				Assert.assertNotNull(data.getAccountId());
+				DataSet expected = new DataSet()
+					.setAction(Action.SIGNUP)
 					.setAccountId(0L)
 					.setService("37coins")
 					.setLocale(new Locale("en"))
-					.setFrom(SENDER1);
-				Assert.assertEquals(expected, req);
+					.setTo(SENDER1);
+				Assert.assertEquals(expected, data);
 			}
 			@Override
-			public void respond(Response rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, "Create");
 	}
@@ -127,13 +125,13 @@ public class ProcessorTest{
 	public void testHelp() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
+			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
-			public void startDeposit(Request req) {Assert.assertFalse(true);}
+			public void startDeposit(DataSet data) {Assert.assertFalse(true);}
 			@Override
-			public void respond(Response rsp) {
-				Response expected = new Response()
-				.setAction(RspAction.HELP)
+			public void respond(DataSet rsp) {
+				DataSet expected = new DataSet()
+				.setAction(Action.HELP)
 				.setAccountId(0L)
 				.setLocale(new Locale("ko"))
 				.setService("37coins")
@@ -148,18 +146,18 @@ public class ProcessorTest{
 	public void testNonExistingCommand() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
+			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
-			public void startDeposit(Request req) {
-				Request expected = new Request()
-					.setAction(ReqAction.CREATE)
-					.setAccountId(req.getAccountId())
+			public void startDeposit(DataSet data) {
+				DataSet expected = new DataSet()
+					.setAction(Action.SIGNUP)
+					.setAccountId(data.getAccountId())
 					.setLocale(new Locale("en"))
-					.setFrom(SENDER2);
-				Assert.assertEquals(expected, req);
+					.setTo(SENDER2);
+				Assert.assertEquals(expected, data);
 			}
 			@Override
-			public void respond(Response rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER2, "bla");
 	}
@@ -168,18 +166,18 @@ public class ProcessorTest{
 	public void testDeposit() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
+			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
-			public void startDeposit(Request req) {
-				Request expected = new Request()
-					.setAction(ReqAction.DEPOSIT)
+			public void startDeposit(DataSet data) {
+				DataSet expected = new DataSet()
+					.setAction(Action.DEPOSIT_REQ)
 					.setLocale(new Locale("en"))
 					.setAccountId(0L)
-					.setFrom(SENDER1);
-				Assert.assertEquals(expected, req);
+					.setTo(SENDER1);
+				Assert.assertEquals(expected, data);
 			}
 			@Override
-			public void respond(Response rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, "DEPOSIT ");
 	}
@@ -188,13 +186,13 @@ public class ProcessorTest{
 	public void testSend() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {
-				Request expected = new Request()
-				.setAction(ReqAction.SEND)
+			public void startWithdrawal(DataSet data, String workflowId) {
+				DataSet expected = new DataSet()
+				.setAction(Action.WITHDRAWAL_REQ)
 				.setLocale(new Locale("en"))
 				.setService("37coins")
 				.setAccountId(0L)
-				.setFrom(SENDER1)
+				.setTo(SENDER1)
 				.setPayload(new Withdrawal()
 					.setAmount(new BigDecimal("0.1"))
 					.setMsgDest(new MessageAddress()
@@ -204,12 +202,12 @@ public class ProcessorTest{
 						.setAddressType(PaymentType.ACCOUNT))
 					.setFee(new BigDecimal("0.002"))
 					.setFeeAccount("0"));
-				Assert.assertEquals(expected, req);
+				Assert.assertEquals(expected, data);
 			}
 			@Override
-			public void startDeposit(Request req) {Assert.assertFalse(true);}
+			public void startDeposit(DataSet data) {Assert.assertFalse(true);}
 			@Override
-			public void respond(Response rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, "send 0.1 test2@37coins.com");
 	}
@@ -219,13 +217,13 @@ public class ProcessorTest{
 	public void testSendReverse() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {
-				Request expected = new Request()
-				.setAction(ReqAction.SEND)
+			public void startWithdrawal(DataSet data, String workflowId) {
+				DataSet expected = new DataSet()
+				.setAction(Action.WITHDRAWAL_REQ)
 				.setLocale(new Locale("en"))
 				.setService("37coins")
 				.setAccountId(0L)
-				.setFrom(SENDER1)
+				.setTo(SENDER1)
 				.setPayload(new Withdrawal()
 					.setAmount(new BigDecimal("0.1"))
 					.setMsgDest(new MessageAddress()
@@ -235,12 +233,12 @@ public class ProcessorTest{
 						.setAddressType(PaymentType.ACCOUNT))
 					.setFee(new BigDecimal("0.002"))
 					.setFeeAccount("0"));
-				Assert.assertEquals(expected, req);
+				Assert.assertEquals(expected, data);
 			}
 			@Override
-			public void startDeposit(Request req) {Assert.assertFalse(true);}
+			public void startDeposit(DataSet data) {Assert.assertFalse(true);}
 			@Override
-			public void respond(Response rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, "send test2@37coins.com 0.1");
 	}
@@ -249,12 +247,12 @@ public class ProcessorTest{
 	public void testSendPhone() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {
-				Request expected = new Request()
-					.setAction(ReqAction.SEND)
+			public void startWithdrawal(DataSet data, String workflowId) {
+				DataSet expected = new DataSet()
+					.setAction(Action.WITHDRAWAL_REQ)
 					.setLocale(new Locale("en"))
 					.setAccountId(0L)
-					.setFrom(SENDER1)
+					.setTo(SENDER1)
 					.setPayload(new Withdrawal()
 						.setAmount(new BigDecimal("0.1").setScale(8))
 						.setMsgDest(new MessageAddress()
@@ -264,12 +262,12 @@ public class ProcessorTest{
 							.setAddressType(PaymentType.ACCOUNT))
 						.setFee(new BigDecimal("0.002"))
 						.setFeeAccount("0"));
-				Assert.assertEquals(expected, req);
+				Assert.assertEquals(expected, data);
 			}
 			@Override
-			public void startDeposit(Request req) {Assert.assertFalse(true);}
+			public void startDeposit(DataSet data) {Assert.assertFalse(true);}
 			@Override
-			public void respond(Response rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, "send 0.1 01029382039");
 	}
@@ -278,13 +276,13 @@ public class ProcessorTest{
 	public void testSendAddressValid() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {
-				Request expected = new Request()
-					.setAction(ReqAction.SEND)
+			public void startWithdrawal(DataSet data, String workflowId) {
+				DataSet expected = new DataSet()
+					.setAction(Action.WITHDRAWAL_REQ)
 					.setLocale(new Locale("en"))
 					.setAccountId(0L)
 					.setService("37coins")
-					.setFrom(SENDER1)
+					.setTo(SENDER1)
 					.setPayload(new Withdrawal()
 						.setAmount(new BigDecimal("0.1").setScale(8))
 						.setPayDest(new PaymentAddress()
@@ -292,12 +290,12 @@ public class ProcessorTest{
 							.setAddressType(PaymentType.BTC))
 						.setFee(new BigDecimal("0.002").setScale(8))
 						.setFeeAccount("0"));
-				Assert.assertEquals(expected, req);
+				Assert.assertEquals(expected, data);
 				}
 			@Override
-			public void startDeposit(Request req) {Assert.assertFalse(true);}
+			public void startDeposit(DataSet data) {Assert.assertFalse(true);}
 			@Override
-			public void respond(Response rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, "send 0.1 1BLyr8ydFDcbgU9TUPy7NiGSCbq89hBiUf");
 	}	
@@ -306,12 +304,12 @@ public class ProcessorTest{
 	public void testSendAddressTestnet() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {
-				Request expected = new Request()
-					.setAction(ReqAction.SEND)
+			public void startWithdrawal(DataSet data, String workflowId) {
+				DataSet expected = new DataSet()
+					.setAction(Action.WITHDRAWAL_REQ)
 					.setLocale(new Locale("en"))
 					.setAccountId(0L)
-					.setFrom(SENDER1)
+					.setTo(SENDER1)
 					.setPayload(new Withdrawal()
 						.setAmount(new BigDecimal("0.1").setScale(8))
 						.setPayDest(new PaymentAddress()
@@ -319,12 +317,12 @@ public class ProcessorTest{
 							.setAddressType(PaymentType.BTC))
 						.setFee(new BigDecimal("0.002").setScale(8))
 						.setFeeAccount("0"));
-				Assert.assertEquals(expected, req);
+				Assert.assertEquals(expected, data);
 			}
 			@Override
-			public void startDeposit(Request req) {Assert.assertFalse(true);}
+			public void startDeposit(DataSet data) {Assert.assertFalse(true);}
 			@Override
-			public void respond(Response rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, "send 0.1 mhYxdhvp9kuLypKC3ux6oMPyKTfGm5GaVP");
 	}	
@@ -333,13 +331,13 @@ public class ProcessorTest{
 	public void testSendAddressWrong() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
+			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
-			public void startDeposit(Request req) {Assert.assertFalse(true);}
+			public void startDeposit(DataSet data) {Assert.assertFalse(true);}
 			@Override
-			public void respond(Response rsp) {
-				Response expected = new Response()
-				.setAction(RspAction.FORMAT_ERROR)
+			public void respond(DataSet rsp) {
+				DataSet expected = new DataSet()
+				.setAction(Action.FORMAT_ERROR)
 				.setLocale(new Locale("en"))
 				.setService("37coins")
 				.setTo(SENDER1);
@@ -353,40 +351,40 @@ public class ProcessorTest{
 	public void testTransactions() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
+			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
-			public void startDeposit(Request req) {
-				Request expected = new Request()
-				.setAction(ReqAction.TRANSACTION)
+			public void startDeposit(DataSet data) {
+				DataSet expected = new DataSet()
+				.setAction(Action.TRANSACTION)
 				.setAccountId(0L)
 				.setLocale(new Locale("en"))
-				.setFrom(SENDER1);
-				Assert.assertEquals(expected, req);}
+				.setTo(SENDER1);
+				Assert.assertEquals(expected, data);}
 			@Override
-			public void respond(Response rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, "txns");
 	}
 	
 	@Test
-	public void testRequest() throws Exception {
+	public void testDataSet() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {
-				Request expected = new Request()
-					.setAction(ReqAction.REQUEST)
+			public void startWithdrawal(DataSet data, String workflowId) {
+				DataSet expected = new DataSet()
+					.setAction(Action.WITHDRAWAL_REQ_OTHER)
 					.setLocale(new Locale("en"))
-					.setFrom(SENDER1)
+					.setTo(SENDER1)
 					.setPayload(new Withdrawal()
 						.setAmount(new BigDecimal("0.1"))
 						.setMsgDest(new MessageAddress()
 							.setAddress("test2@37coins.com")));
-				Assert.assertEquals(expected, req);
+				Assert.assertEquals(expected, data);
 				Assert.assertFalse(true);}
 			@Override
-			public void startDeposit(Request req) {Assert.assertFalse(true);}
+			public void startDeposit(DataSet data) {Assert.assertFalse(true);}
 			@Override
-			public void respond(Response rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, "request test2@37coins.com 0.1");
 		Assert.assertTrue("not implemented", false);

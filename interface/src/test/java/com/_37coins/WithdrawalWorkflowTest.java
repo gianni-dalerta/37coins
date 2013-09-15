@@ -21,15 +21,12 @@ import com._37coins.bizLogic.WithdrawalWorkflowImpl;
 import com._37coins.workflow.WithdrawalWorkflowClient;
 import com._37coins.workflow.WithdrawalWorkflowClientFactory;
 import com._37coins.workflow.WithdrawalWorkflowClientFactoryImpl;
-import com._37coins.workflow.pojo.Deposit;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
-import com._37coins.workflow.pojo.Request;
-import com._37coins.workflow.pojo.Request.ReqAction;
-import com._37coins.workflow.pojo.Response;
-import com._37coins.workflow.pojo.Response.RspAction;
 import com._37coins.workflow.pojo.Withdrawal;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Asynchronous;
 import com.amazonaws.services.simpleworkflow.flow.core.Promise;
@@ -44,7 +41,7 @@ public class WithdrawalWorkflowTest {
 	@Rule
 	public WorkflowTest workflowTest = new WorkflowTest();
 
-	final List<Response> trace = new ArrayList<>();
+	final List<DataSet> trace = new ArrayList<>();
 
 	private WithdrawalWorkflowClientFactory workflowFactory = new WithdrawalWorkflowClientFactoryImpl();
 
@@ -90,19 +87,19 @@ public class WithdrawalWorkflowTest {
 		MessagingActivities mailActivities = new MessagingActivities() {
 
 			@Override
-			public void sendMessage(Response rsp) {
+			public void sendMessage(DataSet rsp) {
 				trace.add(rsp);
 			}
 
 			@Override
-			public void sendConfirmation(Response rsp, String workflowId) {
+			public void sendConfirmation(DataSet rsp, String workflowId) {
 				Withdrawal w = (Withdrawal)rsp.getPayload();
 				w.setConfKey("123");
 				w.setConfLink("http://test.com/123");
 				trace.add(rsp);
 			}
 			@Override
-			public Response readMessageAddress(Response data) {
+			public DataSet readMessageAddress(DataSet data) {
 				return data.setTo(new MessageAddress()
 					.setAddress("")
 					.setAddressType(MsgType.SMS)
@@ -124,10 +121,10 @@ public class WithdrawalWorkflowTest {
 	@Test
 	public void testSend() throws AddressException {
 		WithdrawalWorkflowClient workflow = workflowFactory.getClient();
-		Request req = new Request()
-			.setAction(ReqAction.SEND)
+		DataSet req = new DataSet()
+			.setAction(Action.WITHDRAWAL_REQ)
 			.setAccountId(0L)
-			.setFrom(new MessageAddress()
+			.setTo(new MessageAddress()
 				.setAddressType(MsgType.SMS))
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.5").setScale(8))
@@ -137,8 +134,8 @@ public class WithdrawalWorkflowTest {
 					.setAddress("2")
 					.setAddressType(PaymentType.ACCOUNT)));
 		Promise<Void> booked = workflow.executeCommand(req);
-		Response expected = new Response()
-			.setAction(RspAction.SEND_CONFIRM)
+		DataSet expected = new DataSet()
+			.setAction(Action.WITHDRAWAL_REQ)
 			.setService("37coins")
 			.setAccountId(0L)
 			.setPayload(new Withdrawal()
@@ -160,10 +157,10 @@ public class WithdrawalWorkflowTest {
 	@Test
 	public void testInsufficientFunds() throws AddressException {
 		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
-		final Request req = new Request()
-			.setAction(ReqAction.SEND)
+		final DataSet req = new DataSet()
+			.setAction(Action.WITHDRAWAL_REQ)
 			.setAccountId(0L)
-			.setFrom(new MessageAddress()
+			.setTo(new MessageAddress()
 				.setAddressType(MsgType.SMS))
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("100.005").setScale(8))
@@ -181,11 +178,11 @@ public class WithdrawalWorkflowTest {
             @Override
             protected void doCatch(Throwable e) throws Throwable {
             	if (e.getCause()!=null && e.getCause().getClass() == CancellationException.class){
-            		Response expected = new Response()
-	        			.setAction(RspAction.INSUFISSIENT_FUNDS)
+            		DataSet expected = new DataSet()
+	        			.setAction(Action.INSUFISSIENT_FUNDS)
 	        			.setService("37coins")
 	        			.setAccountId(0L)
-	        			.setPayload(new Deposit()
+	        			.setPayload(new Withdrawal()
 	        				.setAmount(new BigDecimal("100.0055").setScale(8))
 	        				.setBalance(new BigDecimal("2.5").setScale(8)))
 	        			.setTo(new MessageAddress()
@@ -199,12 +196,12 @@ public class WithdrawalWorkflowTest {
 	}	
 
 	@Asynchronous
-	public void validate(String desc, Object expected, List<Response> l){
+	public void validate(String desc, Object expected, List<DataSet> l){
 		AsyncAssert.assertEqualsWaitFor(desc, expected, l.get(0));
 	}
 	
 	@Asynchronous
-	public void validate(String desc, Object expected, List<Response> l,Promise<Void> booked){
+	public void validate(String desc, Object expected, List<DataSet> l,Promise<Void> booked){
 		AsyncAssert.assertEqualsWaitFor(desc, expected, l.get(0), booked);
 	}
 

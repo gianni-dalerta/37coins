@@ -10,14 +10,11 @@ import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.Gateway;
 import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.persistence.dto.Transaction;
-import com._37coins.workflow.pojo.IncompleteException;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
-import com._37coins.workflow.pojo.Request;
-import com._37coins.workflow.pojo.Request.ReqAction;
-import com._37coins.workflow.pojo.Response;
-import com._37coins.workflow.pojo.Response.RspAction;
 import com._37coins.workflow.pojo.Withdrawal;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClient;
@@ -40,46 +37,45 @@ public abstract class RequestInterpreter{
 	
 	public void process(MessageAddress sender, String subject) {
 		GenericRepository dao = new GenericRepository();
-		Object rv = null;
+		DataSet data = null;
 		try {
-			rv = mp.process(sender, subject);
+			data = mp.process(sender, subject);
 			
-			if (rv instanceof Request){
-				Request req = (Request)rv;
+			if (MessageParser.reqCmdList.contains(data.getAction())){
 				//handle subject
-				RNQuery q = new RNQuery().addFilter("address", req.getFrom().getAddress());
+				RNQuery q = new RNQuery().addFilter("address", data.getTo().getAddress());
 				MsgAddress ma = dao.queryEntity(q, MsgAddress.class, false);
 				if (null!=ma){
-					req.setAccountId(ma.getOwner().getId());
-					if (req.getAction()==null){
-						respond(new Response().respondTo(req).setAction(RspAction.UNKNOWN_COMMAND));
+					data.setAccountId(ma.getOwner().getId());
+					if (data.getAction()==null){
+						respond(data.setAction(Action.UNKNOWN_COMMAND));
 					}
 				}else{
-					if (null==req.getLocale()){
-						req.setLocale(new Locale("en"));
+					if (null==data.getLocale()){
+						data.setLocale(new Locale("en"));
 					}
-					RNQuery gwQ = new RNQuery().addFilter("address", req.getFrom().getGateway());
+					RNQuery gwQ = new RNQuery().addFilter("address", data.getTo().getGateway());
 					Gateway gw = dao.queryEntity(gwQ, Gateway.class);
 					ma = new MsgAddress()
-						.setAddress(req.getFrom().getAddress())
-						.setLocale(req.getLocale())
-						.setType(req.getFrom().getAddressType())
+						.setAddress(data.getTo().getAddress())
+						.setLocale(data.getLocale())
+						.setType(data.getTo().getAddressType())
 						.setOwner(new Account())
 						.setGateway(gw);
 					dao.add(ma);
-					req.setAction(ReqAction.CREATE);
-					req.setAccountId(ma.getOwner().getId());
+					data.setAction(Action.SIGNUP);
+					data.setAccountId(ma.getOwner().getId());
 				}
-				switch (req.getAction()){
+				switch (data.getAction()){
 				case BALANCE:
-				case CREATE:
+				case SIGNUP:
 				case TRANSACTION:
-				case DEPOSIT:
-					startDeposit(req);
+				case DEPOSIT_REQ:
+					startDeposit(data);
 					break;
-				case SEND:
+				case WITHDRAWAL_REQ:
 					//handle object
-					Withdrawal w = (Withdrawal)req.getPayload();
+					Withdrawal w = (Withdrawal)data.getPayload();
 					if (null!= w.getMsgDest() && w.getMsgDest().getAddress()!=null){
 						RNQuery q2 = new RNQuery().addFilter("address", w.getMsgDest().getAddress());
 						MsgAddress ma2 = dao.queryEntity(q2, MsgAddress.class, false);
@@ -91,17 +87,17 @@ public abstract class RequestInterpreter{
 							throw new RuntimeException("not implemented");
 						}
 					}
-					RNQuery gwQ = new RNQuery().addFilter("address", req.getFrom().getGateway());
+					RNQuery gwQ = new RNQuery().addFilter("address", data.getTo().getGateway());
 					Gateway gw = dao.queryEntity(gwQ, Gateway.class);
 					w.setFee(gw.getFee().setScale(8,RoundingMode.UP));
 					w.setFeeAccount(gw.getOwner().getId().toString());
 					Transaction t = new Transaction()
 						.setKey(Transaction.generateKey());
 					dao.add(t);
-					startWithdrawal(req,t.getKey());
+					startWithdrawal(data,t.getKey());
 					break;
-				case SEND_CONFIRM:
-					RNQuery ttQuery = new RNQuery().addFilter("key", (String)req.getPayload());
+				case WITHDRAWAL_CONF:
+					RNQuery ttQuery = new RNQuery().addFilter("key", (String)data.getPayload());
 					Transaction tx = dao.queryEntity(ttQuery, Transaction.class);
 			        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
 			        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());
@@ -109,25 +105,21 @@ public abstract class RequestInterpreter{
 			        //don't delete, to guarantee unique keys
 			        break;
 				case HELP:
-					respond(new Response().respondTo(req));
+					respond(data);
 					break;
 				}
 			}else{
-				respond((Response)rv);
+				respond(data);
 			}
-		} catch (IncompleteException e) {
-			// we don't have enough data to respond to the user, so notify admin
-			// TODO send message to admin
-			e.printStackTrace();
 		} finally{
 			dao.closePersistenceManager();
 		}
 	}
 	
-	public abstract void startWithdrawal(Request req,String workflowId);
+	public abstract void startWithdrawal(DataSet data,String workflowId);
 	
-	public abstract void startDeposit(Request req);
+	public abstract void startDeposit(DataSet data);
 	
-	public abstract void respond(Response rsp);
+	public abstract void respond(DataSet rsp);
 
 }

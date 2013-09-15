@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com._37coins.MessageFactory;
 import com._37coins.MessagingServletConfig;
-import com._37coins.workflow.pojo.Response;
+import com._37coins.workflow.pojo.DataSet;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 
@@ -34,7 +34,7 @@ public class MailTransporter {
 		this.emailFactory = emailFactory;
 	}
 
-	public void sendMessage(Response rsp) throws IOException,
+	public void sendMessage(DataSet rsp) throws IOException,
 			TemplateException, AddressException, MessagingException {
 		log.debug("To send message with following data: "
 				+ new ObjectMapper().writeValueAsString(rsp));

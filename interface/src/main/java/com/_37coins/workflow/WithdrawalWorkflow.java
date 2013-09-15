@@ -1,6 +1,6 @@
 package com._37coins.workflow;
 
-import com._37coins.workflow.pojo.Request;
+import com._37coins.workflow.pojo.DataSet;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Execute;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Workflow;
 import com.amazonaws.services.simpleworkflow.flow.annotations.WorkflowRegistrationOptions;
@@ -9,7 +9,7 @@ import com.amazonaws.services.simpleworkflow.flow.annotations.WorkflowRegistrati
 @WorkflowRegistrationOptions(defaultExecutionStartToCloseTimeoutSeconds = 3700)
 public interface WithdrawalWorkflow {
 	
-    @Execute(version = "0.3")
-    void executeCommand(Request req);
+    @Execute(version = "0.4")
+    void executeCommand(DataSet data);
 
 }

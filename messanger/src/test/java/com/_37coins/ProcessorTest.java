@@ -347,28 +347,48 @@ public class ProcessorTest{
 			}
 		};
 		ri.process(SENDER1, "send 0.1 mhYxdhvp9kuLypKC3u123MPyKTfGm5GaVP");
-	}	
+	}
+	
+	@Test
+	public void testTransactions() throws Exception {
+		RequestInterpreter ri = new RequestInterpreter(ep) {
+			@Override
+			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
+			@Override
+			public void startDeposit(Request req) {
+				Request expected = new Request()
+				.setAction(ReqAction.TRANSACTION)
+				.setAccountId(0L)
+				.setLocale(new Locale("en"))
+				.setFrom(SENDER1);
+				Assert.assertEquals(expected, req);}
+			@Override
+			public void respond(Response rsp) {Assert.assertFalse(true);}
+		};
+		ri.process(SENDER1, "txns");
+	}
 	
 	@Test
 	public void testRequest() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
-			public void startWithdrawal(Request req, String workflowId) {Assert.assertFalse(true);}
+			public void startWithdrawal(Request req, String workflowId) {
+				Request expected = new Request()
+					.setAction(ReqAction.REQUEST)
+					.setLocale(new Locale("en"))
+					.setFrom(SENDER1)
+					.setPayload(new Withdrawal()
+						.setAmount(new BigDecimal("0.1"))
+						.setMsgDest(new MessageAddress()
+							.setAddress("test2@37coins.com")));
+				Assert.assertEquals(expected, req);
+				Assert.assertFalse(true);}
 			@Override
 			public void startDeposit(Request req) {Assert.assertFalse(true);}
 			@Override
-			public void respond(Response rsp) {
-				Response expected = new Response()
-				.setAction(RspAction.REQUEST)
-				.setLocale(new Locale("en"))
-				.setTo(SENDER1)
-				.setPayload(new Withdrawal()
-					.setAmount(new BigDecimal("0.1"))
-					.setMsgDest(new MessageAddress()
-						.setAddress("test2@37coins.com")));
-			Assert.assertEquals(expected, rsp);
-			}
+			public void respond(Response rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, "request test2@37coins.com 0.1");
+		Assert.assertTrue("not implemented", false);
 	}
 }

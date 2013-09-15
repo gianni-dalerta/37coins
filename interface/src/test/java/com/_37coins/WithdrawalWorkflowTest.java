@@ -95,7 +95,7 @@ public class WithdrawalWorkflowTest {
 			}
 
 			@Override
-			public void sendConfirmation(Response rsp) {
+			public void sendConfirmation(Response rsp, String workflowId) {
 				Withdrawal w = (Withdrawal)rsp.getPayload();
 				w.setConfKey("123");
 				w.setConfLink("http://test.com/123");

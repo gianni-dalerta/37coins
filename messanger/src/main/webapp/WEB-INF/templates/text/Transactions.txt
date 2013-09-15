@@ -1,8 +1,8 @@
 <#setting locale=locale>
 <#if payload?has_content>
-	<#list payload as t>
-	${t.time?number_to_date?string.short} ${t.amount?string("#,##0.########")} <#if t.to??><#if t.to?length &lt; 12>${t.to}<#else>${t.to?substring(0,9)}..</#if></#if> <#if t.comment??><#if t.comment?length &lt; 12>${t.comment}<#else>${t.comment?substring(0,9)}..</#if></#if>  
-	</#list> 
+<#list payload?sort_by("time")?reverse?chunk(3)?first as t>
+${t.time?number_to_date?string.short} ${t.amount?string("#,##0.########")} <#if t.to??><#if t.to?length &lt; 12>${t.to}<#else>${t.to?substring(0,9)}..</#if></#if> <#if t.comment??><#if t.comment?length &lt; 12>${t.comment}<#else>${t.comment?substring(0,9)}..</#if></#if>  
+</#list> 
 <#else>
 no transactions.
 </#if>

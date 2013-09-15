@@ -67,7 +67,7 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 			final Response rsp = new Response()
 				.respondTo(req)
 				.setAction(RspAction.SEND_CONFIRM);
-			final Promise<Void> response = msgClient.sendConfirmation(rsp);
+			final Promise<Void> response = msgClient.sendConfirmation(rsp,contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId());
 			final OrPromise confirmOrTimer = new OrPromise(startDaemonTimer(confirmationPeriod), response);
 		   	new TryCatch() {
 				@Override

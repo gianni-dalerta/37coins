@@ -4,8 +4,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -129,12 +127,7 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 				.setTime(time)
 				.setTo(to));
 		}
-		Collections.sort(rv, new Comparator<Transaction>() {
-		    public int compare(Transaction t1, Transaction t2) {
-		        return (t2.getTime() != t1.getTime())?((t2.getTime() < t1.getTime())?-1:1):0;
-		    }
-		});
-		return rv.subList(0, 3);
+		return rv;
 	}
 
 }

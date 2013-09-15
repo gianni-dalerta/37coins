@@ -4,6 +4,7 @@ import java.net.URLEncoder;
 import java.util.Set;
 
 import org.restnucleus.dao.GenericRepository;
+import org.restnucleus.dao.RNQuery;
 
 import com._37coins.activities.MessagingActivities;
 import com._37coins.envaya.QueueClient;
@@ -47,15 +48,15 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 
 	@Override
 	@ManualActivityCompletion
-	public void sendConfirmation(Response rsp) {
+	public void sendConfirmation(Response rsp, String workflowId) {
 		ActivityExecutionContext executionContext = contextProvider.getActivityExecutionContext();
 		String taskToken = executionContext.getTaskToken();
 		GenericRepository dao = new GenericRepository();
 		try{
-			Transaction tt = new Transaction()
-				.setTaskToken(taskToken)
-				.setKey(Transaction.generateKey());
-			dao.add(tt);
+			RNQuery q = new RNQuery().addFilter("key", workflowId);
+			Transaction tt = dao.queryEntity(q, Transaction.class);
+			tt.setTaskToken(taskToken);
+			dao.flush();
 			String confLink = MessagingServletConfig.basePath + "/rest/withdrawal/approve?key="+URLEncoder.encode(tt.getKey(),"UTF-8");
 			Withdrawal w = (Withdrawal)rsp.getPayload();
 			w.setConfKey(tt.getKey());

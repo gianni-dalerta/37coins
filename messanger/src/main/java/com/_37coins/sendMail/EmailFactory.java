@@ -11,7 +11,6 @@ import java.util.ResourceBundle;
 
 import javax.servlet.ServletContext;
 
-import com._37coins.pojo.SendAction;
 import com._37coins.workflow.pojo.Response;
 
 import freemarker.ext.beans.BeansWrapper;
@@ -75,34 +74,32 @@ public class EmailFactory {
 		}
 	}
 
-	public String constructHtml(Response rsp, SendAction sendAction)
+	public String constructHtml(Response rsp)
 			throws IOException, TemplateException {
 		prepare(rsp);
-		return processTemplate(rsp, sendAction, HTML_FOLDER);
+		return processTemplate(rsp, HTML_FOLDER);
 	}
 
-	public String constructTxt(Response rsp, SendAction sendAction)
+	public String constructTxt(Response rsp)
 			throws IOException, TemplateException {
 		prepare(rsp);
-		return processTemplate(rsp, sendAction, TEXT_FOLDER);
+		return processTemplate(rsp, TEXT_FOLDER);
 	}
 
-	public String constructSubject(Response rsp, SendAction sendAction) throws IOException, TemplateException {
+	public String constructSubject(Response rsp) throws IOException, TemplateException {
 		prepare(rsp);
-		String subjectPrefix= sendAction.getTemplateId(rsp.getAction().getText());
+		String subjectPrefix= rsp.getAction().getText();
 		Template template = new Template("name", rb.getString(subjectPrefix+"Subject"),new Configuration()); 
 		Writer out = new StringWriter(); 
 		template.process(rsp, out); 
 		return out.toString();
 	}
 
-	public String processTemplate(Response rsp,
-			SendAction sendAction, String folder) throws IOException,
+	public String processTemplate(Response rsp, String folder) throws IOException,
 			TemplateException {
 
 		// make email template
-		Template template = cfg.getTemplate(folder + sendAction
-				.getTemplateId(rsp.getAction().getText()) + ((folder.contains("html"))?".html":".txt"));
+		Template template = cfg.getTemplate(folder + rsp.getAction().getText() + ((folder.contains("html"))?".html":".txt"));
 
 		Writer stringWriter = null;
 

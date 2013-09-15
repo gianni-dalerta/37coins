@@ -82,7 +82,7 @@ public class NonTxWorkflowTest {
 				trace.copy(rsp);
 			}
 			@Override
-			public void sendConfirmation(Response rsp) {
+			public void sendConfirmation(Response rsp, String workflowId) {
 			}
 			@Override
 			public Response readMessageAddress(Response data) {

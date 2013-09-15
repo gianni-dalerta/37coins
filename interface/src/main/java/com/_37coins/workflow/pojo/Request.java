@@ -14,15 +14,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class Request {
 	
 	public enum ReqAction {
-		CREATE("create"), // create a new account
-		DEPOSIT("deposit"), // request a bitcoin address to receive a payment
-		SEND("send"), // send a payment
-		REQUEST("request"), // send a payment
-		SEND_CONFIRM("confirm"), 
-		BALANCE("balance"), // request the balance
-		HELP("help"), 
-		TRANSACTION("tx");
-		
+		CREATE("Signup"), // create a new account
+		DEPOSIT("DepositReq"), // request a bitcoin address to receive a payment
+		SEND("WithdrawalConf"), // send a payment
+		REQUEST("Request"), // send a payment
+		SEND_CONFIRM("WithdrawalReq"), 
+		BALANCE("Balance"), // request the balance
+		HELP("Help"), 
+		TRANSACTION("Transactions");		
 
 		private String text;
 

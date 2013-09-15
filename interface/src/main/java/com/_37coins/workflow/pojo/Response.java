@@ -1,9 +1,7 @@
 package com._37coins.workflow.pojo;
 
-import java.util.List;
 import java.util.Locale;
 
-import com._37coins.bcJsonRpc.pojo.Transaction;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -18,18 +16,17 @@ import freemarker.ext.beans.ResourceBundleModel;
 public class Response {
 	
 	public enum RspAction {
-		CREATE("create"), // create a new account
-		DEPOSIT("deposit"), // request a bitcoin address to receive a payment
-		SEND("send"), // send a payment
-		REQUEST("request"), // send a payment
-		SEND_CONFIRM("confirmSend"), 
-		BALANCE("balance"), // request the balance
-		RECEIVED("received"),
-		HELP("help"),
-		TRANSACTION("tx"),
-		FORMAT_ERROR("formErr"),
-		UNKNOWN_COMMAND("cmdErr"), 
-		INSUFISSIENT_FUNDS("insufFund"), 
+		CREATE("Signup"), // create a new account
+		DEPOSIT("DepositReq"), // request a bitcoin address to receive a payment
+		SEND("WithdrawalConf"), // send a payment
+		SEND_CONFIRM("WithdrawalReq"), 
+		BALANCE("Balance"), // request the balance
+		RECEIVED("DepositConf"),
+		HELP("Help"),
+		TRANSACTION("Transactions"),
+		FORMAT_ERROR("FormatError"),
+		UNKNOWN_COMMAND("UnknownCommand"), 
+		INSUFISSIENT_FUNDS("InsufficientFunds"), 
 		TIMEOUT("timout"),
 		TX_FAILED("txErr");
 		

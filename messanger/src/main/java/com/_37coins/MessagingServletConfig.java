@@ -25,7 +25,6 @@ import com._37coins.bizLogic.WithdrawalWorkflowImpl;
 import com._37coins.envaya.MessageFactory;
 import com._37coins.imap.JavaPushMailAccount;
 import com._37coins.parse.MessageParser;
-import com._37coins.pojo.SendAction;
 import com._37coins.resources.EnvayaSmsResource;
 import com._37coins.resources.GatewayResource;
 import com._37coins.resources.HealthCheckResource;
@@ -247,12 +246,6 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 					e.printStackTrace();
 				}
 				return activityWorker;
-			}
-			
-			@Provides @Singleton @SuppressWarnings("unused")
-			public SendAction provideSendAction() {
-				SendAction sa = new SendAction(servletContext);
-				return sa;
 			}
 			
 			@Provides @Singleton @SuppressWarnings("unused")

@@ -11,7 +11,6 @@ import java.util.ResourceBundle;
 
 import javax.servlet.ServletContext;
 
-import com._37coins.pojo.SendAction;
 import com._37coins.sendMail.EmailFactory;
 import com._37coins.workflow.pojo.Response;
 
@@ -67,14 +66,10 @@ public class MessageFactory {
 		}
 	}
 	
-	public String construct(Response rsp,
-			SendAction sendAction) throws IOException,
+	public String construct(Response rsp) throws IOException,
 			TemplateException {
-		
 		prepare(rsp);
-
-		Template template = cfg.getTemplate(sendAction
-				.getTemplateId(rsp.getAction().getText()) + TEXT_ENDING);
+		Template template = cfg.getTemplate(rsp.getAction().getText() + TEXT_ENDING);
 
 		Writer stringWriter = null;
 

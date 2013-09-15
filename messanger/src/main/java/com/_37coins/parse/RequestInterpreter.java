@@ -73,6 +73,7 @@ public abstract class RequestInterpreter{
 				switch (req.getAction()){
 				case BALANCE:
 				case CREATE:
+				case TRANSACTION:
 				case DEPOSIT:
 					startDeposit(req);
 					break;

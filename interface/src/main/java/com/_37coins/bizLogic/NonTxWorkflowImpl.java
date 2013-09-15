@@ -78,7 +78,7 @@ public class NonTxWorkflowImpl implements NonTxWorkflow {
 	public void respondTransactions(Promise<List<Transaction>> transactions,Request req){
 		Response rsp = new Response()
 			.respondTo(req)
-			.setPayload(transactions);
+			.setPayload(transactions.get());
 		msgClient.sendMessage(rsp);
 	}
 	

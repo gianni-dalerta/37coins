@@ -1,6 +1,7 @@
 package com._37coins;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.mail.internet.AddressException;
@@ -40,6 +41,8 @@ public class NonTxWorkflowTest {
 	final Response trace = new Response();
 
 	private NonTxWorkflowClientFactory workflowFactory = new NonTxWorkflowClientFactoryImpl();
+	
+	final List<Transaction> list = new ArrayList<>();
 
 	@Before
     public void setUp() throws Exception {
@@ -68,7 +71,8 @@ public class NonTxWorkflowTest {
 			}
 			@Override
 			public List<Transaction> getAccountTransactions(Long accountId) {
-				return null;
+				list.add(new Transaction().setTime(System.currentTimeMillis()).setComment("hallo").setAmount(new BigDecimal("0.4")).setTo("hast@test.com"));
+				return list;
 			}
         };
         MessagingActivities mailActivities = new MessagingActivities() {
@@ -146,6 +150,19 @@ public class NonTxWorkflowTest {
 				.setBalance(new BigDecimal("2.5")));
 		AsyncAssert.assertEqualsWaitFor("successfull balance", rsp, trace,
 				booked);
+	}
+	
+	@Test
+	public void testTransactions() throws AddressException {
+		NonTxWorkflowClient workflow = workflowFactory.getClient();
+		Request req = new Request()
+			.setAction(ReqAction.TRANSACTION)
+			.setAccountId(1L);
+		Promise<Void> booked = workflow.executeCommand(req);
+		Response rsp = new Response()
+			.respondTo(req)
+			.setPayload(list);
+		AsyncAssert.assertEqualsWaitFor("successfull tx", rsp, trace, booked);
 	}
 
 }

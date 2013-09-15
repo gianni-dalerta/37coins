@@ -165,11 +165,15 @@ public class LocalizationTest {
 	@Test
 	public void testTransactions() throws IOException, TemplateException {
 		List<Transaction> list = new ArrayList<>();
-		list.add(new Transaction().setTime(System.currentTimeMillis()).setComment("hallo").setAmount(new BigDecimal("0.4")).setTo("hast@test.com"));
+		list.add(new Transaction().setTime(System.currentTimeMillis()-360000000L).setComment("hallo").setAmount(new BigDecimal("0.4")).setTo("hast@test.com"));
+		list.add(new Transaction().setTime(System.currentTimeMillis()-760000000L).setComment("hallo").setAmount(new BigDecimal("0.3")).setTo("hast@test.com"));
+		list.add(new Transaction().setTime(System.currentTimeMillis()-960000000L).setComment("hallo").setAmount(new BigDecimal("0.2")).setTo("hast@test.com"));
+		list.add(new Transaction().setTime(System.currentTimeMillis()).setComment("hallo").setAmount(new BigDecimal("0.1")).setTo("hast@test.com"));
 		rsp.setAction(RspAction.TRANSACTION)
 			.setLocale(new Locale("de"))
 			.setPayload(list);
 		String s = ef.constructTxt(rsp, sendAction);
+		System.out.println(s);
 		ef.constructHtml(rsp, sendAction);
 		ef.constructSubject(rsp, sendAction);
 		Assert.assertTrue("SMS to long",s.getBytes().length<140);

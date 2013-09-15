@@ -204,7 +204,7 @@ public class smsIT {
 	@Test
 	public void testEnvayaTransactions() throws InterruptedException, JsonParseException, JsonMappingException, IOException {
 		create(SENDER1);
-		exec("tx");
+		exec("txns");
 		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
 		Assert.assertEquals("Transactions", message);
 		Assert.assertTrue(message.length()<160);
@@ -227,6 +227,9 @@ public class smsIT {
 		message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
 		Assert.assertEquals("You have received 0.01 in your wallet.", message);
 		Assert.assertTrue(message.length()<160);
+		exec("txns");
+		message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
+		System.out.println(message);
 	}
 	
 	@Test

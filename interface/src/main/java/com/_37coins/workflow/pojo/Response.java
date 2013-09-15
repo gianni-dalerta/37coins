@@ -1,11 +1,13 @@
 package com._37coins.workflow.pojo;
 
+import java.util.List;
 import java.util.Locale;
 
+import com._37coins.bcJsonRpc.pojo.Transaction;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -205,5 +207,6 @@ public class Response {
 		this.bizUrl = bizUrl;
 		return this;
 	}
+	
 
 }

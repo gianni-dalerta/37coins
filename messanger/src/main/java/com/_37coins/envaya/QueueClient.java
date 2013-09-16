@@ -7,7 +7,8 @@ import java.security.NoSuchAlgorithmException;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
-import com._37coins.workflow.pojo.Response;
+import com._37coins.MessageFactory;
+import com._37coins.workflow.pojo.DataSet;
 import com.google.inject.Inject;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -33,11 +34,11 @@ public class QueueClient {
 		channel = connection.createChannel();
 	}
 	
-	public void send(Response rsp, String uri, String gateway, String exchangeName, String id) throws IOException, TemplateException, KeyManagementException, NoSuchAlgorithmException, URISyntaxException {
+	public void send(DataSet rsp, String uri, String gateway, String exchangeName, String id) throws IOException, TemplateException, KeyManagementException, NoSuchAlgorithmException, URISyntaxException {
 		if (null==connection || !connection.isOpen()){
 			connect(uri, exchangeName);
 		}
-		String message = StringEscapeUtils.escapeJava(msgFactory.construct(rsp));
+		String message = StringEscapeUtils.escapeJava(msgFactory.constructTxt(rsp));
 		String msg = "{\"event\":\"send\",\"messages\":[{\"id\":\""+id+"\",\"to\":\""+rsp.getTo().getAddress()+"\",\"message\":\""+message+"\"}]}";
 		channel.basicPublish(exchangeName,gateway,null, msg.getBytes());
 	}

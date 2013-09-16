@@ -1,6 +1,8 @@
 package com._37coins.parse;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.Locale;
 
 import org.restnucleus.dao.GenericRepository;
@@ -10,14 +12,12 @@ import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.Gateway;
 import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.persistence.dto.Transaction;
-import com._37coins.workflow.pojo.IncompleteException;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
+import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
-import com._37coins.workflow.pojo.Request;
-import com._37coins.workflow.pojo.Request.ReqAction;
-import com._37coins.workflow.pojo.Response;
-import com._37coins.workflow.pojo.Response.RspAction;
 import com._37coins.workflow.pojo.Withdrawal;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClient;
@@ -40,68 +40,149 @@ public abstract class RequestInterpreter{
 	
 	public void process(MessageAddress sender, String subject) {
 		GenericRepository dao = new GenericRepository();
-		Object rv = null;
+		DataSet data = null;
 		try {
-			rv = mp.process(sender, subject);
+			data = mp.process(sender, subject);
 			
-			if (rv instanceof Request){
-				Request req = (Request)rv;
-				//handle subject
-				RNQuery q = new RNQuery().addFilter("address", req.getFrom().getAddress());
+			if (data.getAction()==null||MessageParser.reqCmdList.contains(data.getAction())){
+				Transaction t = new Transaction().setKey(Transaction.generateKey());
+				Withdrawal w = (data.getPayload() instanceof Withdrawal)?(Withdrawal)data.getPayload():null;
+				if (data.getAction()==Action.WITHDRAWAL_REQ_OTHER){
+					MessageAddress temp = w.getMsgDest();
+					w.setMsgDest(data.getTo());
+					data.setTo(temp);
+				}
+				RNQuery q = new RNQuery().addFilter("address", data.getTo().getAddress());
 				MsgAddress ma = dao.queryEntity(q, MsgAddress.class, false);
 				if (null!=ma){
-					req.setAccountId(ma.getOwner().getId());
-					if (req.getAction()==null){
-						respond(new Response().respondTo(req).setAction(RspAction.UNKNOWN_COMMAND));
+					if (data.getAction()!=Action.WITHDRAWAL_REQ_OTHER){
+						data.setAccountId(ma.getOwner().getId());
+					}
+					if (data.getTo().getGateway()==null){
+						data.getTo().setGateway(ma.getGateway().getAddress());
+					}
+					if (data.getAction()==null){
+						data.setLocale(ma.getLocale());
+						respond(data.setAction(Action.UNKNOWN_COMMAND));
+						return;
+					}else{
+						ma.setLocale(data.getLocale());
 					}
 				}else{
-					if (null==req.getLocale()){
-						req.setLocale(new Locale("en"));
+					if (null==data.getLocale()){
+						data.setLocale(new Locale("en"));
 					}
-					RNQuery gwQ = new RNQuery().addFilter("address", req.getFrom().getGateway());
+					RNQuery gwQ = new RNQuery().addFilter("address", data.getTo().getGateway());
 					Gateway gw = dao.queryEntity(gwQ, Gateway.class);
 					ma = new MsgAddress()
-						.setAddress(req.getFrom().getAddress())
-						.setLocale(req.getLocale())
-						.setType(req.getFrom().getAddressType())
+						.setAddress(data.getTo().getAddress())
+						.setLocale(data.getLocale())
+						.setType(data.getTo().getAddressType())
 						.setOwner(new Account())
 						.setGateway(gw);
 					dao.add(ma);
-					req.setAction(ReqAction.CREATE);
-					req.setAccountId(ma.getOwner().getId());
+					data.setAccountId(ma.getOwner().getId());
+					//call create
+					DataSet create = new DataSet()
+						.setAction(Action.SIGNUP)
+						.setTo(data.getTo())
+						.setAccountId(data.getAccountId())
+						.setLocale(data.getLocale())
+						.setService(data.getService());
+					startDeposit(create);
+					//nothing to do if this was the first message and had no meaning 
+					if (data.getAction()==null){
+						return;
+					}
 				}
-				switch (req.getAction()){
+				switch (data.getAction()){
 				case BALANCE:
-				case CREATE:
+				case SIGNUP:
 				case TRANSACTION:
-				case DEPOSIT:
-					startDeposit(req);
+				case DEPOSIT_REQ:
+					startDeposit(data);
 					break;
-				case SEND:
-					//handle object
-					Withdrawal w = (Withdrawal)req.getPayload();
+				case WITHDRAWAL_REQ_OTHER:
+				case WITHDRAWAL_REQ:
 					if (null!= w.getMsgDest() && w.getMsgDest().getAddress()!=null){
 						RNQuery q2 = new RNQuery().addFilter("address", w.getMsgDest().getAddress());
 						MsgAddress ma2 = dao.queryEntity(q2, MsgAddress.class, false);
+						if (ma2==null){
+							if (w.getMsgDest().getAddressType()==MsgType.SMS){
+								Gateway gw2 = null;
+								//set gateway from referring user's gateway
+								if (data.getTo().getAddressType() == MsgType.SMS 
+										&& w.getMsgDest().getPhoneNumber().getCountryCode() == data.getTo().getPhoneNumber().getCountryCode()){
+									gw2 = ma.getGateway();
+								}else{//or try to find a gateway in the database
+									RNQuery gwq2 = new RNQuery().addFilter("countryCode", w.getMsgDest().getPhoneNumber().getCountryCode());
+									List<Gateway> list = dao.queryList(gwq2, Gateway.class);
+									if (null!=list&&list.size()>0){
+										gw2=list.get(0);
+									}else{
+										throw new RuntimeException("no gateway available for this user");
+									}
+								}
+								if (null!=gw2){
+									ma2 = new MsgAddress()
+									.setGateway(gw2)
+									.setLocale(ma.getLocale())
+									.setType(w.getMsgDest().getAddressType())
+									.setOwner(new Account())
+									.setAddress(w.getMsgDest().getAddress());
+								}
+							}else if (w.getMsgDest().getAddressType()==MsgType.EMAIL){
+								//how to set the email gateway?
+								throw new RuntimeException("not implemented");
+							}else{
+								throw new RuntimeException("not implemented");
+							}
+							if (ma2!=null){
+								//save
+								dao.add(ma2);
+								//and say hi to new user
+								DataSet create = new DataSet()
+									.setAction(Action.SIGNUP)
+									.setTo(new MessageAddress()
+										.setAddress(w.getMsgDest().getAddressObject())
+										.setAddressType(ma2.getType())
+										.setGateway(ma2.getGateway().getAddress()))
+									.setAccountId(ma2.getOwner().getId())
+									.setLocale(ma2.getLocale())
+									.setService(data.getService());
+								startDeposit(create);
+							}
+						}
 						if (ma2!=null){
-							w.setPayDest(new PaymentAddress().setAddress(ma.getOwner().getId().toString()));
-							w.getPayDest().setAddressType(PaymentType.ACCOUNT);
-						}else{
-							//use to send to not in db
-							throw new RuntimeException("not implemented");
+							//set our payment destination
+							if (null == w.getPayDest()){
+								w.setPayDest(new PaymentAddress());
+							}
+							w.getPayDest()
+								.setAddress(ma2.getOwner().getId().toString())
+								.setAddressType(PaymentType.ACCOUNT);
 						}
 					}
-					RNQuery gwQ = new RNQuery().addFilter("address", req.getFrom().getGateway());
+					//set the fee
+					RNQuery gwQ = new RNQuery().addFilter("address", data.getTo().getGateway());
 					Gateway gw = dao.queryEntity(gwQ, Gateway.class);
 					w.setFee(gw.getFee().setScale(8,RoundingMode.UP));
 					w.setFeeAccount(gw.getOwner().getId().toString());
-					Transaction t = new Transaction()
-						.setKey(Transaction.generateKey());
+					//check that transaction amount is > fee 
+					//(otherwise tx history gets screwed up)
+					if (w.getAmount().compareTo(w.getFee())<=0){
+						data.setAction(Action.BELOW_FEE);
+						w.setAmount(w.getFee().add(new BigDecimal("0.00001").setScale(8)));
+						respond(data);
+						break;
+					}
+					//save the transaction id to db
 					dao.add(t);
-					startWithdrawal(req,t.getKey());
+					//run
+					startWithdrawal(data,t.getKey());
 					break;
-				case SEND_CONFIRM:
-					RNQuery ttQuery = new RNQuery().addFilter("key", (String)req.getPayload());
+				case WITHDRAWAL_CONF:
+					RNQuery ttQuery = new RNQuery().addFilter("key", (String)data.getPayload());
 					Transaction tx = dao.queryEntity(ttQuery, Transaction.class);
 			        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
 			        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());
@@ -109,25 +190,21 @@ public abstract class RequestInterpreter{
 			        //don't delete, to guarantee unique keys
 			        break;
 				case HELP:
-					respond(new Response().respondTo(req));
+					respond(data);
 					break;
 				}
 			}else{
-				respond((Response)rv);
+				respond(data);
 			}
-		} catch (IncompleteException e) {
-			// we don't have enough data to respond to the user, so notify admin
-			// TODO send message to admin
-			e.printStackTrace();
 		} finally{
 			dao.closePersistenceManager();
 		}
 	}
 	
-	public abstract void startWithdrawal(Request req,String workflowId);
+	public abstract void startWithdrawal(DataSet data,String workflowId);
 	
-	public abstract void startDeposit(Request req);
+	public abstract void startDeposit(DataSet data);
 	
-	public abstract void respond(Response rsp);
+	public abstract void respond(DataSet rsp);
 
 }

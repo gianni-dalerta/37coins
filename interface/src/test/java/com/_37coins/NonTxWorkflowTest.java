@@ -19,14 +19,14 @@ import com._37coins.bizLogic.NonTxWorkflowImpl;
 import com._37coins.workflow.NonTxWorkflowClient;
 import com._37coins.workflow.NonTxWorkflowClientFactory;
 import com._37coins.workflow.NonTxWorkflowClientFactoryImpl;
-import com._37coins.workflow.pojo.Deposit;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
-import com._37coins.workflow.pojo.Request;
-import com._37coins.workflow.pojo.Request.ReqAction;
-import com._37coins.workflow.pojo.Response;
+import com._37coins.workflow.pojo.Withdrawal;
+import com.amazonaws.services.simpleworkflow.flow.annotations.Asynchronous;
 import com.amazonaws.services.simpleworkflow.flow.core.Promise;
 import com.amazonaws.services.simpleworkflow.flow.junit.AsyncAssert;
 import com.amazonaws.services.simpleworkflow.flow.junit.FlowBlockJUnit4ClassRunner;
@@ -38,7 +38,7 @@ public class NonTxWorkflowTest {
 	@Rule
 	public WorkflowTest workflowTest = new WorkflowTest();
 
-	final Response trace = new Response();
+	final List<DataSet> trace = new ArrayList<>();
 
 	private NonTxWorkflowClientFactory workflowFactory = new NonTxWorkflowClientFactoryImpl();
 	
@@ -78,14 +78,14 @@ public class NonTxWorkflowTest {
         MessagingActivities mailActivities = new MessagingActivities() {
 
 			@Override
-			public void sendMessage(Response rsp) {
-				trace.copy(rsp);
+			public void sendMessage(DataSet rsp) {
+				trace.add(rsp);
 			}
 			@Override
-			public void sendConfirmation(Response rsp, String workflowId) {
+			public void sendConfirmation(DataSet rsp, String workflowId) {
 			}
 			@Override
-			public Response readMessageAddress(Response data) {
+			public DataSet readMessageAddress(DataSet data) {
 				return data.setTo(new MessageAddress()
 					.setAddress("")
 					.setAddressType(MsgType.SMS)
@@ -106,63 +106,60 @@ public class NonTxWorkflowTest {
 	@Test
 	public void testCreateAccount() throws AddressException {
 		NonTxWorkflowClient workflow = workflowFactory.getClient();
-		Request req = new Request()
-			.setAction(ReqAction.CREATE)
+		DataSet data = new DataSet()
+			.setAction(Action.SIGNUP)
 			.setAccountId(1L)
-			.setFrom(new MessageAddress()
+			.setTo(new MessageAddress()
 				.setAddress("test@37coins.com"));
-		Promise<Void> booked = workflow.executeCommand(req);
-		Response rsp = new Response()
-			.respondTo(req)
-			.setPayload(new PaymentAddress()
+		Promise<Void> booked = workflow.executeCommand(data);
+		data.setPayload(new PaymentAddress()
 				.setAddress("1Nsateouhasontuh234")
 				.setAddressType(PaymentType.BTC));
-		AsyncAssert.assertEqualsWaitFor("successfull create", rsp, trace,booked);
+		validate("successfull create", data, trace,booked);
 	}
 
 	@Test
 	public void testDepositAccount() throws AddressException {
 		NonTxWorkflowClient workflow = workflowFactory.getClient();
-		Request req = new Request()
-			.setAction(ReqAction.DEPOSIT)
+		DataSet data = new DataSet()
+			.setAction(Action.DEPOSIT_REQ)
 			.setAccountId(1L)
-			.setFrom(new MessageAddress()
+			.setTo(new MessageAddress()
 				.setAddress("test@37coins.com"));
-		Promise<Void> booked = workflow.executeCommand(req);
-		Response rsp = new Response()
-			.respondTo(req)
+		Promise<Void> booked = workflow.executeCommand(data);
+		data
 			.setPayload(new PaymentAddress()
 				.setAddress("1Nsateouhasontuh234")
 				.setAddressType(PaymentType.BTC));
-		AsyncAssert.assertEqualsWaitFor("successfull deposit", rsp, trace,booked);
+		validate("successfull deposit", data, trace,booked);
 	}
 
 	@Test
 	public void testBalanceAccount() throws AddressException {
 		NonTxWorkflowClient workflow = workflowFactory.getClient();
-		Request req = new Request()
-			.setAction(ReqAction.BALANCE)
+		DataSet data = new DataSet()
+			.setAction(Action.BALANCE)
 			.setAccountId(1L);
-		Promise<Void> booked = workflow.executeCommand(req);
-		Response rsp = new Response()
-			.respondTo(req)
-			.setPayload(new Deposit()
+		Promise<Void> booked = workflow.executeCommand(data);
+		data.setPayload(new Withdrawal()
 				.setBalance(new BigDecimal("2.5")));
-		AsyncAssert.assertEqualsWaitFor("successfull balance", rsp, trace,
-				booked);
+		validate("successfull balance", data, trace, booked);
 	}
 	
 	@Test
 	public void testTransactions() throws AddressException {
 		NonTxWorkflowClient workflow = workflowFactory.getClient();
-		Request req = new Request()
-			.setAction(ReqAction.TRANSACTION)
+		DataSet data = new DataSet()
+			.setAction(Action.TRANSACTION)
 			.setAccountId(1L);
-		Promise<Void> booked = workflow.executeCommand(req);
-		Response rsp = new Response()
-			.respondTo(req)
-			.setPayload(list);
-		AsyncAssert.assertEqualsWaitFor("successfull tx", rsp, trace, booked);
+		Promise<Void> booked = workflow.executeCommand(data);
+		data.setPayload(list);
+		validate("successfull tx", data, trace, booked);
 	}
 
+	@Asynchronous
+	public void validate(String desc, Object expected, List<DataSet> l,Promise<Void> booked){
+		AsyncAssert.assertEqualsWaitFor(desc, expected, l.get(0), booked);
+	}
+	
 }

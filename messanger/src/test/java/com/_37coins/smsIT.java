@@ -22,9 +22,9 @@ import com._37coins.resources.EnvayaSmsResource;
 import com._37coins.resources.GatewayResource;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactory;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
-import com._37coins.workflow.pojo.Deposit;
-import com._37coins.workflow.pojo.Response;
-import com._37coins.workflow.pojo.Response.RspAction;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
+import com._37coins.workflow.pojo.Withdrawal;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
@@ -37,8 +37,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-
-import freemarker.template.TemplateException;
 
 public class smsIT {
 	static String restUrl = System.getProperty("basePath")+"/rest";
@@ -124,14 +122,6 @@ public class smsIT {
 		return rv;
 	}
 	
-	public void create(String sender) throws JsonParseException, JsonMappingException, IOException{
-		if (!created.contains(sender)){
-			exec("create", GATEWAY, sender);
-			String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-			System.out.println(message);
-		}
-	}
-	
 	public void exec(String cmd){
 		exec(cmd, GATEWAY, SENDER1);
 	}
@@ -143,8 +133,6 @@ public class smsIT {
 			.formParam("phone_number", gateway)
 			.formParam("from", user)
 			.formParam("message_type","sms")
-		.expect()
-			.statusCode(200)
 		.when()
 			.post(restUrl + EnvayaSmsResource.PATH);
 	}
@@ -153,33 +141,25 @@ public class smsIT {
 	
 	@Test
 	public void testEnvayaBalance() throws JsonParseException, JsonMappingException, IOException {
-		create(SENDER1);
 		exec("bal");
 		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		Assert.assertTrue(message.contains("BTC in your wallet."));
+		if (message.contains("Welcome")){
+			message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
+		}
+		Assert.assertTrue(message,message.contains("BTC in your wallet."));
 		Assert.assertTrue(message.getBytes().length<140);
 	}
 	
 	@Test
 	public void testEnvayaDeposit() throws JsonParseException, JsonMappingException, IOException {
-		create(SENDER1);
 		exec("adr");
 		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		Assert.assertEquals(SENDER1, message);
+		Assert.assertEquals("+821027423984", message);
 		Assert.assertTrue(message.getBytes().length<140);
 	}
 	
 	@Test
-	public void testEnvayaHelp() throws InterruptedException, JsonParseException, JsonMappingException, IOException, TemplateException {
-		exec("create");
-		String createMsg = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		Assert.assertEquals("Welcome to 37Coins! Your global wallet.\n37Coins commands: bal, addr, send/request <amount> <receiver> [desc], conf <ref>", createMsg);
-		Assert.assertTrue(createMsg.length()<160);
-	}
-	
-	@Test
 	public void testEnvayaHelpKorean() throws InterruptedException, JsonParseException, JsonMappingException, IOException {
-		create(SENDER1);
 		exec("%EB%8F%84%EC%9B%80"); //도움
 		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
 		Assert.assertEquals("37Coins 명령: 잔액조회, 주소, 송금/요청 <금액> <받는이> [서술], 확인 <언급>", message);
@@ -189,12 +169,12 @@ public class smsIT {
 	@Test
 	public void testEnvayaReceive() throws InterruptedException, JsonParseException, JsonMappingException, IOException {
 		Long account = 1L;
-		Response rsp = new Response()
+		DataSet rsp = new DataSet()
 			.setAccountId(account)
-			.setPayload(new Deposit()
+			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.5").setScale(8))
 				.setTxId("1234"))
-			.setAction(RspAction.RECEIVED);
+			.setAction(Action.DEPOSIT_CONF);
 		factory.getClient().executeCommand(rsp);
 		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
 		Assert.assertEquals("You have received 0.5 in your wallet.", message);
@@ -202,46 +182,31 @@ public class smsIT {
 	}
 	
 	@Test
-	public void testEnvayaTransactions() throws InterruptedException, JsonParseException, JsonMappingException, IOException {
-		create(SENDER1);
-		exec("txns");
-		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		Assert.assertEquals("Transactions", message);
-		Assert.assertTrue(message.length()<160);
-	}
-	
-	@Test
 	public void testEnvayaSend() throws InterruptedException, JsonParseException, JsonMappingException, IOException {
-		create(SENDER2);
-		create(SENDER1);
-		exec("send 0.01 "+SENDER2);
-		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		System.out.println(message);
-		Assert.assertTrue(message.contains("We have been ordered to transfer")); 
-		Assert.assertTrue(message.contains("BTC from your account to "+SENDER2));
-		String key = message.substring(message.indexOf("\"conf")+6, message.indexOf("\"conf")+11);
+		exec("send 0.01 "+SENDER2+" moin alta!");
+		String message1 = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
+		String key = message1.substring(message1.indexOf("\"conf")+6, message1.indexOf("\"conf")+11);
 		exec("conf "+key);
-		message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		Assert.assertEquals("We have transfered 0.01 BTC from your account to "+SENDER2+".", message);
-		Assert.assertTrue(message.length()<160);
-		message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		Assert.assertEquals("You have received 0.01 in your wallet.", message);
-		Assert.assertTrue(message.length()<160);
+		String message2 = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
+		String message3 = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
 		exec("txns");
-		message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		System.out.println(message);
+		String message4 = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
+		Assert.assertTrue(message1,message1.contains("We have been ordered to transfer")); 
+		Assert.assertTrue(message1,message1.contains("BTC from your account to +821023456789"));
+		Assert.assertEquals("We have transfered 0.01 BTC from your account to +821023456789.", message2);
+		Assert.assertTrue(message2.length()<160);
+		Assert.assertEquals("You have received 0.01 in your wallet.", message3);
+		Assert.assertTrue("to long:"+message3.length(),message3.length()<160);
+		Assert.assertTrue(message4,message4.contains("-0.0101"));
 	}
 	
 	@Test
 	public void testInsufficientFunds() throws JsonParseException, JsonMappingException, IOException{
 		BigDecimal amount = new BigDecimal("1000.01").setScale(8);
-		create(SENDER2);
-		create(SENDER1);
 		exec("send "+amount.setScale(2)+" "+SENDER2);
 		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		System.out.println(message);
-		Assert.assertTrue(message.contains("BTC, required for transaction: "+amount.add(FEE).setScale(4)+" BTC."));
-		Assert.assertTrue(message.length()<160);
+		Assert.assertTrue(message,message.contains("BTC, required for transaction: 1,000.0101 BTC."));
+		Assert.assertTrue("to long:"+message.length(),message.length()<160);
 	}
 
 }

@@ -13,10 +13,8 @@ import com._37coins.parse.RequestInterpreter;
 import com._37coins.sendMail.MailTransporter;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
+import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.MessageAddress;
-import com._37coins.workflow.pojo.MessageAddress.MsgType;
-import com._37coins.workflow.pojo.Request;
-import com._37coins.workflow.pojo.Response;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
@@ -52,29 +50,27 @@ public class EmailListener implements MessageCountListener{
 			//parse from
 			String from = null;
 			if (null == m.getFrom() || m.getFrom().length != 1) {
-				Response rsp = new Response();
+				DataSet rsp = new DataSet();
 				mt.sendMessage(rsp);
 				return;
 			} else {
 				from = ((InternetAddress) m.getFrom()[0]).getAddress();
 			}
-			MessageAddress md = new MessageAddress()
-			.setAddress(from)
-			.setAddressType(MsgType.EMAIL)
-			.setGateway(MessagingServletConfig.imapUser+"@"+MessagingServletConfig.imapHost);
+			String gw = MessagingServletConfig.imapUser+"@"+MessagingServletConfig.imapHost;
+			MessageAddress md = MessageAddress.fromString(from, gw).setGateway(gw);
 			
 			//implement actions
 			RequestInterpreter ri = new RequestInterpreter(mp,swfService) {							
 				@Override
-				public void startWithdrawal(Request req, String workflowId) {
-					withdrawalFactory.getClient(workflowId).executeCommand(req);
+				public void startWithdrawal(DataSet data, String workflowId) {
+					withdrawalFactory.getClient(workflowId).executeCommand(data);
 				}
 				@Override
-				public void startDeposit(Request req) {
-					nonTxFactory.getClient().executeCommand(req);
+				public void startDeposit(DataSet data) {
+					nonTxFactory.getClient(data.getAction()+"-"+data.getAccountId()).executeCommand(data);
 				}
 				@Override
-				public void respond(Response rsp) {
+				public void respond(DataSet rsp) {
 					try {
 						mt.sendMessage(rsp);
 					} catch (IOException | TemplateException

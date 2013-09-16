@@ -11,28 +11,24 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com._37coins.bcJsonRpc.pojo.Transaction;
-import com._37coins.sendMail.EmailFactory;
-import com._37coins.workflow.pojo.Deposit;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.PaymentAddress;
-import com._37coins.workflow.pojo.Response;
-import com._37coins.workflow.pojo.Response.RspAction;
 import com._37coins.workflow.pojo.Withdrawal;
 
 import freemarker.template.TemplateException;
 
 public class LocalizationTest {
 	
-	Response rsp;
-	EmailFactory ef = new EmailFactory();
+	DataSet rsp;
+	MessageFactory ef = new MessageFactory();
 	
 	@Before
 	public void start(){
-		rsp =  new Response()
+		rsp =  new DataSet()
 		.setService("37coins")
 		.setLocale(new Locale("en"))
-		.setBizUrl("http://37coins.com/")
-		.setSendHash("ao87u9o8u0oa8eu7098o")
 		.setPayload(new PaymentAddress()
 			.setAddress("mkGFr3M4HWy3NQm6LcSprcUypghQxoYmVq"))
 		.setTo(new MessageAddress()
@@ -41,7 +37,7 @@ public class LocalizationTest {
 	
 	@Test
 	public void test37coinsCreate() throws IOException, TemplateException {
-		rsp.setAction(RspAction.CREATE);
+		rsp.setAction(Action.SIGNUP);
 		System.out.println("SIGNUP:");
 		String s = ef.constructTxt(rsp);
 		System.out.println(s);
@@ -52,7 +48,7 @@ public class LocalizationTest {
 	
 	@Test
 	public void test37coinsDeposit() throws IOException, TemplateException {
-		rsp.setAction(RspAction.DEPOSIT);
+		rsp.setAction(Action.DEPOSIT_REQ);
 		System.out.println("DEPOSIT REQ:");
 		String s = ef.constructTxt(rsp);
 		System.out.println(s);
@@ -63,7 +59,7 @@ public class LocalizationTest {
 	
 	@Test
 	public void test37coinsHelp() throws IOException, TemplateException {
-		rsp.setAction(RspAction.HELP);
+		rsp.setAction(Action.HELP);
 		System.out.println("HELP:");
 		String s = ef.constructTxt(rsp);
 		System.out.println(s);
@@ -74,8 +70,8 @@ public class LocalizationTest {
 		
 	@Test
 	public void test37coinsReiceive() throws IOException, TemplateException {
-		rsp.setAction(RspAction.RECEIVED)
-			.setPayload(new Deposit()
+		rsp.setAction(Action.DEPOSIT_CONF)
+			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.05")));
 		System.out.println("DEPOSIT CONFIRM:");
 		String s = ef.constructTxt(rsp);
@@ -87,7 +83,7 @@ public class LocalizationTest {
 	
 	@Test
 	public void test37coinsSend() throws IOException, TemplateException {
-		rsp.setAction(RspAction.SEND)
+		rsp.setAction(Action.WITHDRAWAL_REQ)
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.01"))
 				.setMsgDest(new MessageAddress()
@@ -102,7 +98,7 @@ public class LocalizationTest {
 	
 	@Test
 	public void test37coinsWithdrawalReq() throws IOException, TemplateException {
-		rsp.setAction(RspAction.SEND_CONFIRM)
+		rsp.setAction(Action.WITHDRAWAL_CONF)
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.01"))
 				.setConfKey("something")
@@ -119,8 +115,8 @@ public class LocalizationTest {
 	
 	@Test
 	public void test37coinsBalance() throws IOException, TemplateException {
-		rsp.setAction(RspAction.BALANCE)
-			.setPayload(new Deposit()
+		rsp.setAction(Action.BALANCE)
+			.setPayload(new Withdrawal()
 				.setBalance(new BigDecimal("0.05")));
 		System.out.println("BALANCE:");
 		String s = ef.constructTxt(rsp);
@@ -132,8 +128,8 @@ public class LocalizationTest {
 	
 	@Test
 	public void testInsuficcientFunds() throws IOException, TemplateException {
-		rsp.setAction(RspAction.INSUFISSIENT_FUNDS)
-			.setPayload(new Deposit()
+		rsp.setAction(Action.INSUFISSIENT_FUNDS)
+			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("1000.051"))
 				.setBalance(new BigDecimal("0.5123456789")));
 		String s = ef.constructTxt(rsp);
@@ -146,9 +142,9 @@ public class LocalizationTest {
 	
 	@Test
 	public void testInsuficcientFundsDe() throws IOException, TemplateException {
-		rsp.setAction(RspAction.INSUFISSIENT_FUNDS)
+		rsp.setAction(Action.INSUFISSIENT_FUNDS)
 			.setLocale(new Locale("de"))
-			.setPayload(new Deposit()
+			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("1000.051"))
 				.setBalance(new BigDecimal("0.5123456789")));
 		String s = ef.constructTxt(rsp);
@@ -167,7 +163,7 @@ public class LocalizationTest {
 		list.add(new Transaction().setTime(System.currentTimeMillis()-760000000L).setComment("hallo").setAmount(new BigDecimal("0.3")).setTo("hast@test.com"));
 		list.add(new Transaction().setTime(System.currentTimeMillis()-960000000L).setComment("hallo").setAmount(new BigDecimal("0.2")).setTo("hast@test.com"));
 		list.add(new Transaction().setTime(System.currentTimeMillis()).setComment("hallo").setAmount(new BigDecimal("0.1")).setTo("hast@test.com"));
-		rsp.setAction(RspAction.TRANSACTION)
+		rsp.setAction(Action.TRANSACTION)
 			.setLocale(new Locale("de"))
 			.setPayload(list);
 		String s = ef.constructTxt(rsp);
@@ -180,7 +176,7 @@ public class LocalizationTest {
 	@Test
 	public void testEmptyTransactions() throws IOException, TemplateException {
 		List<Transaction> list = null;//new ArrayList<>();
-		rsp.setAction(RspAction.TRANSACTION)
+		rsp.setAction(Action.TRANSACTION)
 			.setLocale(new Locale("de"))
 			.setPayload(list);
 		String s = ef.constructTxt(rsp);

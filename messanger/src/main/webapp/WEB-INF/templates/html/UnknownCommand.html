@@ -1,17 +1,14 @@
 <#setting locale=locale>
 <html>
 <head>
-	<title>Account Information</title>
+	<title>${resBundle.UnknownCommandSubject}</title>
 	<#include "style.css">
 </head>
 <body>
 <article class="se-content">
 	<#include "header.html">
 	<p class="text">
-		${resBundle("DepositReq",payload.address)}
-		${resBundle("MoreInfoEmail",bizUrl)}
-		
-		
+	${resBundle.UnknownCommand}
 	</p>
 	<#include "footer.html">
 </article>

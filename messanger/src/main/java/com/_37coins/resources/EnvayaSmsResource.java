@@ -21,10 +21,8 @@ import com._37coins.parse.MessageParser;
 import com._37coins.parse.RequestInterpreter;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
+import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.MessageAddress;
-import com._37coins.workflow.pojo.MessageAddress.MsgType;
-import com._37coins.workflow.pojo.Request;
-import com._37coins.workflow.pojo.Response;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -98,23 +96,26 @@ public class EnvayaSmsResource {
 			break;
 		case "incoming":
 			if (messageType.equalsIgnoreCase("sms")) {
-				MessageAddress md = new MessageAddress()
-					.setAddress(from)
-					.setAddressType(MsgType.SMS)
-					.setGateway(phoneNumber);
+				MessageAddress md=null;
+				try {
+					md = MessageAddress.fromString(from, phoneNumber).setGateway(phoneNumber);
+				} catch (Exception e1) {
+					e1.printStackTrace();
+					throw new WebApplicationException(e1);
+				}
 				
 				//implement actions
 				RequestInterpreter ri = new RequestInterpreter(mp, swfService) {							
 					@Override
-					public void startWithdrawal(Request req, String workflowId) {
-						withdrawalFactory.getClient(workflowId).executeCommand(req);
+					public void startWithdrawal(DataSet data, String workflowId) {
+						withdrawalFactory.getClient(workflowId).executeCommand(data);
 					}
 					@Override
-					public void startDeposit(Request req) {
-						nonTxFactory.getClient().executeCommand(req);
+					public void startDeposit(DataSet data) {
+						nonTxFactory.getClient(data.getAction()+"-"+data.getAccountId()).executeCommand(data);
 					}
 					@Override
-					public void respond(Response rsp) {
+					public void respond(DataSet rsp) {
 						try {
 							qc.send(rsp, MessagingServletConfig.queueUri,
 									(String) rsp.getTo().getGateway(), "amq.direct",

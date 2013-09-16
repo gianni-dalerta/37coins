@@ -28,6 +28,10 @@ public class Gateway extends Model {
 	@Persistent
 	@Index
 	private String address;
+	
+	@Persistent
+	@Index
+	private Integer countryCode;
 
 	public Account getOwner() {
 		return owner;
@@ -56,11 +60,21 @@ public class Gateway extends Model {
 		return this;
 	}
 	
+	public Integer getCountryCode() {
+		return countryCode;
+	}
+
+	public Gateway setCountryCode(Integer countryCode) {
+		this.countryCode = countryCode;
+		return this;
+	}
+
 	@Override
 	public void update(Model newInstance) {
 		Gateway n = (Gateway) newInstance;
 		if (null != n.getAddress())this.setAddress(n.getAddress());
 		if (null != n.getFee())this.setFee(n.getFee());
+		if (null != n.getCountryCode())this.setCountryCode(n.getCountryCode());
 	}
 
 }

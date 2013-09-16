@@ -14,7 +14,7 @@ import com._37coins.persistence.dto.Transaction;
 import com._37coins.sendMail.MailTransporter;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
-import com._37coins.workflow.pojo.Response;
+import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.Withdrawal;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContext;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContextProvider;
@@ -32,7 +32,7 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 	QueueClient qc;
 
 	@Override
-	public void sendMessage(Response rsp) {
+	public void sendMessage(DataSet rsp) {
 		try {
 			if (rsp.getTo().getAddressType() == MsgType.EMAIL){
 				mt.sendMessage(rsp);
@@ -48,7 +48,7 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 
 	@Override
 	@ManualActivityCompletion
-	public void sendConfirmation(Response rsp, String workflowId) {
+	public void sendConfirmation(DataSet rsp, String workflowId) {
 		ActivityExecutionContext executionContext = contextProvider.getActivityExecutionContext();
 		String taskToken = executionContext.getTaskToken();
 		GenericRepository dao = new GenericRepository();
@@ -71,7 +71,7 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 
 
 	@Override
-	public Response readMessageAddress(Response data) {
+	public DataSet readMessageAddress(DataSet data) {
 		GenericRepository dao = new GenericRepository();
 		try{
 			Account a = dao.getObjectById(data.getAccountId(), Account.class);

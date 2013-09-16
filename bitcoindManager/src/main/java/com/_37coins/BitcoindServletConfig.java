@@ -37,9 +37,9 @@ import com._37coins.bcJsonRpc.pojo.Transaction;
 import com._37coins.bcJsonRpc.pojo.Transaction.Category;
 import com._37coins.resources.HealthCheckResource;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
-import com._37coins.workflow.pojo.Deposit;
-import com._37coins.workflow.pojo.Response;
-import com._37coins.workflow.pojo.Response.RspAction;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
+import com._37coins.workflow.pojo.Withdrawal;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
@@ -120,12 +120,12 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 						for (Transaction tx : e.getValue()){
 							sum = sum.add(tx.getAmount().setScale(8,RoundingMode.UNNECESSARY)).setScale(0, RoundingMode.UNNECESSARY);
 						}
-						Response rsp = new Response()
+						DataSet rsp = new DataSet()
 						.setAccountId(Long.parseLong(e.getKey()))
-						.setPayload(new Deposit()
+						.setPayload(new Withdrawal()
 							.setTxId(t.getTxid())
 							.setAmount(sum.setScale(8, RoundingMode.FLOOR)))
-						.setAction(RspAction.RECEIVED);
+						.setAction(Action.DEPOSIT_CONF);
 						i.getInstance(NonTxWorkflowClientExternalFactoryImpl.class).getClient().executeCommand(rsp);
 					}
 				}

@@ -6,7 +6,7 @@ import java.math.RoundingMode;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.Currency;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -14,29 +14,34 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 
+import javax.mail.internet.AddressException;
 import javax.servlet.ServletContext;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com._37coins.workflow.pojo.IncompleteException;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
-import com._37coins.workflow.pojo.Request;
-import com._37coins.workflow.pojo.Request.ReqAction;
-import com._37coins.workflow.pojo.Response;
-import com._37coins.workflow.pojo.Response.RspAction;
 import com._37coins.workflow.pojo.Withdrawal;
 import com.google.bitcoin.core.AddressFormatException;
 import com.google.bitcoin.core.Base58;
+import com.google.i18n.phonenumbers.NumberParseException;
 
 public class MessageParser {
 	public static Logger log = LoggerFactory.getLogger(MessageParser.class);
 	public static final String BC_ADDR_REGEX = "^[mn13][1-9A-Za-z][^OIl]{20,40}";
-	public static final String PHONE_REGEX = "^(\\+|\\d)[0-9]{7,16}$";
-	public static final String EMAIL_REGEX = "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,4}";
 	public static final String RB_NAME = "37coins";
+	public static final List<Action> reqCmdList = Arrays.asList(
+			Action.BALANCE,
+			Action.DEPOSIT_REQ,
+			Action.HELP, 
+			Action.TRANSACTION, 
+			Action.WITHDRAWAL_CONF, 
+			Action.WITHDRAWAL_REQ, 
+			Action.WITHDRAWAL_REQ_OTHER);
 
 	private Map<String, Tag> wordMap = new HashMap<>();
 
@@ -79,11 +84,10 @@ public class MessageParser {
 		for (Locale locale : locales) {
 			try {
 				ResourceBundle rb = ResourceBundle.getBundle(RB_NAME, locale,loader);
-				for (ReqAction a : ReqAction.values()) {
+				for (Action a : reqCmdList) {
 					String cmdList = rb.getString(a.getText() + "Cmd");
 					for (String cmd : cmdList.split(",")) {
-						wordMap.put(cmd, new Tag(a,
-								locale));
+						wordMap.put(cmd, new Tag(a, locale));
 					}
 				}
 			} catch (Exception ex) {
@@ -106,7 +110,7 @@ public class MessageParser {
 		return null;
 	}
 
-	public ReqAction replaceCommand(String cmd) {
+	public Action replaceCommand(String cmd) {
 		for (String pos : wordMap.keySet()) {
 			if (cmd.equalsIgnoreCase(pos)) {
 				return wordMap.get(pos).getAction();
@@ -115,19 +119,9 @@ public class MessageParser {
 		return null;
 	}
 
-	public boolean readReceiver(Withdrawal w, String receiver) {
+	public boolean readReceiver(Withdrawal w, String receiver, MessageAddress to) {
 		if (receiver == null | receiver.length() < 3) {
 			return false;
-		}
-		if (receiver.matches(PHONE_REGEX)) {
-			w.setMsgDest(new MessageAddress().setAddress(receiver));
-			//TODO: retrieve gateway
-			return true;
-		}
-		if (receiver.matches(EMAIL_REGEX)) {
-			w.setMsgDest(new MessageAddress().setAddress(receiver));
-			//TODO: retrieve gateway
-			return true;
 		}
 		if (receiver.matches(BC_ADDR_REGEX)) {
 			try {
@@ -140,7 +134,12 @@ public class MessageParser {
 				return false;
 			}
 		}
-		return false;
+		try {
+			w.setMsgDest(MessageAddress.fromString(receiver, to));
+			return true;
+		} catch (AddressException | NumberParseException e1) {
+			return false;
+		}
 	}
 
 	public boolean readAmount(Withdrawal w, String amount) {
@@ -155,10 +154,8 @@ public class MessageParser {
 			}
 			rv = rv.setScale(8, RoundingMode.UP);//rounding up, better send to much, isn't it?
 			//null represents BITCOIN, probably not a good idea
-			w.setCurrency(null);
 			if (cv.getCurrency() != null && cv.getCurrency().length() > 0) {
-				w.setCurrency(Currency.getInstance(cv.getCurrency()));
-				rv = rv.setScale(w.getCurrency().getDefaultFractionDigits(), RoundingMode.UP);
+				throw new RuntimeException("not implemented.");
 			}
 			w.setAmount(rv);
 			return true;
@@ -167,30 +164,33 @@ public class MessageParser {
 		}
 	}
 	
-	public Object process(MessageAddress sender, String subject) throws IncompleteException {
-		String[] ca = subject.trim().split(" ");
-		// read language
-		Request req = new Request()
+	public DataSet process(MessageAddress sender, String subject) {
+		subject = subject.trim().replaceAll(" +", " ");
+		String[] ca = subject.split(" ");
+		DataSet data = new DataSet()
 			.setLocale(readLanguage(ca[0]))
 			.setAction(replaceCommand(ca[0]))
-			.setFrom(sender);
+			.setTo(sender);
 		
-		if (req.getAction() == ReqAction.SEND){
+		if (data.getAction() == Action.WITHDRAWAL_REQ
+				|| data.getAction() == Action.WITHDRAWAL_REQ_OTHER){
 			int pos = (ca[1].length() > ca[2].length()) ? 1 : 2;
 			Withdrawal w = new Withdrawal();
-			if (!readReceiver(w, ca[pos]) 
+			if (!readReceiver(w, ca[pos], data.getTo()) 
 					|| !readAmount(w, ca[(pos == 1) ? 2 : 1])) {
-				return new Response()
-					.respondTo(req)
-					.setAction(RspAction.FORMAT_ERROR)
-					.validate();
+				data.setAction(Action.FORMAT_ERROR);
+				return data;
 			}
-			req.setPayload(w);
+			if (ca.length > 3){
+				int i = subject.indexOf(' ', 1+subject.indexOf(' ', 1+subject.trim().indexOf(' ')));
+				w.setComment(subject.replaceAll("::", "").substring(i+1, (i+1+20>subject.length())?subject.length():i+1+20));
+			}
+			data.setPayload(w);
 		}
-		if (req.getAction() == ReqAction.SEND_CONFIRM){
-			req.setPayload(ca[1]);
+		if (data.getAction() == Action.WITHDRAWAL_CONF){
+			data.setPayload(ca[1]);
 		}
-		return req;
+		return data;
 	}
 
 	/**

@@ -10,12 +10,8 @@
 	<p class="text">
 	${resBundle("WithdrawalConf",payload.amount,payload.receiver)}
 	${resBundle("TransactionDetails",payload.txId)}
-	
-	${resBundle("byebye","37Coins")}
-</p>
-	<#escape x as x?html?replace('\n', '<br>')>
-		${resBundle("byebye","37Coins")}
-	</#escape>
+	</p>
+	<#include "footer.html">
 </article>
 </body>
 </html>

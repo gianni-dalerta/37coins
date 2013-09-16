@@ -8,8 +8,9 @@ import javax.mail.internet.AddressException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com._37coins.MessageFactory;
 import com._37coins.MessagingServletConfig;
-import com._37coins.workflow.pojo.Response;
+import com._37coins.workflow.pojo.DataSet;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 
@@ -24,16 +25,16 @@ import freemarker.template.TemplateException;
 public class MailTransporter {
 
 	final MailServiceClient client;
-	final EmailFactory emailFactory;
+	final MessageFactory emailFactory;
 	public static Logger log = LoggerFactory.getLogger(MailTransporter.class);
 
 	@Inject
-	public MailTransporter(EmailFactory emailFactory,MailServiceClient client) {
+	public MailTransporter(MessageFactory emailFactory,MailServiceClient client) {
 		this.client = client;
 		this.emailFactory = emailFactory;
 	}
 
-	public void sendMessage(Response rsp) throws IOException,
+	public void sendMessage(DataSet rsp) throws IOException,
 			TemplateException, AddressException, MessagingException {
 		log.debug("To send message with following data: "
 				+ new ObjectMapper().writeValueAsString(rsp));

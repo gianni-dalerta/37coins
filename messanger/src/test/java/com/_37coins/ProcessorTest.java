@@ -9,6 +9,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.mail.internet.AddressException;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,12 +28,25 @@ import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
 import com._37coins.workflow.pojo.Withdrawal;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.i18n.phonenumbers.NumberParseException;
 
 public class ProcessorTest{
 	static MessageParser ep =null;
 	GenericRepository gr = null;
+	static MessageAddress USER1;
 	static final MessageAddress SENDER1= new MessageAddress().setAddress("testtest@37coins.com").setGateway("123");
 	static final MessageAddress SENDER2= new MessageAddress().setAddress("test3@37coins.com").setGateway("123");
+	static final BigDecimal FEE=new BigDecimal("0.002").setScale(8,RoundingMode.UP);
+	
+	static{
+		try {
+			USER1 = MessageAddress.fromString("+821012345678", "+821099999999");
+		} catch (AddressException | NumberParseException e) {
+			e.printStackTrace();
+		}
+	}
 	
 	@Before
 	public void before(){
@@ -42,13 +57,15 @@ public class ProcessorTest{
 			accounts.add(new Account());
 			accounts.add(new Account());
 			List<Gateway> gws = new ArrayList<>();
-			gws.add(new Gateway().setOwner(accounts.get(0)).setAddress("123").setFee(new BigDecimal("0.002").setScale(8,RoundingMode.UP)));
+			gws.add(new Gateway().setOwner(accounts.get(0)).setAddress("123").setFee(FEE));
+			gws.add(new Gateway().setOwner(accounts.get(1)).setAddress("+821099999999").setCountryCode(82).setFee(FEE));
 			List<MsgAddress> addrs = new ArrayList<>();
-			addrs.add(new MsgAddress().setAddress("testtest@37coins.com").setOwner(accounts.get(0)).setGateway(gws.get(0)));
-			addrs.add(new MsgAddress().setAddress("test2@37coins.com").setOwner(accounts.get(1)));
+			addrs.add(new MsgAddress().setAddress(SENDER1.getAddress()).setOwner(accounts.get(0)).setGateway(gws.get(0)));
+			addrs.add(new MsgAddress().setAddress("test2@37coins.com").setOwner(accounts.get(1)).setGateway(gws.get(0)));
 			addrs.add(new MsgAddress().setAddress("01029382039").setOwner(accounts.get(1)).setGateway(gws.get(0)));
 			Map<Class<? extends Model>, List<? extends Model>> data = new HashMap<Class<? extends Model>, List<? extends Model>>();
 			data.put(Account.class, accounts);
+			data.put(Gateway.class,gws);
 			data.put(MsgAddress.class, addrs);
 			persist(data);
 		}
@@ -107,18 +124,30 @@ public class ProcessorTest{
 			@Override
 			public void startDeposit(DataSet data) {
 				Assert.assertNotNull(data.getAccountId());
-				DataSet expected = new DataSet()
-					.setAction(Action.SIGNUP)
-					.setAccountId(0L)
-					.setService("37coins")
-					.setLocale(new Locale("en"))
-					.setTo(SENDER1);
-				Assert.assertEquals(expected, data);
+				if (data.getAction()==Action.BALANCE){
+					DataSet expected = new DataSet()
+						.setAction(Action.BALANCE)
+						.setAccountId(data.getAccountId())
+						.setService("37coins")
+						.setLocale(new Locale("en"))
+						.setTo(SENDER2);
+					Assert.assertEquals(expected, data);
+				}else if (data.getAction()==Action.SIGNUP){
+					DataSet expected = new DataSet()
+						.setAction(Action.SIGNUP)
+						.setAccountId(data.getAccountId())
+						.setService("37coins")
+						.setLocale(new Locale("en"))
+						.setTo(SENDER2);
+					Assert.assertEquals(expected, data);
+				}else{
+					Assert.assertFalse(true);
+				}
 			}
 			@Override
 			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(SENDER1, "Create");
+		ri.process(SENDER2, "balance");
 	}
 	
 	@Test
@@ -157,7 +186,14 @@ public class ProcessorTest{
 				Assert.assertEquals(expected, data);
 			}
 			@Override
-			public void respond(DataSet rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {
+				try {
+					System.out.println(new ObjectMapper().writeValueAsString(rsp));
+				} catch (JsonProcessingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				Assert.assertFalse(true);}
 		};
 		ri.process(SENDER2, "bla");
 	}
@@ -198,7 +234,7 @@ public class ProcessorTest{
 					.setMsgDest(new MessageAddress()
 						.setAddress("test2@37coins.com"))
 					.setPayDest(new PaymentAddress()
-						.setAddress("0")
+						.setAddress(((Withdrawal)data.getPayload()).getPayDest().getAddress())
 						.setAddressType(PaymentType.ACCOUNT))
 					.setFee(new BigDecimal("0.002"))
 					.setFeeAccount("0"));
@@ -225,13 +261,13 @@ public class ProcessorTest{
 				.setAccountId(0L)
 				.setTo(SENDER1)
 				.setPayload(new Withdrawal()
-					.setAmount(new BigDecimal("0.1"))
+					.setAmount(new BigDecimal("0.1").setScale(8))
 					.setMsgDest(new MessageAddress()
 						.setAddress("test2@37coins.com"))
 					.setPayDest(new PaymentAddress()
-						.setAddress("0")
+						.setAddress(((Withdrawal)data.getPayload()).getPayDest().getAddress())
 						.setAddressType(PaymentType.ACCOUNT))
-					.setFee(new BigDecimal("0.002"))
+					.setFee(new BigDecimal("0.002").setScale(8))
 					.setFeeAccount("0"));
 				Assert.assertEquals(expected, data);
 			}
@@ -251,25 +287,72 @@ public class ProcessorTest{
 				DataSet expected = new DataSet()
 					.setAction(Action.WITHDRAWAL_REQ)
 					.setLocale(new Locale("en"))
+					.setAccountId(data.getAccountId())
+					.setTo(USER1)
+					.setPayload(new Withdrawal()
+						.setAmount(new BigDecimal("0.1").setScale(8))
+						.setMsgDest(((Withdrawal)data.getPayload()).getMsgDest())
+						.setPayDest(new PaymentAddress()
+							.setAddress(((Withdrawal)data.getPayload()).getPayDest().getAddress())
+							.setAddressType(PaymentType.ACCOUNT))
+						.setFee(new BigDecimal("0.002").setScale(8))
+						.setFeeAccount("1"));
+				Assert.assertEquals(expected, data);
+			}
+			@Override
+			public void startDeposit(DataSet data) {
+				MessageAddress ma=null;
+				try {
+					ma = MessageAddress.fromString("01029382039", "821099999999");
+				} catch (AddressException | NumberParseException e) {
+					e.printStackTrace();
+				}
+				DataSet expected = new DataSet()
+					.setAction(Action.SIGNUP)
+					.setAccountId(data.getAccountId())
+					.setLocale(new Locale("en"))
+					.setTo(ma.setGateway("+821099999999"));
+				Assert.assertEquals(expected, data);
+			}
+			@Override
+			public void respond(DataSet rsp) {Assert.assertFalse(true);}
+		};
+		ri.process(USER1, "send 0.1 01029382039");
+	}
+	
+	@Test
+	public void testSendNewPhone() throws Exception {
+		RequestInterpreter ri = new RequestInterpreter(ep) {
+			@Override
+			public void startWithdrawal(DataSet data, String workflowId) {
+				DataSet expected = new DataSet()
+					.setAction(Action.WITHDRAWAL_REQ)
+					.setLocale(new Locale("en"))
 					.setAccountId(0L)
 					.setTo(SENDER1)
 					.setPayload(new Withdrawal()
 						.setAmount(new BigDecimal("0.1").setScale(8))
-						.setMsgDest(new MessageAddress()
-							.setAddress("01029382039"))
+						.setMsgDest(USER1.setGateway(null))
 						.setPayDest(new PaymentAddress()
-							.setAddress("0")
+							.setAddress("2")
 							.setAddressType(PaymentType.ACCOUNT))
-						.setFee(new BigDecimal("0.002"))
+						.setFee(new BigDecimal("0.002").setScale(8))
 						.setFeeAccount("0"));
 				Assert.assertEquals(expected, data);
 			}
 			@Override
-			public void startDeposit(DataSet data) {Assert.assertFalse(true);}
+			public void startDeposit(DataSet data) {
+				DataSet expected = new DataSet()
+					.setAction(Action.SIGNUP)
+					.setAccountId(data.getAccountId())
+					.setLocale(new Locale("en"))
+					.setTo(USER1.setGateway("+821099999999"));
+				Assert.assertEquals(expected, data);
+			}
 			@Override
 			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(SENDER1, "send 0.1 01029382039");
+		ri.process(SENDER1, "send 0.1 "+USER1.getAddress());
 	}
 	
 	@Test
@@ -367,26 +450,31 @@ public class ProcessorTest{
 	}
 	
 	@Test
-	public void testDataSet() throws Exception {
+	public void testRequest() throws Exception {
 		RequestInterpreter ri = new RequestInterpreter(ep) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {
 				DataSet expected = new DataSet()
 					.setAction(Action.WITHDRAWAL_REQ_OTHER)
 					.setLocale(new Locale("en"))
-					.setTo(SENDER1)
+					.setTo(new MessageAddress()
+						.setAddress("test2@37coins.com")
+						.setGateway("123"))
 					.setPayload(new Withdrawal()
-						.setAmount(new BigDecimal("0.1"))
-						.setMsgDest(new MessageAddress()
-							.setAddress("test2@37coins.com")));
+						.setAmount(new BigDecimal("0.1").setScale(8))
+						.setFee(FEE)
+						.setFeeAccount("0")
+						.setMsgDest(SENDER1)
+						.setPayDest(new PaymentAddress()
+							.setAddress(((Withdrawal)data.getPayload()).getPayDest().getAddress())
+							.setAddressType(PaymentType.ACCOUNT)));
 				Assert.assertEquals(expected, data);
-				Assert.assertFalse(true);}
+			}
 			@Override
 			public void startDeposit(DataSet data) {Assert.assertFalse(true);}
 			@Override
 			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
 		ri.process(SENDER1, "request test2@37coins.com 0.1");
-		Assert.assertTrue("not implemented", false);
 	}
 }

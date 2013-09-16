@@ -1,6 +1,7 @@
 package com._37coins.parse;
 
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.Locale;
 
 import org.restnucleus.dao.GenericRepository;
@@ -13,6 +14,7 @@ import com._37coins.persistence.dto.Transaction;
 import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
+import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
 import com._37coins.workflow.pojo.Withdrawal;
@@ -41,14 +43,29 @@ public abstract class RequestInterpreter{
 		try {
 			data = mp.process(sender, subject);
 			
-			if (MessageParser.reqCmdList.contains(data.getAction())){
-				//handle subject
+			if (data.getAction()==null||MessageParser.reqCmdList.contains(data.getAction())){
+				Transaction t = new Transaction().setKey(Transaction.generateKey());
+				Withdrawal w = (data.getPayload() instanceof Withdrawal)?(Withdrawal)data.getPayload():null;
+				if (data.getAction()==Action.WITHDRAWAL_REQ_OTHER){
+					MessageAddress temp = w.getMsgDest();
+					w.setMsgDest(data.getTo());
+					data.setTo(temp);
+				}
 				RNQuery q = new RNQuery().addFilter("address", data.getTo().getAddress());
 				MsgAddress ma = dao.queryEntity(q, MsgAddress.class, false);
 				if (null!=ma){
-					data.setAccountId(ma.getOwner().getId());
+					if (data.getAction()!=Action.WITHDRAWAL_REQ_OTHER){
+						data.setAccountId(ma.getOwner().getId());
+					}
+					if (data.getTo().getGateway()==null){
+						data.getTo().setGateway(ma.getGateway().getAddress());
+					}
 					if (data.getAction()==null){
+						data.setLocale(ma.getLocale());
 						respond(data.setAction(Action.UNKNOWN_COMMAND));
+						return;
+					}else{
+						ma.setLocale(data.getLocale());
 					}
 				}else{
 					if (null==data.getLocale()){
@@ -63,8 +80,19 @@ public abstract class RequestInterpreter{
 						.setOwner(new Account())
 						.setGateway(gw);
 					dao.add(ma);
-					data.setAction(Action.SIGNUP);
 					data.setAccountId(ma.getOwner().getId());
+					//call create
+					DataSet create = new DataSet()
+						.setAction(Action.SIGNUP)
+						.setTo(data.getTo())
+						.setAccountId(data.getAccountId())
+						.setLocale(data.getLocale())
+						.setService(data.getService());
+					startDeposit(create);
+					//nothing to do if this was the first message and had no meaning 
+					if (data.getAction()==null){
+						return;
+					}
 				}
 				switch (data.getAction()){
 				case BALANCE:
@@ -73,27 +101,75 @@ public abstract class RequestInterpreter{
 				case DEPOSIT_REQ:
 					startDeposit(data);
 					break;
+				case WITHDRAWAL_REQ_OTHER:
 				case WITHDRAWAL_REQ:
-					//handle object
-					Withdrawal w = (Withdrawal)data.getPayload();
 					if (null!= w.getMsgDest() && w.getMsgDest().getAddress()!=null){
 						RNQuery q2 = new RNQuery().addFilter("address", w.getMsgDest().getAddress());
 						MsgAddress ma2 = dao.queryEntity(q2, MsgAddress.class, false);
+						if (ma2==null){
+							if (w.getMsgDest().getAddressType()==MsgType.SMS){
+								Gateway gw2 = null;
+								//set gateway from referring user's gateway
+								if (data.getTo().getAddressType() == MsgType.SMS 
+										&& w.getMsgDest().getPhoneNumber().getCountryCode() == data.getTo().getPhoneNumber().getCountryCode()){
+									gw2 = ma.getGateway();
+								}else{//or try to find a gateway in the database
+									RNQuery gwq2 = new RNQuery().addFilter("countryCode", w.getMsgDest().getPhoneNumber().getCountryCode());
+									List<Gateway> list = dao.queryList(gwq2, Gateway.class);
+									if (null!=list&&list.size()>0){
+										gw2=list.get(0);
+									}else{
+										throw new RuntimeException("no gateway available for this user");
+									}
+								}
+								if (null!=gw2){
+									ma2 = new MsgAddress()
+									.setGateway(gw2)
+									.setLocale(ma.getLocale())
+									.setType(w.getMsgDest().getAddressType())
+									.setOwner(new Account())
+									.setAddress(w.getMsgDest().getAddress());
+								}
+							}else if (w.getMsgDest().getAddressType()==MsgType.EMAIL){
+								//how to set the email gateway?
+								throw new RuntimeException("not implemented");
+							}else{
+								throw new RuntimeException("not implemented");
+							}
+							if (ma2!=null){
+								//save
+								dao.add(ma2);
+								//and say hi to new user
+								DataSet create = new DataSet()
+									.setAction(Action.SIGNUP)
+									.setTo(new MessageAddress()
+										.setAddress(w.getMsgDest().getAddressObject())
+										.setAddressType(ma2.getType())
+										.setGateway(ma2.getGateway().getAddress()))
+									.setAccountId(ma2.getOwner().getId())
+									.setLocale(ma2.getLocale())
+									.setService(data.getService());
+								startDeposit(create);
+							}
+						}
 						if (ma2!=null){
-							w.setPayDest(new PaymentAddress().setAddress(ma.getOwner().getId().toString()));
-							w.getPayDest().setAddressType(PaymentType.ACCOUNT);
-						}else{
-							//use to send to not in db
-							throw new RuntimeException("not implemented");
+							//set our payment destination
+							if (null == w.getPayDest()){
+								w.setPayDest(new PaymentAddress());
+							}
+							w.getPayDest()
+								.setAddress(ma2.getOwner().getId().toString())
+								.setAddressType(PaymentType.ACCOUNT);
 						}
 					}
+					//set the fee
 					RNQuery gwQ = new RNQuery().addFilter("address", data.getTo().getGateway());
 					Gateway gw = dao.queryEntity(gwQ, Gateway.class);
 					w.setFee(gw.getFee().setScale(8,RoundingMode.UP));
 					w.setFeeAccount(gw.getOwner().getId().toString());
-					Transaction t = new Transaction()
-						.setKey(Transaction.generateKey());
+					//save the transaction id to db
 					dao.add(t);
+					//run
 					startWithdrawal(data,t.getKey());
 					break;
 				case WITHDRAWAL_CONF:

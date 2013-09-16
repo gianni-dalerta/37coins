@@ -62,8 +62,7 @@ public class MessageFactory {
 			}else{
 				loader = MessageFactory.class.getClassLoader();
 			}
-			rb = ResourceBundle.
-					getBundle(rsp.getService(),rsp.getLocale(),loader);
+			rb = ResourceBundle.getBundle(rsp.getService(),rsp.getLocale(),loader);
 			rsp.setResBundle(new ResourceBundleModel(rb, new BeansWrapper()));
 		}
 	}

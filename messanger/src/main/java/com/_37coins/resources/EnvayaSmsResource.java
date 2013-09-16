@@ -23,7 +23,6 @@ import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.MessageAddress;
-import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -97,10 +96,13 @@ public class EnvayaSmsResource {
 			break;
 		case "incoming":
 			if (messageType.equalsIgnoreCase("sms")) {
-				MessageAddress md = new MessageAddress()
-					.setAddress(from)
-					.setAddressType(MsgType.SMS)
-					.setGateway(phoneNumber);
+				MessageAddress md=null;
+				try {
+					md = MessageAddress.fromString(from, phoneNumber).setGateway(phoneNumber);
+				} catch (Exception e1) {
+					e1.printStackTrace();
+					throw new WebApplicationException(e1);
+				}
 				
 				//implement actions
 				RequestInterpreter ri = new RequestInterpreter(mp, swfService) {							

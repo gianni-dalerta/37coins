@@ -30,8 +30,8 @@ public class DataSet {
 		FORMAT_ERROR("FormatError"),
 		UNKNOWN_COMMAND("UnknownCommand"), 
 		INSUFISSIENT_FUNDS("InsufficientFunds"), 
-		TIMEOUT("timout"),
-		TX_FAILED("txErr");
+		TIMEOUT("Timeout"),
+		TX_FAILED("TransactionFailed");
 
 		private String text;
 

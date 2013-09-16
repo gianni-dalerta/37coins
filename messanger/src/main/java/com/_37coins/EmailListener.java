@@ -15,7 +15,6 @@ import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.MessageAddress;
-import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
@@ -57,10 +56,8 @@ public class EmailListener implements MessageCountListener{
 			} else {
 				from = ((InternetAddress) m.getFrom()[0]).getAddress();
 			}
-			MessageAddress md = new MessageAddress()
-			.setAddress(from)
-			.setAddressType(MsgType.EMAIL)
-			.setGateway(MessagingServletConfig.imapUser+"@"+MessagingServletConfig.imapHost);
+			String gw = MessagingServletConfig.imapUser+"@"+MessagingServletConfig.imapHost;
+			MessageAddress md = MessageAddress.fromString(from, gw).setGateway(gw);
 			
 			//implement actions
 			RequestInterpreter ri = new RequestInterpreter(mp,swfService) {							

@@ -133,8 +133,6 @@ public class smsIT {
 			.formParam("phone_number", gateway)
 			.formParam("from", user)
 			.formParam("message_type","sms")
-		.expect()
-			.statusCode(200)
 		.when()
 			.post(restUrl + EnvayaSmsResource.PATH);
 	}
@@ -148,7 +146,7 @@ public class smsIT {
 		if (message.contains("Welcome")){
 			message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
 		}
-		Assert.assertTrue(message.contains("BTC in your wallet."));
+		Assert.assertTrue(message,message.contains("BTC in your wallet."));
 		Assert.assertTrue(message.getBytes().length<140);
 	}
 	
@@ -185,22 +183,21 @@ public class smsIT {
 	
 	@Test
 	public void testEnvayaSend() throws InterruptedException, JsonParseException, JsonMappingException, IOException {
-		exec("send 0.01 "+SENDER2);
+		exec("send 0.01 "+SENDER2+" moin alta!");
 		String message1 = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		System.out.println(message1);
 		String key = message1.substring(message1.indexOf("\"conf")+6, message1.indexOf("\"conf")+11);
 		exec("conf "+key);
 		String message2 = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
 		String message3 = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
 		exec("txns");
 		String message4 = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		Assert.assertTrue(message1.contains("We have been ordered to transfer")); 
+		Assert.assertTrue(message1,message1.contains("We have been ordered to transfer")); 
 		Assert.assertTrue(message1,message1.contains("BTC from your account to +821023456789"));
 		Assert.assertEquals("We have transfered 0.01 BTC from your account to +821023456789.", message2);
 		Assert.assertTrue(message2.length()<160);
 		Assert.assertEquals("You have received 0.01 in your wallet.", message3);
 		Assert.assertTrue("to long:"+message3.length(),message3.length()<160);
-		Assert.assertTrue(message4.contains("-0.0101"));
+		Assert.assertTrue(message4,message4.contains("-0.0101"));
 	}
 	
 	@Test
@@ -208,8 +205,7 @@ public class smsIT {
 		BigDecimal amount = new BigDecimal("1000.01").setScale(8);
 		exec("send "+amount.setScale(2)+" "+SENDER2);
 		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		System.out.println(message);
-		Assert.assertTrue(message,message.contains("BTC, required for transaction: "+amount.add(FEE).setScale(4)+" BTC."));
+		Assert.assertTrue(message,message.contains("BTC, required for transaction: 1,000.0101 BTC."));
 		Assert.assertTrue("to long:"+message.length(),message.length()<160);
 	}
 

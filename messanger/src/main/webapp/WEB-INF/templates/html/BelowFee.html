@@ -1,19 +1,16 @@
 <#setting locale=locale>
 <html>
 <head>
-	<title>Error</title>
+	<title>${resBundle.BelowFeeSubject}</title>
 	<#include "style.css">
 </head>
 <body>
 <article class="se-content">
 	<#include "header.html">
 	<p class="text">
-	${resBundle.FormatError}
+	${resBundle.BelowFee}
 	</p>
-	<#escape x as x?html?replace('\n', '<br>')>
-		${resBundle("byebye","37Coins")}
-	</#escape>
+	<#include "footer.html">
 </article>
-
 </body>
 </html>

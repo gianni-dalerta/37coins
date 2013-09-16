@@ -29,7 +29,8 @@ public class DataSet {
 		DEPOSIT_CONF("DepositConf"),
 		FORMAT_ERROR("FormatError"),
 		UNKNOWN_COMMAND("UnknownCommand"), 
-		INSUFISSIENT_FUNDS("InsufficientFunds"), 
+		INSUFISSIENT_FUNDS("InsufficientFunds"),
+		BELOW_FEE("BelowFee"), 
 		TIMEOUT("Timeout"),
 		TX_FAILED("TransactionFailed");
 

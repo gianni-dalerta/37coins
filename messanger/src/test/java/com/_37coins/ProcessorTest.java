@@ -237,7 +237,8 @@ public class ProcessorTest{
 						.setAddress(((Withdrawal)data.getPayload()).getPayDest().getAddress())
 						.setAddressType(PaymentType.ACCOUNT))
 					.setFee(new BigDecimal("0.002"))
-					.setFeeAccount("0"));
+					.setFeeAccount("0")
+					.setComment("comment multiple wor"));//each comment truncated to 20 
 				Assert.assertEquals(expected, data);
 			}
 			@Override
@@ -245,7 +246,7 @@ public class ProcessorTest{
 			@Override
 			public void respond(DataSet rsp) {Assert.assertFalse(true);}
 		};
-		ri.process(SENDER1, "send 0.1 test2@37coins.com");
+		ri.process(SENDER1, " send    0.1  test2@37coins.com    ::comment   multiple words");
 	}
 	
 	

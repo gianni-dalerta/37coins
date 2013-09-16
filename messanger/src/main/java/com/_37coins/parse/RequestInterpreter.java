@@ -1,5 +1,6 @@
 package com._37coins.parse;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Locale;
@@ -167,6 +168,14 @@ public abstract class RequestInterpreter{
 					Gateway gw = dao.queryEntity(gwQ, Gateway.class);
 					w.setFee(gw.getFee().setScale(8,RoundingMode.UP));
 					w.setFeeAccount(gw.getOwner().getId().toString());
+					//check that transaction amount is > fee 
+					//(otherwise tx history gets screwed up)
+					if (w.getAmount().compareTo(w.getFee())<=0){
+						data.setAction(Action.BELOW_FEE);
+						w.setAmount(w.getFee().add(new BigDecimal("0.00001").setScale(8)));
+						respond(data);
+						break;
+					}
 					//save the transaction id to db
 					dao.add(t);
 					//run

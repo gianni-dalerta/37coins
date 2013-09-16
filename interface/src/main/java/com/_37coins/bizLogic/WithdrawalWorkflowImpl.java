@@ -82,12 +82,21 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
             protected void doTry() throws Throwable {
 	    		//define transaction
 				Withdrawal w = (Withdrawal)rsp.get().getPayload();
+				String toId = null;
+				String toAddress = null;
+				if (w.getPayDest().getAddressType()==PaymentType.ACCOUNT){
+					toId = w.getPayDest().getAddress();
+					toAddress = (w.getMsgDest()!=null)?rsp.get().getTo().getAddress()+"::"+w.getMsgDest().getAddress():null;
+				}
+				if (w.getPayDest().getAddressType()==PaymentType.BTC){
+					toAddress = w.getPayDest().getAddress();
+				}
 	    		Promise<String> tx = bcdClient.sendTransaction(
 	    				w.getAmount(), 
 	    				w.getFee(), 
 	    				rsp.get().getAccountId(), 
-	    				(w.getPayDest().getAddressType()==PaymentType.ACCOUNT)?w.getPayDest().getAddress():null, 
-	    				(w.getPayDest().getAddressType()==PaymentType.BTC)?w.getPayDest().getAddress():null,
+	    				toId, 
+	    				toAddress,
 	    				contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId(),
 	    				w.getComment());
 	    		afterSend(tx, rsp.get());

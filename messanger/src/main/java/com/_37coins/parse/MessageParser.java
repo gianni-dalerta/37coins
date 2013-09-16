@@ -165,7 +165,8 @@ public class MessageParser {
 	}
 	
 	public DataSet process(MessageAddress sender, String subject) {
-		String[] ca = subject.trim().split(" ");
+		subject = subject.trim().replaceAll(" +", " ");
+		String[] ca = subject.split(" ");
 		DataSet data = new DataSet()
 			.setLocale(readLanguage(ca[0]))
 			.setAction(replaceCommand(ca[0]))
@@ -179,6 +180,10 @@ public class MessageParser {
 					|| !readAmount(w, ca[(pos == 1) ? 2 : 1])) {
 				data.setAction(Action.FORMAT_ERROR);
 				return data;
+			}
+			if (ca.length > 3){
+				int i = subject.indexOf(' ', 1+subject.indexOf(' ', 1+subject.trim().indexOf(' ')));
+				w.setComment(subject.replaceAll("::", "").substring(i+1, (i+1+20>subject.length())?subject.length():i+1+20));
 			}
 			data.setPayload(w);
 		}

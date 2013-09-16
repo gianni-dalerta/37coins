@@ -51,8 +51,7 @@ public class MessageAddress {
 			PhoneNumberType pnt = phoneUtil.getNumberType(pn);
 			if (pnt==PhoneNumberType.UNKNOWN 
 					||pnt==PhoneNumberType.FIXED_LINE_OR_MOBILE
-					||pnt==PhoneNumberType.MOBILE
-					||pnt==PhoneNumberType.PERSONAL_NUMBER){
+					||pnt==PhoneNumberType.MOBILE){
 				return new MessageAddress()
 					.setAddressType(MsgType.SMS)
 					.setPhoneNumber(pn);

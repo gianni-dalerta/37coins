@@ -114,8 +114,9 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 				if(tx.getCategory()==Category.RECEIVE || tx.getCategory()==Category.SEND){
 					to = tx.getTxid();
 				}
-				if (tx.getComment().split("::").length>2){
-					to = tx.getComment().split("::")[2];
+				if (tx.getComment().split("::").length>3){
+					String[] addr = tx.getComment().split("::");
+					to = (total.compareTo(BigDecimal.ZERO)<0)?addr[2]:addr[3];
 				}
 				if (tx.getTo()!=null){
 					to = tx.getTo();
@@ -124,7 +125,7 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 			rv.add(new Transaction()
 				.setAmount(total)
 				.setComment(comment)
-				.setTime(time)
+				.setTime(time*1000L)
 				.setTo(to));
 		}
 		return rv;

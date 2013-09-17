@@ -458,6 +458,7 @@ public class ProcessorTest{
 				DataSet expected = new DataSet()
 					.setAction(Action.WITHDRAWAL_REQ_OTHER)
 					.setLocale(new Locale("en"))
+					.setAccountId(data.getAccountId())
 					.setTo(new MessageAddress()
 						.setAddress("test2@37coins.com")
 						.setGateway("123"))

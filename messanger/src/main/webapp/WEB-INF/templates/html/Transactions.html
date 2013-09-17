@@ -6,7 +6,7 @@
 </head>
 <body>
 <article class="se-content">
-	<#include "header.html">
+	<h3 id="head2">${resBundle.TransactionsSubject}</h3>
 	<p class="text">
 <#if payload?has_content>
 <#list payload?sort_by("time")?reverse as t>

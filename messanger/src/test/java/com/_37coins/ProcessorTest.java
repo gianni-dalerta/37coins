@@ -38,7 +38,7 @@ public class ProcessorTest{
 	static MessageAddress USER1;
 	static final MessageAddress SENDER1= new MessageAddress().setAddress("testtest@37coins.com").setGateway("123");
 	static final MessageAddress SENDER2= new MessageAddress().setAddress("test3@37coins.com").setGateway("123");
-	static final BigDecimal FEE=new BigDecimal("0.002").setScale(8,RoundingMode.UP);
+	static final BigDecimal FEE=new BigDecimal("0.0002").setScale(8,RoundingMode.UP);
 	
 	static{
 		try {
@@ -230,13 +230,13 @@ public class ProcessorTest{
 				.setAccountId(0L)
 				.setTo(SENDER1)
 				.setPayload(new Withdrawal()
-					.setAmount(new BigDecimal("0.1"))
+					.setAmount(new BigDecimal("0.001"))
 					.setMsgDest(new MessageAddress()
 						.setAddress("test2@37coins.com"))
 					.setPayDest(new PaymentAddress()
 						.setAddress(((Withdrawal)data.getPayload()).getPayDest().getAddress())
 						.setAddressType(PaymentType.ACCOUNT))
-					.setFee(new BigDecimal("0.002"))
+					.setFee(new BigDecimal("0.0002"))
 					.setFeeAccount("0")
 					.setComment("comment multiple wor"));//each comment truncated to 20 
 				Assert.assertEquals(expected, data);
@@ -244,9 +244,9 @@ public class ProcessorTest{
 			@Override
 			public void startDeposit(DataSet data) {Assert.assertFalse(true);}
 			@Override
-			public void respond(DataSet rsp) {Assert.assertFalse(true);}
+			public void respond(DataSet rsp) {Assert.assertFalse("did not expect" + rsp,true);}
 		};
-		ri.process(SENDER1, " send    0.1  test2@37coins.com    ::comment   multiple words");
+		ri.process(SENDER1, " send    0.001  test2@37coins.com    ::comment   multiple words");
 	}
 	
 	
@@ -268,7 +268,7 @@ public class ProcessorTest{
 					.setPayDest(new PaymentAddress()
 						.setAddress(((Withdrawal)data.getPayload()).getPayDest().getAddress())
 						.setAddressType(PaymentType.ACCOUNT))
-					.setFee(new BigDecimal("0.002").setScale(8))
+					.setFee(new BigDecimal("0.0002").setScale(8))
 					.setFeeAccount("0"));
 				Assert.assertEquals(expected, data);
 			}
@@ -296,7 +296,7 @@ public class ProcessorTest{
 						.setPayDest(new PaymentAddress()
 							.setAddress(((Withdrawal)data.getPayload()).getPayDest().getAddress())
 							.setAddressType(PaymentType.ACCOUNT))
-						.setFee(new BigDecimal("0.002").setScale(8))
+						.setFee(new BigDecimal("0.0002").setScale(8))
 						.setFeeAccount("1"));
 				Assert.assertEquals(expected, data);
 			}
@@ -337,7 +337,7 @@ public class ProcessorTest{
 						.setPayDest(new PaymentAddress()
 							.setAddress("2")
 							.setAddressType(PaymentType.ACCOUNT))
-						.setFee(new BigDecimal("0.002").setScale(8))
+						.setFee(new BigDecimal("0.0002").setScale(8))
 						.setFeeAccount("0"));
 				Assert.assertEquals(expected, data);
 			}
@@ -372,7 +372,7 @@ public class ProcessorTest{
 						.setPayDest(new PaymentAddress()
 							.setAddress("1BLyr8ydFDcbgU9TUPy7NiGSCbq89hBiUf")
 							.setAddressType(PaymentType.BTC))
-						.setFee(new BigDecimal("0.002").setScale(8))
+						.setFee(new BigDecimal("0.0002").setScale(8))
 						.setFeeAccount("0"));
 				Assert.assertEquals(expected, data);
 				}
@@ -399,7 +399,7 @@ public class ProcessorTest{
 						.setPayDest(new PaymentAddress()
 							.setAddress("mhYxdhvp9kuLypKC3ux6oMPyKTfGm5GaVP")
 							.setAddressType(PaymentType.BTC))
-						.setFee(new BigDecimal("0.002").setScale(8))
+						.setFee(new BigDecimal("0.0002").setScale(8))
 						.setFeeAccount("0"));
 				Assert.assertEquals(expected, data);
 			}
@@ -478,4 +478,5 @@ public class ProcessorTest{
 		};
 		ri.process(SENDER1, "request test2@37coins.com 0.1");
 	}
+	
 }

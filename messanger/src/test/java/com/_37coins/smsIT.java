@@ -154,7 +154,7 @@ public class smsIT {
 	public void testEnvayaDeposit() throws JsonParseException, JsonMappingException, IOException {
 		exec("adr");
 		String message = om.readValue(read(), Command.class).getMessages().get(0).getMessage();
-		Assert.assertEquals("+821027423984", message);
+		Assert.assertTrue(message,message.contains("Senden Sie an"));
 		Assert.assertTrue(message.getBytes().length<140);
 	}
 	

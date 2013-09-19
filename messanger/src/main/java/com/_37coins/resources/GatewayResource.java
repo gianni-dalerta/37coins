@@ -38,6 +38,7 @@ public class GatewayResource {
     @ApiErrors(value = { @ApiError(code = 500, reason = "Internal Server Error.")})
 	public Representation register(@FormParam("ownerAddress") String ownerAddress, 
 			@FormParam("address") String address, 
+			@FormParam("coutryCode") int countryCode,
 			@FormParam("fee") String fee){
 		RNQuery query = new RNQuery().addFilter("address", ownerAddress);
 		MsgAddress ma = dao.queryEntity(query, MsgAddress.class,false);
@@ -52,6 +53,7 @@ public class GatewayResource {
 		if (gw==null){
 			gw = new Gateway()
 				.setAddress(address)
+				.setCountryCode(countryCode)
 				.setFee(new BigDecimal(fee).setScale(8,RoundingMode.HALF_UP))
 				.setOwner(ma.getOwner());
 			dao.add(gw);

@@ -55,9 +55,7 @@ public abstract class RequestInterpreter{
 				RNQuery q = new RNQuery().addFilter("address", data.getTo().getAddress());
 				MsgAddress ma = dao.queryEntity(q, MsgAddress.class, false);
 				if (null!=ma){
-					if (data.getAction()!=Action.WITHDRAWAL_REQ_OTHER){
-						data.setAccountId(ma.getOwner().getId());
-					}
+					data.setAccountId(ma.getOwner().getId());
 					if (data.getTo().getGateway()==null){
 						data.getTo().setGateway(ma.getGateway().getAddress());
 					}

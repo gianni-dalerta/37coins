@@ -7,6 +7,8 @@ import java.util.concurrent.CancellationException;
 
 import javax.mail.internet.AddressException;
 
+import junit.framework.Assert;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -62,6 +64,7 @@ public class WithdrawalWorkflowTest {
 
 			@Override
 			public BigDecimal getAccountBalance(Long accountId) {
+				Assert.assertNotNull(accountId);
 				return new BigDecimal("2.5");
 			}
 
@@ -153,8 +156,6 @@ public class WithdrawalWorkflowTest {
 				.setAddressType(MsgType.SMS));
 		validate("send no confirm", expected, trace, booked);
 	}
-	
-	
 	
 	@Test
 	public void testInsufficientFunds() throws AddressException {

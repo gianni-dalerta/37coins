@@ -1,7 +1,6 @@
 package com._37coins.parse;
 
 import java.io.File;
-import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -17,6 +16,7 @@ import java.util.Set;
 import javax.mail.internet.AddressException;
 import javax.servlet.ServletContext;
 
+import org.joda.money.BigMoney;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,23 +143,15 @@ public class MessageParser {
 	}
 
 	public boolean readAmount(Withdrawal w, String amount) {
-		CurrencyValue cv = parseCurrency(amount);
-		if (cv.getDecimalPart() != null) {
-			BigDecimal rv;
-			if (cv.getDecimalPart() != null) {
-				rv = new BigDecimal(cv.getIntegerPart() + "."
-						+ cv.getDecimalPart());
-			} else {
-				rv = new BigDecimal(cv.getIntegerPart());
-			}
-			rv = rv.setScale(8, RoundingMode.UP);//rounding up, better send to much, isn't it?
-			//null represents BITCOIN, probably not a good idea
-			if (cv.getCurrency() != null && cv.getCurrency().length() > 0) {
-				throw new RuntimeException("not implemented.");
-			}
-			w.setAmount(rv);
+		if (!amount.contains("BTC")){
+			amount = "BTC "+amount;
+		}
+		try {
+			BigMoney money = BigMoney.parse(amount);
+			w.setAmount(money.getAmount().setScale(8,RoundingMode.CEILING));
 			return true;
-		} else {
+		}catch (Exception e){
+			e.printStackTrace();
 			return false;
 		}
 	}
@@ -191,105 +183,5 @@ public class MessageParser {
 			data.setPayload(ca[1]);
 		}
 		return data;
-	}
-
-	/**
-	 * Parses a string that represents an amount of money.
-	 * 
-	 * @param s
-	 *            A string to be parsed
-	 * @return A currency value containing the currency, integer part, and
-	 *         decimal part.
-	 */
-	public static CurrencyValue parseCurrency(String s) {
-		if (s == null || s.length() == 0)
-			throw new NumberFormatException("String is null or empty");
-		int i = 0;
-		int currencyLength = 0;
-		String currency = "";
-		String decimalPart = "";
-		String integerPart = "";
-		while (i < s.length()) {
-			char c = s.charAt(i);
-			if (Character.isWhitespace(c) || (c >= '0' && c <= '9'))
-				break;
-			currencyLength++;
-			i++;
-		}
-		if (currencyLength > 0) {
-			currency = s.substring(0, currencyLength);
-		}
-		// Skip whitespace
-		while (i < s.length()) {
-			char c = s.charAt(i);
-			if (!Character.isWhitespace(c))
-				break;
-			i++;
-		}
-		// Parse number
-		int numberStart = i;
-		int numberLength = 0;
-		int digits = 0;
-		// char lastSep=' ';
-		while (i < s.length()) {
-			char c = s.charAt(i);
-			if (!((c >= '0' && c <= '9') || c == '.' || c == ','))
-				break;
-			numberLength++;
-			if ((c >= '0' && c <= '9'))
-				digits++;
-			i++;
-		}
-		if (digits == 0)
-			throw new NumberFormatException("No number");
-		// Get the decimal part, up to 2 digits
-		for (int j = numberLength - 1; j >= numberLength - 3 && j >= 0; j--) {
-			char c = s.charAt(numberStart + j);
-			if (c == '.' || c == ',') {
-				// lastSep=c;
-				int nsIndex = numberStart + j + 1;
-				int nsLength = numberLength - 1 - j;
-				decimalPart = s.substring(nsIndex, nsIndex + nsLength);
-				numberLength = j;
-				break;
-			}
-		}
-		// Get the integer part
-		StringBuilder sb = new StringBuilder();
-		for (int j = 0; j < numberLength; j++) {
-			char c = s.charAt(numberStart + j);
-			if ((c >= '0' && c <= '9'))
-				sb.append(c);
-		}
-		integerPart = sb.toString();
-		if (currencyLength == 0) {
-			// Skip whitespace
-			while (i < s.length()) {
-				char c = s.charAt(i);
-				if (!Character.isWhitespace(c))
-					break;
-				i++;
-			}
-			int currencyStart = i;
-			// Read currency
-			while (i < s.length()) {
-				char c = s.charAt(i);
-				if (Character.isWhitespace(c) || (c >= '0' && c <= '9'))
-					break;
-				currencyLength++;
-				i++;
-			}
-			if (currencyLength > 0) {
-				currency = s.substring(currencyStart, currencyStart
-						+ currencyLength);
-			}
-		}
-		if (i != s.length())
-			throw new NumberFormatException("Invalid currency string");
-		CurrencyValue cv = new CurrencyValue();
-		cv.setCurrency(currency);
-		cv.setDecimalPart(decimalPart);
-		cv.setIntegerPart(integerPart);
-		return cv;
 	}
 }

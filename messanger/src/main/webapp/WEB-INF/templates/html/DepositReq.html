@@ -1,12 +1,12 @@
 <#setting locale=locale>
 <html>
 <head>
-	<title>Account Information</title>
+	<title>${resBundle.DepositReqSubject}</title>
 	<#include "style.css">
 </head>
 <body>
 <article class="se-content">
-	<#include "header.html">
+	<h3 id="head2">${resBundle.DepositReqSubject}</h3>
 	<p class="text">
 		${resBundle("DepositReq",payload.address)}
 		${resBundle("MoreInfoEmail",bizUrl)}

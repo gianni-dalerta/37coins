@@ -32,6 +32,9 @@ public class Gateway extends Model {
 	@Persistent
 	@Index
 	private Integer countryCode;
+	
+	@Persistent
+	private String password;
 
 	public Account getOwner() {
 		return owner;
@@ -66,6 +69,15 @@ public class Gateway extends Model {
 
 	public Gateway setCountryCode(Integer countryCode) {
 		this.countryCode = countryCode;
+		return this;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public Gateway setPassword(String password) {
+		this.password = password;
 		return this;
 	}
 

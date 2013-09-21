@@ -14,6 +14,7 @@ import javax.mail.internet.AddressException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.restnucleus.PersistenceConfiguration;
 import org.restnucleus.dao.GenericRepository;
 import org.restnucleus.dao.Model;
 
@@ -52,7 +53,9 @@ public class ProcessorTest{
 	public void before(){
 		if (ep==null){
 			ep =  new MessageParser();
-			gr = new GenericRepository();
+			PersistenceConfiguration pc = new PersistenceConfiguration();
+			pc.createEntityManagerFactory();
+			gr = new GenericRepository(pc.getPersistenceManagerFactory());
 			List<Account> accounts = new ArrayList<>();
 			accounts.add(new Account());
 			accounts.add(new Account());
@@ -97,7 +100,7 @@ public class ProcessorTest{
 
 	@Test
 	public void testBalance() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
@@ -118,7 +121,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testCreate() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
@@ -152,7 +155,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testHelp() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
@@ -173,7 +176,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testNonExistingCommand() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
@@ -200,7 +203,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testDeposit() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
@@ -220,7 +223,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testSend() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {
 				DataSet expected = new DataSet()
@@ -252,7 +255,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testSendReverse() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {
 				DataSet expected = new DataSet()
@@ -282,7 +285,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testSendPhone() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {
 				DataSet expected = new DataSet()
@@ -323,7 +326,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testSendNewPhone() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {
 				DataSet expected = new DataSet()
@@ -358,7 +361,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testSendAddressValid() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {
 				DataSet expected = new DataSet()
@@ -386,7 +389,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testSendAddressTestnet() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {
 				DataSet expected = new DataSet()
@@ -413,7 +416,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testSendAddressWrong() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
@@ -433,7 +436,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testTransactions() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {Assert.assertFalse(true);}
 			@Override
@@ -452,7 +455,7 @@ public class ProcessorTest{
 	
 	@Test
 	public void testRequest() throws Exception {
-		RequestInterpreter ri = new RequestInterpreter(ep) {
+		RequestInterpreter ri = new RequestInterpreter(ep,gr,null) {
 			@Override
 			public void startWithdrawal(DataSet data, String workflowId) {
 				DataSet expected = new DataSet()

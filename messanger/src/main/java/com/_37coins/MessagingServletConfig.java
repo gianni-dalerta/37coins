@@ -4,19 +4,17 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.jdo.PersistenceManagerFactory;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
-import org.restlet.ext.jaxrs.JaxRsApplication;
 import org.restnucleus.PersistenceConfiguration;
-import org.restnucleus.inject.ContextFactory;
-import org.restnucleus.inject.PersistenceModule;
+import org.restnucleus.filter.PaginationFilter;
+import org.restnucleus.filter.PersistenceFilter;
+import org.restnucleus.filter.QueryFilter;
 import org.restnucleus.log.SLF4JTypeListener;
-import org.restnucleus.servlet.RestletServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,10 +22,6 @@ import com._37coins.bizLogic.NonTxWorkflowImpl;
 import com._37coins.bizLogic.WithdrawalWorkflowImpl;
 import com._37coins.imap.JavaPushMailAccount;
 import com._37coins.parse.MessageParser;
-import com._37coins.resources.EnvayaSmsResource;
-import com._37coins.resources.GatewayResource;
-import com._37coins.resources.HealthCheckResource;
-import com._37coins.resources.WithdrawalResource;
 import com._37coins.sendMail.AmazonEmailClient;
 import com._37coins.sendMail.MailServiceClient;
 import com._37coins.sendMail.SmtpEmailClient;
@@ -45,14 +39,12 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.google.inject.assistedinject.FactoryModuleBuilder;
 import com.google.inject.matcher.Matchers;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
 import com.google.inject.servlet.GuiceServletContextListener;
 import com.google.inject.servlet.ServletModule;
 import com.mysql.jdbc.AbandonedConnectionCleanupThread;
-import com.wordnik.swagger.jaxrs.JaxrsApiReader;
 
 
 
@@ -73,8 +65,8 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 	public static String basePath;
 	public static String queueUri;
 	public static Logger log = LoggerFactory.getLogger(MessagingServletConfig.class);
+	public static Injector injector;
 	static {
-		JaxrsApiReader.setFormatString("");
 		if (null!=System.getProperty("accessKey")){
 		awsCredentials = new BasicAWSCredentials(
 				System.getProperty("accessKey"),
@@ -104,7 +96,6 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 	public void contextInitialized(ServletContextEvent servletContextEvent) {
 		servletContext = servletContextEvent.getServletContext();
 		super.contextInitialized(servletContextEvent);
-		PersistenceConfiguration.getInstance().getEntityManagerFactory();
 		final Injector i = getInjector();
 		activityWorker = i.getInstance(ActivityWorker.class);
 		activityWorker.start();
@@ -124,30 +115,23 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 	
     @Override
     protected Injector getInjector(){
-        return Guice.createInjector(new ServletModule(){
+        injector = Guice.createInjector(new ServletModule(){
             @Override
             protected void configureServlets(){
-            	serve("/rest/*").with(RestletServlet.class);
-            }
-        },new PersistenceModule(servletContext){
-        	@Override
-        	protected void configure() {
-        		install(new FactoryModuleBuilder()
-        	    	.implement(JaxRsApplication.class, MessagingApplication.class)
-        	    	.build(ContextFactory.class));
-        		bindListener(Matchers.any(), new SLF4JTypeListener());
+            	filter("/*").through(PersistenceFilter.class);
+            	filter("/*").through(QueryFilter.class);
+            	filter("/*").through(PaginationFilter.class);
+            	bindListener(Matchers.any(), new SLF4JTypeListener());
         		bind(MessagingActivitiesImpl.class).annotatedWith(Names.named("activityImpl")).to(MessagingActivitiesImpl.class);
+        		super.configureServlets();
         	}
-			@Override
-			public Set<Class<?>> getClassList() {
-				Set<Class<?>> cs = new HashSet<>();
-				cs.add(EnvayaSmsResource.class);
-				cs.add(WithdrawalResource.class);
-				cs.add(HealthCheckResource.class);
-				cs.add(GatewayResource.class);
-				return cs;
+            
+			@Provides @Singleton @SuppressWarnings("unused")
+			PersistenceManagerFactory providePersistence(){
+				PersistenceConfiguration pc = new PersistenceConfiguration();
+				pc.createEntityManagerFactory();
+				return pc.getPersistenceManagerFactory();
 			}
-			
 			
 			@Provides
 			@Singleton
@@ -251,12 +235,14 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 				return new MessageFactory(servletContext);
 			}
 		});
+        return injector;
     }
 	
     @Override
 	public void contextDestroyed(ServletContextEvent sce) {
 		super.contextDestroyed(sce);
-		PersistenceConfiguration.getInstance().closeEntityManagerFactory();
+		Injector injector = (Injector) sce.getServletContext().getAttribute(Injector.class.getName());
+		injector.getInstance(PersistenceManagerFactory.class).close();
 		deregisterJdbc();
 		jPM.disconnect();
 		try {

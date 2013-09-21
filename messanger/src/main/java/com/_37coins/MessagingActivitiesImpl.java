@@ -30,6 +30,9 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 	
 	@Inject
 	QueueClient qc;
+	
+	@Inject
+	GenericRepository dao;
 
 	@Override
 	public void sendMessage(DataSet rsp) {
@@ -51,7 +54,6 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 	public void sendConfirmation(DataSet rsp, String workflowId) {
 		ActivityExecutionContext executionContext = contextProvider.getActivityExecutionContext();
 		String taskToken = executionContext.getTaskToken();
-		GenericRepository dao = new GenericRepository();
 		try{
 			RNQuery q = new RNQuery().addFilter("key", workflowId);
 			Transaction tt = dao.queryEntity(q, Transaction.class);
@@ -72,7 +74,6 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 
 	@Override
 	public DataSet readMessageAddress(DataSet data) {
-		GenericRepository dao = new GenericRepository();
 		try{
 			Account a = dao.getObjectById(data.getAccountId(), Account.class);
 			MsgAddress ma = pickMsgAddress(a.getMsgAddresses());

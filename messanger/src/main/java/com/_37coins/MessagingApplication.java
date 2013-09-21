@@ -1,57 +1,26 @@
 package com._37coins;
 
-import javax.ws.rs.core.Application;
-
-import org.restlet.Context;
-import org.restlet.Restlet;
-import org.restlet.ext.jaxrs.InstantiateException;
-import org.restlet.ext.jaxrs.JaxRsApplication;
-import org.restlet.ext.jaxrs.ObjectFactory;
-import org.restlet.routing.Router;
-import org.restnucleus.filter.ApplicationFilter;
-import org.restnucleus.filter.OriginFilter;
-import org.restnucleus.filter.PaginationFilter;
-import org.restnucleus.filter.QueryFilter;
+import org.glassfish.hk2.api.ServiceLocator;
+import org.glassfish.jersey.jackson.JacksonFeature;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.jvnet.hk2.guice.bridge.api.GuiceBridge;
+import org.jvnet.hk2.guice.bridge.api.GuiceIntoHK2Bridge;
 
 import com.google.inject.Inject;
-import com.google.inject.Injector;
-import com.google.inject.assistedinject.Assisted;
 
-public class MessagingApplication extends JaxRsApplication {
-	
-	@Inject
-	public MessagingApplication(Application app,
-			final Injector injector,
-			@Assisted Context context) {
-		super(context);
-		this.add(app);
-		
-		this.setObjectFactory(new ObjectFactory() {
-			@Override
-			public <T> T getInstance(Class<T> jaxRsClass)
-					throws InstantiateException {
-				return injector.getInstance(jaxRsClass);
-			}
-		});
-		// this.setGuard(...); // if needed
-		// this.setRoleChecker(...); // if needed
-	}
-	
-	@Override
-	public Restlet createInboundRoot(){
-		ApplicationFilter pmc = new ApplicationFilter(getContext());
-		QueryFilter qf = new QueryFilter(getContext());
-		PaginationFilter pf = new PaginationFilter(getContext());
-		OriginFilter of = new OriginFilter(getContext());
-		
-		Router router = new Router(getContext());
-		router.attachDefault(super.createInboundRoot());
-		
-		pmc.setNext(router);
-		qf.setNext(pmc);
-		pf.setNext(qf);
-		of.setNext(pf);
-		
-		return of;
-	}
+public class MessagingApplication extends ResourceConfig {
+
+    @Inject
+    public MessagingApplication(ServiceLocator serviceLocator) {
+        // Set package to look for resources in
+        packages("com._37coins.resources","org.glassfish.jersey.examples.jackson");
+
+        System.out.println("Registering injectables...");
+
+        GuiceBridge.getGuiceBridge().initializeGuiceBridge(serviceLocator);
+
+        GuiceIntoHK2Bridge guiceBridge = serviceLocator.getService(GuiceIntoHK2Bridge.class);
+        guiceBridge.bridgeGuiceInjector(MessagingServletConfig.injector);
+        this.register(JacksonFeature.class);
+    }
 }

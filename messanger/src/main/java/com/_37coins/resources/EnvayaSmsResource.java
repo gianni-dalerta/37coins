@@ -19,11 +19,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.codec.binary.Base64;
-import org.restlet.data.Form;
-import org.restlet.representation.Representation;
 import org.restnucleus.dao.GenericRepository;
 import org.restnucleus.dao.RNQuery;
 import org.restnucleus.log.Log;
@@ -42,9 +41,7 @@ import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.name.Named;
-import com.wordnik.swagger.annotations.Api;
 
-@Api(value = EnvayaSmsResource.PATH, description = "a resource to receive sms messages.")
 @Path(EnvayaSmsResource.PATH)
 @Produces(MediaType.APPLICATION_JSON)
 public class EnvayaSmsResource {
@@ -68,11 +65,13 @@ public class EnvayaSmsResource {
 	@Inject @Named("wfClient")
 	AmazonSimpleWorkflow swfService;
 	
+	@Inject
+	GenericRepository dao;
+	
 	@Log
 	Logger log;
 	
-	private boolean isValid(Map<String,String> params, String sig, String url){
-		GenericRepository dao = new GenericRepository();
+	private boolean isValid(MultivaluedMap<String,String> params, String sig, String url){
 		try{
 			//read query key
 			String patternStr=".*"+EnvayaSmsResource.PATH+"/(.*)/";
@@ -99,16 +98,15 @@ public class EnvayaSmsResource {
 	
 	@POST
 	@Path("/{address}/sms/")
-	public Map<String, Object> receive(Representation rep,
+	public Map<String, Object> receive(MultivaluedMap<String, String> params,
 			@HeaderParam("X-Request-Signature") String sig,
 			@Context UriInfo uriInfo){
-		Map<String,String> params = new Form(rep).getValuesMap();
 		if (!isValid(params, sig, uriInfo.getRequestUri().toString())){
 			throw new WebApplicationException("signature missmatch",
 					javax.ws.rs.core.Response.Status.FORBIDDEN);
 		}
 		Map<String, Object> rv = new HashMap<>();
-		switch (params.get("action")) {
+		switch (params.getFirst("action")) {
 		case "status":
 			log.info("id " + params.get("id"));
 			log.info("status " + params.get("status"));
@@ -118,17 +116,17 @@ public class EnvayaSmsResource {
 			log.info("consumerTag " + params.get("consumerTag"));
 			break;
 		case "incoming":
-			if (params.get("messageType").equalsIgnoreCase("sms")) {
+			if (params.getFirst("messageType").equalsIgnoreCase("sms")) {
 				MessageAddress md=null;
 				try {
-					md = MessageAddress.fromString(params.get("from"), params.get("phoneNumber")).setGateway(params.get("phoneNumber"));
+					md = MessageAddress.fromString(params.getFirst("from"), params.getFirst("phoneNumber")).setGateway(params.getFirst("phoneNumber"));
 				} catch (Exception e1) {
 					e1.printStackTrace();
 					throw new WebApplicationException(e1);
 				}
 				
 				//implement actions
-				RequestInterpreter ri = new RequestInterpreter(mp, swfService) {							
+				RequestInterpreter ri = new RequestInterpreter(mp, dao, swfService) {							
 					@Override
 					public void startWithdrawal(DataSet data, String workflowId) {
 						withdrawalFactory.getClient(workflowId).executeCommand(data);
@@ -150,7 +148,7 @@ public class EnvayaSmsResource {
 				};
 
 				//interprete received message/command
-				ri.process(md, params.get("message"));
+				ri.process(md, params.getFirst("message"));
 			}
 			break;
 		default:
@@ -161,13 +159,15 @@ public class EnvayaSmsResource {
 		return rv;
 	}
 	
-	public static String calculateSignature(String url, Map<String,String> paramMap, String pw) throws NoSuchAlgorithmException, UnsupportedEncodingException{
+	public static String calculateSignature(String url, MultivaluedMap<String,String> paramMap, String pw) throws NoSuchAlgorithmException, UnsupportedEncodingException{
 		if (null==url||null==paramMap||null==pw){
 			return null;
 		}
 		List<String> params = new ArrayList<>();
-		for (Entry<String,String> m :paramMap.entrySet()){
-			params.add(m.getKey()+"="+m.getValue());
+		for (Entry<String,List<String>> m :paramMap.entrySet()){
+			if (m.getValue().size()>0){
+				params.add(m.getKey()+"="+m.getValue().get(0));
+			}
 		}
 		Collections.sort(params);
 		StringBuilder sb = new StringBuilder();

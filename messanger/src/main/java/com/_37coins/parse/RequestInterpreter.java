@@ -5,6 +5,8 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.Locale;
 
+import javax.inject.Inject;
+
 import org.restnucleus.dao.GenericRepository;
 import org.restnucleus.dao.RNQuery;
 
@@ -28,18 +30,16 @@ public abstract class RequestInterpreter{
 	
 	final private MessageParser mp;
 	private AmazonSimpleWorkflow swfService;
-
-	public RequestInterpreter(MessageParser mp) {
-		this.mp = mp;
-	}
+	final private GenericRepository dao;
 	
-	public RequestInterpreter(MessageParser mp, AmazonSimpleWorkflow swfService) {
+	@Inject
+	public RequestInterpreter(MessageParser mp, GenericRepository dao, AmazonSimpleWorkflow swfService) {
 		this.mp = mp;
 		this.swfService = swfService;
+		this.dao = dao;
 	}
 	
 	public void process(MessageAddress sender, String subject) {
-		GenericRepository dao = new GenericRepository();
 		DataSet data = null;
 		try {
 			data = mp.process(sender, subject);

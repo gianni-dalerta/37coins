@@ -9,9 +9,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
-import org.restlet.representation.Representation;
-import org.restlet.representation.StringRepresentation;
 import org.restnucleus.dao.GenericRepository;
 import org.restnucleus.dao.RNQuery;
 
@@ -19,12 +18,7 @@ import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.Gateway;
 import com._37coins.persistence.dto.MsgAddress;
 import com.google.inject.Inject;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiError;
-import com.wordnik.swagger.annotations.ApiErrors;
-import com.wordnik.swagger.annotations.ApiOperation;
 
-@Api(value = GatewayResource.PATH, description = "a resource to register gateways.")
 @Path(GatewayResource.PATH)
 @Produces(MediaType.APPLICATION_JSON)
 public class GatewayResource {
@@ -34,9 +28,7 @@ public class GatewayResource {
 	@Inject protected GenericRepository dao;
 
 	@POST
-	@ApiOperation(value = "register.")
-    @ApiErrors(value = { @ApiError(code = 500, reason = "Internal Server Error.")})
-	public Representation register(@FormParam("ownerAddress") String ownerAddress, 
+	public Response register(@FormParam("ownerAddress") String ownerAddress, 
 			@FormParam("address") String address, 
 			@FormParam("coutryCode") int countryCode,
 			@FormParam("fee") String fee){
@@ -57,8 +49,7 @@ public class GatewayResource {
 				.setFee(new BigDecimal(fee).setScale(8,RoundingMode.HALF_UP))
 				.setOwner(ma.getOwner());
 			dao.add(gw);
-			return new StringRepresentation(HTML_RESPONSE_DONE,
-					org.restlet.data.MediaType.TEXT_HTML);
+			return Response.ok(HTML_RESPONSE_DONE, MediaType.TEXT_HTML_TYPE).build();
 		}else{
 			throw new WebApplicationException("gateway exists already",
 					javax.ws.rs.core.Response.Status.CONFLICT);

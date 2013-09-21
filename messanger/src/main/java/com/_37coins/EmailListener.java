@@ -8,6 +8,8 @@ import javax.mail.event.MessageCountEvent;
 import javax.mail.event.MessageCountListener;
 import javax.mail.internet.InternetAddress;
 
+import org.restnucleus.dao.GenericRepository;
+
 import com._37coins.parse.MessageParser;
 import com._37coins.parse.RequestInterpreter;
 import com._37coins.sendMail.MailTransporter;
@@ -37,6 +39,9 @@ public class EmailListener implements MessageCountListener{
 	
 	@Inject @Named("wfClient")
 	AmazonSimpleWorkflow swfService;
+	
+	@Inject
+	GenericRepository dao;
 
 	@Override
 	public void messagesRemoved(MessageCountEvent e) {
@@ -60,7 +65,7 @@ public class EmailListener implements MessageCountListener{
 			MessageAddress md = MessageAddress.fromString(from, gw).setGateway(gw);
 			
 			//implement actions
-			RequestInterpreter ri = new RequestInterpreter(mp,swfService) {							
+			RequestInterpreter ri = new RequestInterpreter(mp,dao,swfService) {							
 				@Override
 				public void startWithdrawal(DataSet data, String workflowId) {
 					withdrawalFactory.getClient(workflowId).executeCommand(data);

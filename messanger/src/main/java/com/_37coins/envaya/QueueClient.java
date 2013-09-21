@@ -5,7 +5,7 @@ import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 
 import com._37coins.MessageFactory;
 import com._37coins.workflow.pojo.DataSet;

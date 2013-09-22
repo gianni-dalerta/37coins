@@ -11,6 +11,7 @@ import java.util.Map;
 
 import javax.ws.rs.core.Form;
 
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -34,7 +35,13 @@ public class RestTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        embeddedJetty = new EmbeddedJetty();
+        embeddedJetty = new EmbeddedJetty(){
+        	@Override
+        	public String setInitParam(ServletHolder holder) {
+        		holder.setInitParameter("javax.ws.rs.Application", "com._37coins.TestApplication");
+        		return "src/test/webapp";
+        	}
+        };
         embeddedJetty.start();
         List<Gateway> gws = new ArrayList<>();
 		gws.add(new Gateway().setAddress(address).setPassword(pw));
@@ -74,6 +81,15 @@ public class RestTest {
 			.statusCode(200)
 		.when()
 			.post(serverUrl);
+	}
+	
+	@Test
+	public void testHelthcheck(){
+		given()
+		.expect()
+			.statusCode(200)
+		.when()
+			.get(embeddedJetty.getBaseUri() + HealthCheckResource.PATH);
 	}
 	
 	@Test

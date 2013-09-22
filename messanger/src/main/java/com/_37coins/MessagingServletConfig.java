@@ -123,7 +123,6 @@ public class MessagingServletConfig extends GuiceServletContextListener {
             	filter("/*").through(PaginationFilter.class);
             	bindListener(Matchers.any(), new SLF4JTypeListener());
         		bind(MessagingActivitiesImpl.class).annotatedWith(Names.named("activityImpl")).to(MessagingActivitiesImpl.class);
-        		super.configureServlets();
         	}
             
 			@Provides @Singleton @SuppressWarnings("unused")

@@ -159,6 +159,8 @@ public abstract class RequestInterpreter{
 							w.getPayDest()
 								.setAddress(ma2.getOwner().getId().toString())
 								.setAddressType(PaymentType.ACCOUNT);
+							w.getMsgDest()
+								.setGateway(ma2.getGateway().getAddress());
 						}
 					}
 					//set the fee
@@ -195,7 +197,9 @@ public abstract class RequestInterpreter{
 				respond(data);
 			}
 		} finally{
-			dao.closePersistenceManager();
+			if (dao!=null){
+				dao.closePersistenceManager();
+			}
 		}
 	}
 	

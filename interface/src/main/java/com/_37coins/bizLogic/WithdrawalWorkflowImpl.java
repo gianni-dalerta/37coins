@@ -48,16 +48,17 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     	Withdrawal w = (Withdrawal)data.getPayload();
     	BigDecimal amount = w.getAmount().setScale(8);
     	BigDecimal fee = w.getFee().setScale(8);
+    	
     	if (balance.get().compareTo(amount.add(fee).setScale(8))<0){
     		data.setPayload(new Withdrawal()
     				.setAmount(amount.add(fee).setScale(8))
     				.setBalance(balance.get()))
     			.setAction(Action.INSUFISSIENT_FUNDS);
     		Promise<Void> fail = msgClient.sendMessage(data);
-    		fail(fail);
+    		fail(fail, "insufficient funds");
     		return;
     	}else{
-			final Promise<Void> response = msgClient.sendConfirmation(data,contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId());
+			final Promise<Boolean> response = msgClient.phoneConfirmation(data,contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId());
 			final OrPromise confirmOrTimer = new OrPromise(startDaemonTimer(confirmationPeriod), response);
 		   	new TryCatch() {
 				@Override
@@ -77,6 +78,11 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     
     @Asynchronous
     public void handleTransaction(final Promise<DataSet> rsp){
+    	if (rsp.get().getAction()==Action.TX_FAILED){
+    		Promise<Void> fail = msgClient.sendMessage(rsp.get());
+    		fail(fail, "transaction failed");
+    		return;
+    	}
 		new TryCatch() {
 			@Override
             protected void doTry() throws Throwable {
@@ -134,18 +140,23 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     				.setAmount(w.getAmount())
     				.setTxId(context.getWorkflowContext().getWorkflowExecution().getRunId()));
     		Promise<Void> rv = factory.getClient().executeCommand(rsp2);
-    		setConfirm(null, null, rv, rsp2);
+    		awaitWorkflow(rv, rsp2);
     	}
     }
     
+    @Asynchronous
+	public void awaitWorkflow(Promise<Void> isConfirmed, DataSet data){
+		//do nothing
+	}
+    
 	@Asynchronous
-	public void setConfirm(@NoWait Settable<DataSet> account, OrPromise trigger, Promise<Void> response, DataSet data) throws Throwable{
-		if (response.isReady()){
-			if (null!=account){
-				account.set(data);
-			}else{
-				//do nothing
+	public void setConfirm(@NoWait Settable<DataSet> account, OrPromise trigger, Promise<Boolean> isConfirmed, DataSet data) throws Throwable{
+		System.out.println("call response: "+isConfirmed.get());
+		if (isConfirmed.isReady()){
+			if (null==isConfirmed.get() || !isConfirmed.get()){
+				data.setAction(Action.TX_FAILED);
 			}
+			account.set(data);
 		}else{
 			throw new Throwable("user did not confirm transaction.");
 		}
@@ -153,8 +164,8 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 	}
 	
 	@Asynchronous
-	public void fail(Promise<Void> data){
-		throw new CancellationException("insufficient funds");
+	public void fail(Promise<Void> data, String message){
+		throw new CancellationException(message);
 	}
 
 	

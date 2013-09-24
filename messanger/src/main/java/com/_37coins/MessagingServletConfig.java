@@ -64,6 +64,8 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 	public static String imapPassword;
 	public static String basePath;
 	public static String queueUri;
+	public static String plivoKey;
+	public static String plivoSecret;
 	public static Logger log = LoggerFactory.getLogger(MessagingServletConfig.class);
 	public static Injector injector;
 	static {
@@ -84,6 +86,8 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 		imapPassword = System.getProperty("imapPassword");
 		basePath = System.getProperty("basePath");
 		queueUri = System.getProperty("queueUri");
+		plivoKey = System.getProperty("plivoKey");
+		plivoSecret = System.getProperty("plivoSecret");
 	}
 	
 	private ServletContext servletContext;
@@ -123,7 +127,6 @@ public class MessagingServletConfig extends GuiceServletContextListener {
             	filter("/*").through(PaginationFilter.class);
             	bindListener(Matchers.any(), new SLF4JTypeListener());
         		bind(MessagingActivitiesImpl.class).annotatedWith(Names.named("activityImpl")).to(MessagingActivitiesImpl.class);
-        		super.configureServlets();
         	}
             
 			@Provides @Singleton @SuppressWarnings("unused")
@@ -160,8 +163,7 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 			@Named("nonTx")
 			@Singleton
 			@SuppressWarnings("unused")
-			public WorkflowWorker getDepositWorker(
-					@Named("wfClient") AmazonSimpleWorkflow swfClient) {
+			public WorkflowWorker getDepositWorker(AmazonSimpleWorkflow swfClient) {
 				WorkflowWorker workflowWorker = new WorkflowWorker(swfClient,
 						domainName, "deposit-workflow-tasklist");
 				try {
@@ -177,8 +179,7 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 			@Named("withdrawal")
 			@Singleton
 			@SuppressWarnings("unused")
-			public WorkflowWorker getWithdrawalWorker(
-					@Named("wfClient") AmazonSimpleWorkflow swfClient) {
+			public WorkflowWorker getWithdrawalWorker(AmazonSimpleWorkflow swfClient) {
 				WorkflowWorker workflowWorker = new WorkflowWorker(swfClient,
 						domainName, "withdrawal-workflow-tasklist");
 				try {
@@ -192,19 +193,19 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 			
 			@Provides @Singleton @SuppressWarnings("unused")
 			public NonTxWorkflowClientExternalFactoryImpl getDWorkflowClientExternal(
-					@Named("wfClient") AmazonSimpleWorkflow workflowClient) {
+					AmazonSimpleWorkflow workflowClient) {
 				return new NonTxWorkflowClientExternalFactoryImpl(
 						workflowClient, domainName);
 			}
 
 			@Provides @Singleton @SuppressWarnings("unused")
 			public WithdrawalWorkflowClientExternalFactoryImpl getSWorkflowClientExternal(
-					@Named("wfClient") AmazonSimpleWorkflow workflowClient) {
+					AmazonSimpleWorkflow workflowClient) {
 				return new WithdrawalWorkflowClientExternalFactoryImpl(
 						workflowClient, domainName);
 			}
 			
-			@Provides @Named("wfClient") @Singleton @SuppressWarnings("unused")
+			@Provides @Singleton @SuppressWarnings("unused")
 			AmazonSimpleWorkflow getSimpleWorkflowClient() {
 				AmazonSimpleWorkflow rv = null;
 				if (null!=awsCredentials){
@@ -217,7 +218,7 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 			}
 			
 			@Provides @Singleton @SuppressWarnings("unused")
-			public ActivityWorker getActivityWorker(@Named("wfClient") AmazonSimpleWorkflow swfClient, 
+			public ActivityWorker getActivityWorker(AmazonSimpleWorkflow swfClient, 
 					@Named("activityImpl") MessagingActivitiesImpl activitiesImpl) {
 				ActivityWorker activityWorker = new ActivityWorker(swfClient, domainName,
 						actListName);
@@ -240,7 +241,6 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 	
     @Override
 	public void contextDestroyed(ServletContextEvent sce) {
-		super.contextDestroyed(sce);
 		Injector injector = (Injector) sce.getServletContext().getAttribute(Injector.class.getName());
 		injector.getInstance(PersistenceManagerFactory.class).close();
 		deregisterJdbc();
@@ -252,6 +252,7 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 		}catch (InterruptedException e) {
             e.printStackTrace();
         }
+		super.contextDestroyed(sce);
 		log.info("ServletContextListener destroyed");
 	}
 

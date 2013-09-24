@@ -1,6 +1,7 @@
 package com._37coins;
 
 import java.net.URLEncoder;
+import java.util.LinkedHashMap;
 import java.util.Set;
 
 import org.restnucleus.dao.GenericRepository;
@@ -12,15 +13,22 @@ import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.persistence.dto.Transaction;
 import com._37coins.sendMail.MailTransporter;
+import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
-import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.Withdrawal;
+import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContext;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContextProvider;
 import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContextProviderImpl;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClient;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactory;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactoryImpl;
 import com.amazonaws.services.simpleworkflow.flow.annotations.ManualActivityCompletion;
 import com.google.inject.Inject;
+import com.plivo.helper.api.client.RestAPI;
+import com.plivo.helper.api.response.call.Call;
+import com.plivo.helper.exception.PlivoException;
 
 public class MessagingActivitiesImpl implements MessagingActivities {
 	ActivityExecutionContextProvider contextProvider = new ActivityExecutionContextProviderImpl();
@@ -33,6 +41,9 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 	
 	@Inject
 	GenericRepository dao;
+	
+	@Inject
+	AmazonSimpleWorkflow swfService;
 
 	@Override
 	public void sendMessage(DataSet rsp) {
@@ -66,6 +77,44 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 			sendMessage(rsp);
 		} catch (Exception e) {
 			e.printStackTrace();
+		}finally{
+			dao.closePersistenceManager();
+		}
+	}
+	
+	@Override
+	@ManualActivityCompletion
+	public Boolean phoneConfirmation(DataSet rsp, String workflowId) {
+		ActivityExecutionContext executionContext = contextProvider.getActivityExecutionContext();
+		String taskToken = executionContext.getTaskToken();
+		try{
+			RNQuery q = new RNQuery().addFilter("key", workflowId);
+			Transaction tt = dao.queryEntity(q, Transaction.class);
+			tt.setTaskToken(taskToken);
+			dao.flush();
+			
+			RestAPI restAPI = new RestAPI(MessagingServletConfig.plivoKey, MessagingServletConfig.plivoSecret, "v1");
+
+			LinkedHashMap<String, String> params = new LinkedHashMap<String, String>();
+		    params.put("from", rsp.getTo().getGateway());
+		    params.put("to", rsp.getTo().getAddress());
+		    params.put("answer_url", MessagingServletConfig.basePath + "/plivo/"+rsp.getAccountId()+"/"+workflowId+"/answer");
+		   // params.put("time_limit", "55");
+		   // params.put("ring_timeout", "10");
+		   // params.put("machine_detection", "hangup");
+		    params.put("hangup_url", MessagingServletConfig.basePath + "/plivo/"+rsp.getAccountId()+"/"+workflowId+"/hangup");
+		   // params.put("caller_name", "37 Coins");
+		    Call response = restAPI.makeCall(params);
+		    if (response.serverCode != 200 && response.serverCode != 201 && response.serverCode !=204){
+		    	throw new PlivoException(response.message);
+		    }
+		    return true;
+		} catch (PlivoException e) {
+	        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
+	        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(taskToken);
+	        manualCompletionClient.complete(false);
+	        e.printStackTrace();
+	        return false;
 		}finally{
 			dao.closePersistenceManager();
 		}

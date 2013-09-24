@@ -1,13 +1,11 @@
 package com._37coins.persistence.dto;
 
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
 import javax.jdo.annotations.Discriminator;
 import javax.jdo.annotations.DiscriminatorStrategy;
-import javax.jdo.annotations.Index;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 
@@ -31,8 +29,7 @@ public class Account extends Model {
 	private String language;
 	
 	@Persistent
-	@Index
-	private Date lastLogin;
+	private Integer pin;
 
 	@Persistent(mappedBy="owner")
 	private Set<MsgAddress> msgAddresses;
@@ -90,12 +87,12 @@ public class Account extends Model {
 		return this;
 	}
 
-	public Date getLastLogin() {
-		return lastLogin;
+	public Integer getPin() {
+		return pin;
 	}
 
-	public Account setLastLogin(Date lastLogin) {
-		this.lastLogin = lastLogin;
+	public Account setPin(Integer pin) {
+		this.pin = pin;
 		return this;
 	}
 
@@ -105,7 +102,7 @@ public class Account extends Model {
 		if (null != n.getFirstName())this.setFirstName(n.getFirstName());
 		if (null != n.getLastName())this.setLastName(n.getLastName());
 		if (null != n.getLanguage())this.setLanguage(n.getLanguage());
-		if (null != n.getLastLogin())this.setLastLogin(n.getLastLogin());
+		if (null != n.getPin())this.setPin(n.getPin());
 	}
 
 }

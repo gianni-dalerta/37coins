@@ -20,4 +20,8 @@ public interface MessagingActivities {
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 10)
     DataSet readMessageAddress(DataSet data);
     
+    @Activity(name = "PhoneConfirmation", version = "0.1")
+    @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 3600)
+    Boolean phoneConfirmation(DataSet rsp, String workflowId);
+    
 }

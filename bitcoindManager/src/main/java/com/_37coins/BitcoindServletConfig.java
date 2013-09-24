@@ -33,14 +33,14 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.flow.ActivityWorker;
-import com.google.inject.Binder;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.google.inject.name.Names;
 import com.google.inject.servlet.GuiceServletContextListener;
+import com.google.inject.servlet.ServletModule;
 
 public class BitcoindServletConfig extends GuiceServletContextListener {
 	public static AWSCredentials awsCredentials=null;
@@ -123,7 +123,7 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 
 	@Override
 	protected Injector getInjector() {
-		return Guice.createInjector(new Module() {
+		return Guice.createInjector(new ServletModule() {
 			
 			@Provides @Named("wfClient") @Singleton @SuppressWarnings("unused")
 			AmazonSimpleWorkflow getSimpleWorkflowClient() {
@@ -171,9 +171,8 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 			}
 
 			@Override
-			public void configure(Binder arg0) {
-				// TODO Auto-generated method stub
-				
+			public void configureServlets() {
+				bind(BitcoindActivitiesImpl.class).annotatedWith(Names.named("activityImpl")).to(BitcoindActivitiesImpl.class);
 			}
 
 		});

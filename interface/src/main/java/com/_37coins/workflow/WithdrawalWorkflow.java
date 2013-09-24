@@ -9,7 +9,7 @@ import com.amazonaws.services.simpleworkflow.flow.annotations.WorkflowRegistrati
 @WorkflowRegistrationOptions(defaultExecutionStartToCloseTimeoutSeconds = 3700)
 public interface WithdrawalWorkflow {
 	
-    @Execute(version = "0.4")
+    @Execute(version = "0.5")
     void executeCommand(DataSet data);
 
 }

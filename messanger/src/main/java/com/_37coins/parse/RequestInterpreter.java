@@ -14,6 +14,7 @@ import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.Gateway;
 import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.persistence.dto.Transaction;
+import com._37coins.persistence.dto.Transaction.State;
 import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
@@ -45,7 +46,7 @@ public abstract class RequestInterpreter{
 			data = mp.process(sender, subject);
 			
 			if (data.getAction()==null||MessageParser.reqCmdList.contains(data.getAction())){
-				Transaction t = new Transaction().setKey(Transaction.generateKey());
+				Transaction t = new Transaction().setKey(Transaction.generateKey()).setState(State.STARTED);
 				Withdrawal w = (data.getPayload() instanceof Withdrawal)?(Withdrawal)data.getPayload():null;
 				if (data.getAction()==Action.WITHDRAWAL_REQ_OTHER){
 					MessageAddress temp = w.getMsgDest();
@@ -159,6 +160,8 @@ public abstract class RequestInterpreter{
 							w.getPayDest()
 								.setAddress(ma2.getOwner().getId().toString())
 								.setAddressType(PaymentType.ACCOUNT);
+							w.getMsgDest()
+								.setGateway(ma2.getGateway().getAddress());
 						}
 					}
 					//set the fee
@@ -195,7 +198,9 @@ public abstract class RequestInterpreter{
 				respond(data);
 			}
 		} finally{
-			dao.closePersistenceManager();
+			if (dao!=null){
+				dao.closePersistenceManager();
+			}
 		}
 	}
 	

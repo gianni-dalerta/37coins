@@ -59,6 +59,11 @@
 		    <artifactId>joda-money</artifactId>
 		    <version>0.9</version>
 		</dependency>
+		<dependency>
+			<groupId>com.plivo</groupId>
+			<artifactId>plivo-java</artifactId>
+			<version>3.0.1</version>
+		</dependency>
 	</dependencies>
 
 	<profiles>

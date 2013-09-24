@@ -1,5 +1,10 @@
 package com._37coins.plivo;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElements;
 import javax.xml.bind.annotation.XmlRootElement;
 
 
@@ -10,28 +15,31 @@ import javax.xml.bind.annotation.XmlRootElement;
 //<Speak>Input not received. Thank you</Speak>
 //</Response>
 
-@XmlRootElement
+@XmlRootElement(name="Response")
 public class Response {
 	
-	private GetDigits getDigits;
-	
-	private Speak speak;
+	private List<Object> elements;
 
-	public GetDigits getGetDigits() {
-		return getDigits;
+	public List<Object> getElements() {
+		return elements;
 	}
-
-	public Response setGetDigits(GetDigits getDigits) {
-		this.getDigits = getDigits;
+	
+	@XmlElements({ 
+	    @XmlElement(name="GetDigits", type=GetDigits.class),
+	    @XmlElement(name="Speak", type=Speak.class),
+	    @XmlElement(name="Redirect", type=Redirect.class),
+	    @XmlElement(name="Wait", type=Wait.class)
+	})
+	public Response setElements(List<Object> elements) {
+		this.elements = elements;
 		return this;
 	}
 
-	public Speak getSpeak() {
-		return speak;
-	}
-
-	public Response setSpeak(Speak speak) {
-		this.speak = speak;
+	public Response add(Object o){
+		if (elements==null){
+			elements = new ArrayList<>();
+		}
+		elements.add(o);
 		return this;
 	}
 	

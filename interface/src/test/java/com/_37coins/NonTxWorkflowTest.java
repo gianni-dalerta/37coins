@@ -91,6 +91,11 @@ public class NonTxWorkflowTest {
 					.setAddressType(MsgType.SMS)
 					.setGateway(""));
 			}
+			@Override
+			public Boolean phoneConfirmation(DataSet rsp, String workflowId) {
+				// TODO Auto-generated method stub
+				return null;
+			}
 
         };
         workflowTest.addActivitiesImplementation(activities);

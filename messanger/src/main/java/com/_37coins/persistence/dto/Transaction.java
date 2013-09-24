@@ -15,10 +15,47 @@ import javax.jdo.annotations.Unique;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.restnucleus.dao.Model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 @PersistenceCapable
 @Discriminator(strategy = DiscriminatorStrategy.CLASS_NAME)
 public class Transaction extends Model {
 	private static final long serialVersionUID = 2463534722502497789L;
+	
+	public enum State {
+		//REQUESTS
+		STARTED("started"),
+		CONFIRMED("confirmed"),
+		COMPLETED("completed");
+
+		private String text;
+
+		State(String text) {
+			this.text = text;
+		}
+
+		@JsonValue
+		final String value() {
+			return this.text;
+		}
+
+		public String getText() {
+			return this.text;
+		}
+
+		@JsonCreator
+		public static State fromString(String text) {
+			if (text != null) {
+				for (State b : State.values()) {
+					if (text.equalsIgnoreCase(b.text)) {
+						return b;
+					}
+				}
+			}
+			return null;
+		}
+	}
 	
 	static public String generateKey(){
 		return RandomStringUtils.random(5, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789");
@@ -32,6 +69,9 @@ public class Transaction extends Model {
 	@Persistent
 	@Column(jdbcType = "CLOB")
 	private String taskToken;
+	
+	@Persistent
+	private State state;
 	
 	public String getKey() {
 		return key;
@@ -60,9 +100,18 @@ public class Transaction extends Model {
 		return this;
 	}
 
+	public State getState() {
+		return state;
+	}
+
+	public Transaction setState(State state) {
+		this.state = state;
+		return this;
+	}
+
 	@Override
 	public void update(Model newInstance) {
 		// TODO Auto-generated method stub
 	}
-
+	
 }

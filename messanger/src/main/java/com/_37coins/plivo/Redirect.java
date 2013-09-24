@@ -2,10 +2,10 @@ package com._37coins.plivo;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlValue;
- 
-@XmlRootElement(name="Speak")
-public class Speak {
-	
+
+@XmlRootElement(name="Redirect")
+public class Redirect {
+
 	private String text;
 
 	public String getText() {
@@ -13,9 +13,9 @@ public class Speak {
 	}
 
 	@XmlValue
-	public Speak setText(String text) {
+	public Redirect setText(String text) {
 		this.text = text;
 		return this;
 	}
-
+	
 }

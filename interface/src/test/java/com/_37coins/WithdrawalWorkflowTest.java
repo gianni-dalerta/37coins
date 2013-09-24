@@ -108,6 +108,12 @@ public class WithdrawalWorkflowTest {
 					.setAddressType(MsgType.SMS)
 					.setGateway(""));
 			}
+
+			@Override
+			public Boolean phoneConfirmation(DataSet rsp, String workflowId) {
+				trace.add(rsp);
+				return true;
+			}
 		};
 		
 		workflowTest.addActivitiesImplementation(activities);

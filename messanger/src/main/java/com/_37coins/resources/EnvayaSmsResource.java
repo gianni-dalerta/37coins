@@ -42,7 +42,6 @@ import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.MessageAddress;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.google.inject.Injector;
-import com.google.inject.name.Named;
 
 @Path(EnvayaSmsResource.PATH)
 @Produces(MediaType.APPLICATION_JSON)
@@ -67,7 +66,7 @@ public class EnvayaSmsResource {
 			QueueClient qc,
 			Injector i,
 			NonTxWorkflowClientExternalFactoryImpl nonTxFactory,
-			WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory, @Named("wfClient")
+			WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory,
 			AmazonSimpleWorkflow swfService) {
 		HttpServletRequest httpReq = (HttpServletRequest)request;
 		dao = (GenericRepository)httpReq.getAttribute("gr");
@@ -96,6 +95,7 @@ public class EnvayaSmsResource {
 			calcSig = calculateSignature(url, params, pw);
 			return sig.equals(calcSig);
 		}catch(Exception e){
+			e.printStackTrace();
 			return false;
 		}finally{
 			if (dao!=null){
@@ -110,59 +110,60 @@ public class EnvayaSmsResource {
 	public Map<String, Object> receive(MultivaluedMap<String, String> params,
 			@HeaderParam("X-Request-Signature") String sig,
 			@Context UriInfo uriInfo){
-		if (!isValid(params, sig, uriInfo.getRequestUri().toString())){
-			throw new WebApplicationException("signature missmatch",
-					javax.ws.rs.core.Response.Status.FORBIDDEN);
-		}
 		Map<String, Object> rv = new HashMap<>();
-		switch (params.getFirst("action")) {
-		case "status":
-			log.info("id " + params.get("id"));
-			log.info("status " + params.get("status"));
-			log.info("error " + params.get("error"));
-			break;
-		case "amqp_started":
-			log.info("consumerTag " + params.get("consumerTag"));
-			break;
-		case "incoming":
-			if (params.getFirst("messageType").equalsIgnoreCase("sms")) {
-				MessageAddress md=null;
-				try {
-					md = MessageAddress.fromString(params.getFirst("from"), params.getFirst("phoneNumber")).setGateway(params.getFirst("phoneNumber"));
-				} catch (Exception e1) {
-					e1.printStackTrace();
-					throw new WebApplicationException(e1);
-				}
-				
-				//implement actions
-				RequestInterpreter ri = new RequestInterpreter(mp, dao, swfService) {							
-					@Override
-					public void startWithdrawal(DataSet data, String workflowId) {
-						withdrawalFactory.getClient(workflowId).executeCommand(data);
-					}
-					@Override
-					public void startDeposit(DataSet data) {
-						nonTxFactory.getClient(data.getAction()+"-"+data.getAccountId()).executeCommand(data);
-					}
-					@Override
-					public void respond(DataSet rsp) {
-						try {
-							qc.send(rsp, MessagingServletConfig.queueUri,
-									(String) rsp.getTo().getGateway(), "amq.direct",
-									"SmsResource" + System.currentTimeMillis());
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-				};
-
-				//interprete received message/command
-				ri.process(md, params.getFirst("message"));
+		try{
+			if (!isValid(params, sig, uriInfo.getRequestUri().toString())){
+				throw new WebApplicationException("signature missmatch",
+						javax.ws.rs.core.Response.Status.FORBIDDEN);
 			}
-			break;
-		default:
-			throw new WebApplicationException("not implemented",
-					javax.ws.rs.core.Response.Status.NOT_FOUND);
+			switch (params.getFirst("action")) {
+			case "status":
+				log.info("id " + params.get("id"));
+				log.info("status " + params.get("status"));
+				log.info("error " + params.get("error"));
+				break;
+			case "amqp_started":
+				log.info("consumerTag " + params.get("consumer_tag"));
+				break;
+			case "incoming":
+				if (params.getFirst("message_type").equalsIgnoreCase("sms")) {
+					MessageAddress md=null;
+					try {
+						md = MessageAddress.fromString(params.getFirst("from"), params.getFirst("phone_number")).setGateway(params.getFirst("phone_number"));
+					} catch (Exception e1) {
+						e1.printStackTrace();
+						throw new WebApplicationException(e1);
+					}
+					
+					//implement actions
+					RequestInterpreter ri = new RequestInterpreter(mp, dao, swfService) {							
+						@Override
+						public void startWithdrawal(DataSet data, String workflowId) {
+							withdrawalFactory.getClient(workflowId).executeCommand(data);
+						}
+						@Override
+						public void startDeposit(DataSet data) {
+							nonTxFactory.getClient(data.getAction()+"-"+data.getAccountId()).executeCommand(data);
+						}
+						@Override
+						public void respond(DataSet rsp) {
+							try {
+								qc.send(rsp, MessagingServletConfig.queueUri,
+										(String) rsp.getTo().getGateway(), "amq.direct",
+										"SmsResource" + System.currentTimeMillis());
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
+					};
+	
+					//interprete received message/command
+					ri.process(md, params.getFirst("message"));
+				}
+				break;
+			}
+		}catch(Exception e){
+			e.printStackTrace();
 		}
 		rv.put("events", new ArrayList<String>());
 		return rv;
@@ -188,7 +189,6 @@ public class EnvayaSmsResource {
 		sb.append(",");
 		sb.append(pw);
 		String value = sb.toString();
-		System.out.println(value);
 
         MessageDigest md = MessageDigest.getInstance("SHA-1");
         md.update(value.getBytes("utf-8"));

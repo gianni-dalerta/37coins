@@ -19,7 +19,6 @@ import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.MessageAddress;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 
 import freemarker.template.TemplateException;
 
@@ -37,7 +36,7 @@ public class EmailListener implements MessageCountListener{
 	@Inject
 	MessageParser mp;
 	
-	@Inject @Named("wfClient")
+	@Inject
 	AmazonSimpleWorkflow swfService;
 	
 	@Inject

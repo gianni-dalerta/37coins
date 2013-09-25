@@ -12,9 +12,9 @@ public interface MessagingActivities {
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 10)
     void sendMessage(DataSet rsp);
     
-    @Activity(name = "SendConfirmation", version = "0.5")
+    @Activity(name = "SendConfirmation", version = "0.6")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 3600)	
-	void sendConfirmation(DataSet rsp, String workflowId);
+	Boolean sendConfirmation(DataSet rsp, String workflowId);
 
     @Activity(name = "ReadMessageAddress", version = "0.2")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 10)

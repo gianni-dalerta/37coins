@@ -62,7 +62,7 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 
 	@Override
 	@ManualActivityCompletion
-	public void sendConfirmation(DataSet rsp, String workflowId) {
+	public Boolean sendConfirmation(DataSet rsp, String workflowId) {
 		ActivityExecutionContext executionContext = contextProvider.getActivityExecutionContext();
 		String taskToken = executionContext.getTaskToken();
 		try{
@@ -80,6 +80,7 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 		}finally{
 			dao.closePersistenceManager();
 		}
+		return null;
 	}
 	
 	@Override
@@ -108,13 +109,13 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 		    if (response.serverCode != 200 && response.serverCode != 201 && response.serverCode !=204){
 		    	throw new PlivoException(response.message);
 		    }
-		    return true;
+		    return null;
 		} catch (PlivoException e) {
 	        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
 	        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(taskToken);
 	        manualCompletionClient.complete(false);
 	        e.printStackTrace();
-	        return false;
+	        return null;
 		}finally{
 			dao.closePersistenceManager();
 		}

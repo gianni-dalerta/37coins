@@ -61,6 +61,23 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 		String rv = client.getaccount(bcAddress);
 		return Long.parseLong(rv);
 	}
+	
+	@Override
+	public BigDecimal getTransactionVolume(Long accountId, int hours) {
+		//get last transactions
+		List<Transaction> list = client.listtransactions(accountId.toString(), 1000, 0);
+		
+		BigDecimal total = BigDecimal.ZERO;
+		for (Transaction tx :list){
+			if ((tx.getCategory()==Category.SEND || 
+					(tx.getCategory()==Category.MOVE && tx.getAmount().compareTo(BigDecimal.ZERO)<0))
+				&& tx.getTime()*1000 > System.currentTimeMillis()-((long)hours)*3600000L){
+				//only take outgoing transactions into account
+				total = total.add(tx.getAmount().abs());
+			}
+		}
+		return total;
+	}
 
 	@Override
 	public List<Transaction> getAccountTransactions(Long accountId) {

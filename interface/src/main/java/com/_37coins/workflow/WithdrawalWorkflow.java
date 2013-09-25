@@ -8,6 +8,7 @@ import com.amazonaws.services.simpleworkflow.flow.annotations.WorkflowRegistrati
 @Workflow
 @WorkflowRegistrationOptions(defaultExecutionStartToCloseTimeoutSeconds = 3700)
 public interface WithdrawalWorkflow {
+	public static final String VOICE_VER_TOKEN = "voiceCallVerification";
 	
     @Execute(version = "0.5")
     void executeCommand(DataSet data);

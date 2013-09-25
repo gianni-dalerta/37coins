@@ -30,5 +30,9 @@ public interface BitcoindActivities {
     @Activity(name = "getAccountTransactions", version = "0.1")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
     List<Transaction> getAccountTransactions(Long accountId);
+
+    @Activity(name = "getTransactionVolume", version = "0.1")
+    @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
+	BigDecimal getTransactionVolume(Long accountId, int hours);
     
 }

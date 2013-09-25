@@ -32,7 +32,8 @@ public class DataSet {
 		INSUFISSIENT_FUNDS("InsufficientFunds"),
 		BELOW_FEE("BelowFee"), 
 		TIMEOUT("Timeout"),
-		TX_FAILED("TransactionFailed");
+		TX_FAILED("TransactionFailed"),
+		TX_CANCELED("TransactionCanceled");
 
 		private String text;
 

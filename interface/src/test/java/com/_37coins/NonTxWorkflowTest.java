@@ -74,6 +74,10 @@ public class NonTxWorkflowTest {
 				list.add(new Transaction().setTime(System.currentTimeMillis()).setComment("hallo").setAmount(new BigDecimal("0.4")).setTo("hast@test.com"));
 				return list;
 			}
+			@Override
+			public BigDecimal getTransactionVolume(Long accountId, int hours) {
+				return null;
+			}
         };
         MessagingActivities mailActivities = new MessagingActivities() {
 
@@ -82,7 +86,8 @@ public class NonTxWorkflowTest {
 				trace.add(rsp);
 			}
 			@Override
-			public void sendConfirmation(DataSet rsp, String workflowId) {
+			public Boolean sendConfirmation(DataSet rsp, String workflowId) {
+				return null;
 			}
 			@Override
 			public DataSet readMessageAddress(DataSet data) {

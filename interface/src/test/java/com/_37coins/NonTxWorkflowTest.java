@@ -86,7 +86,7 @@ public class NonTxWorkflowTest {
 				trace.add(rsp);
 			}
 			@Override
-			public Boolean sendConfirmation(DataSet rsp, String workflowId) {
+			public Action sendConfirmation(DataSet rsp, String workflowId) {
 				return null;
 			}
 			@Override
@@ -97,7 +97,7 @@ public class NonTxWorkflowTest {
 					.setGateway(""));
 			}
 			@Override
-			public Boolean phoneConfirmation(DataSet rsp, String workflowId) {
+			public Action phoneConfirmation(DataSet rsp, String workflowId) {
 				// TODO Auto-generated method stub
 				return null;
 			}

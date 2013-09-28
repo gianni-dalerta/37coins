@@ -15,6 +15,7 @@ import org.restnucleus.dao.Model;
 @Discriminator(strategy = DiscriminatorStrategy.CLASS_NAME)
 public class Account extends Model {
 	private static final long serialVersionUID = -792538125194459327L;
+	public static final int PIN_MAX_WRONG = 3;
 	
 	// the name
 	@Persistent
@@ -30,6 +31,9 @@ public class Account extends Model {
 	
 	@Persistent
 	private Integer pin;
+	
+	@Persistent
+	private Integer pinWrongCount = 0;
 
 	@Persistent(mappedBy="owner")
 	private Set<MsgAddress> msgAddresses;
@@ -93,6 +97,15 @@ public class Account extends Model {
 
 	public Account setPin(Integer pin) {
 		this.pin = pin;
+		return this;
+	}
+	
+	public Integer getPinWrongCount() {
+		return pinWrongCount;
+	}
+
+	public Account setPinWrongCount(Integer pinWrongCount) {
+		this.pinWrongCount = pinWrongCount;
 		return this;
 	}
 

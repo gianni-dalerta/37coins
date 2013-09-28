@@ -87,6 +87,14 @@ public class MessageFactory {
 		template.process(rsp, out); 
 		return out.toString();
 	}
+	
+	public String getText(String key, DataSet data) throws IOException, TemplateException{
+		prepare(data);
+		Template template = new Template("name", rb.getString(key),new Configuration()); 
+		Writer out = new StringWriter(); 
+		template.process(data, out);
+		return out.toString();
+	}
 
 	public String processTemplate(DataSet rsp, String folder) throws IOException,
 			TemplateException {

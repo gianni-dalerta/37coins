@@ -76,7 +76,7 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     		return;
     	}else{
     		//balance sufficient, now secure transaction authenticity 
-			final Promise<Boolean> response;
+			final Promise<Action> response;
 			BigDecimal callFee = convService.convertToBtc(CallPrices.getUsdPrice(data.getTo()), Currency.getInstance(Locale.US));
 			if (volume24h.get().add(amount).compareTo(fee.add(callFee).multiply(new BigDecimal("100.0"))) > 0){
 				response = msgClient.phoneConfirmation(data,contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId());
@@ -176,10 +176,10 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 	}
     
 	@Asynchronous
-	public void setConfirm(@NoWait Settable<DataSet> account, OrPromise trigger, Promise<Boolean> isConfirmed, DataSet data) throws Throwable{
+	public void setConfirm(@NoWait Settable<DataSet> account, OrPromise trigger, Promise<Action> isConfirmed, DataSet data) throws Throwable{
 		if (isConfirmed.isReady()){
-			if (null==isConfirmed.get() || !isConfirmed.get()){
-				data.setAction(Action.TX_CANCELED);
+			if (null==isConfirmed.get() || isConfirmed.get()!=Action.WITHDRAWAL_REQ){
+				data.setAction(isConfirmed.get());
 			}
 			account.set(data);
 		}else{

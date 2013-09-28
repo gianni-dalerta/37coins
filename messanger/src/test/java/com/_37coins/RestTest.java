@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.Form;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Marshaller;
 
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.junit.AfterClass;
@@ -26,9 +24,6 @@ import com._37coins.persistence.dto.Gateway;
 import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.persistence.dto.Transaction;
 import com._37coins.persistence.dto.Transaction.State;
-import com._37coins.plivo.GetDigits;
-import com._37coins.plivo.Speak;
-import com._37coins.plivo.Wait;
 import com._37coins.resources.EnvayaSmsResource;
 import com._37coins.resources.HealthCheckResource;
 import com._37coins.resources.PlivoResource;
@@ -115,43 +110,12 @@ public class RestTest {
 	@Test
 	public void testXml(){
 		
-		com._37coins.plivo.Response rv = new com._37coins.plivo.Response()
-		.add(new Speak().setText("Welcome to 37 coins! To secure your transactions, this call will set up a 4 digit pin number."))
-		.add(new Wait())
-		.add(new GetDigits()
-			.setAction(MessagingServletConfig.basePath+ "/plivo/0/abcd/create")
-			.setNumDigits(4)
-			.setRedirect(false)
-			.setSpeak(new Speak()
-				.setText("Please choose and enter a 4-digit pin number.")))
-		.add(new Wait())
-		.add(new GetDigits()
-			.setAction(MessagingServletConfig.basePath+ "/plivo/0/abcd/confirm")
-			.setNumDigits(4)
-			.setRedirect(false)
-			.setSpeak(new Speak()
-				.setText("Ok! Please repeat your 4-digit pin.")))
-		.add(new Speak().setText("Please Remember your pin for future transactions."));
-		
-		try{
-			JAXBContext jaxbContext = JAXBContext.newInstance(com._37coins.plivo.Response.class,GetDigits.class,Speak.class,Wait.class);
-			Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
-	 
-			// output pretty printed
-			jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-	 
-			jaxbMarshaller.marshal(rv, System.out);
-		}catch(Exception e){
-			e.printStackTrace();
-		}
-
-		
 		Response r = given()
 			.formParam("Digits", 1234)
 		.expect()
 			.statusCode(200)
 		.when()
-			.post(embeddedJetty.getBaseUri() + PlivoResource.PATH+"/"+acc1.getId()+"/abcd/answer");
+			.post(embeddedJetty.getBaseUri() + PlivoResource.PATH+"/answer/"+acc1.getId()+"/abcd/en");
 		
 		
 		

@@ -127,15 +127,15 @@ public class WithdrawalWorkflowTest {
 			}
 
 			@Override
-			public Boolean sendConfirmation(DataSet rsp, String workflowId) {
+			public Action sendConfirmation(DataSet rsp, String workflowId) {
 				if (rsp.getAccountId()==Long.parseLong(USER2.getPayDest().getAddress())){
-					return false;
+					return Action.TX_CANCELED;
 				}else{
 					Withdrawal w = (Withdrawal)rsp.getPayload();
 					w.setConfKey("123");
 					w.setConfLink("http://test.com/123");
 					trace.add(rsp);
-					return true;
+					return Action.WITHDRAWAL_REQ;
 				}
 			}
 			@Override
@@ -147,12 +147,12 @@ public class WithdrawalWorkflowTest {
 			}
 
 			@Override
-			public Boolean phoneConfirmation(DataSet rsp, String workflowId) {
+			public Action phoneConfirmation(DataSet rsp, String workflowId) {
 				if (rsp.getAccountId()==Long.parseLong(USER2.getPayDest().getAddress())){
-					return false;
+					return Action.TX_CANCELED;
 				}else{
 					trace.add(rsp);
-					return true;
+					return Action.WITHDRAWAL_REQ;
 				}
 			}
 		};

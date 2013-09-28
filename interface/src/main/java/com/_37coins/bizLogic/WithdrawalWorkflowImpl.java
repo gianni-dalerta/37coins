@@ -1,12 +1,16 @@
 package com._37coins.bizLogic;
 
 import java.math.BigDecimal;
+import java.util.Currency;
+import java.util.Locale;
 import java.util.concurrent.CancellationException;
 
 import com._37coins.activities.BitcoindActivitiesClient;
 import com._37coins.activities.BitcoindActivitiesClientImpl;
 import com._37coins.activities.MessagingActivitiesClient;
 import com._37coins.activities.MessagingActivitiesClientImpl;
+import com._37coins.conversion.CallPrices;
+import com._37coins.conversion.ConversionService;
 import com._37coins.workflow.NonTxWorkflowClientFactory;
 import com._37coins.workflow.NonTxWorkflowClientFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflow;
@@ -34,22 +38,26 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     DecisionContextProvider provider = new DecisionContextProviderImpl();
     DecisionContext context = provider.getDecisionContext();
     private WorkflowClock clock = context.getWorkflowClock();
+    private ConversionService convService = new ConversionService();
 
     
     @Override
     public void executeCommand(final DataSet data) {
     	Promise<BigDecimal> balance = bcdClient.getAccountBalance(data.getAccountId());
-    	handleAccount(balance, data);
+    	Promise<BigDecimal> volume24h = bcdClient.getTransactionVolume(data.getAccountId(),24);
+    	handleAccount(balance, volume24h, data);
     }
     
     @Asynchronous
-    public void handleAccount(Promise<BigDecimal> balance, final DataSet data){
+    public void handleAccount(Promise<BigDecimal> balance, Promise<BigDecimal> volume24h, final DataSet data){
 		final Settable<DataSet> confirm = new Settable<>();
     	Withdrawal w = (Withdrawal)data.getPayload();
     	BigDecimal amount = w.getAmount().setScale(8);
     	BigDecimal fee = w.getFee().setScale(8);
     	
+    	
     	if (balance.get().compareTo(amount.add(fee).setScale(8))<0){
+    		//balance not sufficient
     		data.setPayload(new Withdrawal()
     				.setAmount(amount.add(fee).setScale(8))
     				.setBalance(balance.get()))
@@ -57,8 +65,26 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     		Promise<Void> fail = msgClient.sendMessage(data);
     		fail(fail, "insufficient funds");
     		return;
+    	}else if (fee.multiply(new BigDecimal("2")).compareTo(amount)>=0){
+    		//avoid dust
+    		data.setPayload(new Withdrawal()
+					.setAmount(amount)
+					.setBalance(fee))
+    		    .setAction(Action.BELOW_FEE);
+    		Promise<Void> fail = msgClient.sendMessage(data);
+    		fail(fail, "send amount below fee");
+    		return;
     	}else{
-			final Promise<Boolean> response = msgClient.phoneConfirmation(data,contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId());
+    		//balance sufficient, now secure transaction authenticity 
+			final Promise<Action> response;
+			BigDecimal callFee = convService.convertToBtc(CallPrices.getUsdPrice(data.getTo()), Currency.getInstance(Locale.US));
+			if (volume24h.get().add(amount).compareTo(fee.add(callFee).multiply(new BigDecimal("100.0"))) > 0){
+				response = msgClient.phoneConfirmation(data,contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId());
+				w.setConfKey(WithdrawalWorkflow.VOICE_VER_TOKEN);
+			}else {
+				response = msgClient.sendConfirmation(data, contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId());
+			}
+			
 			final OrPromise confirmOrTimer = new OrPromise(startDaemonTimer(confirmationPeriod), response);
 		   	new TryCatch() {
 				@Override
@@ -78,7 +104,7 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     
     @Asynchronous
     public void handleTransaction(final Promise<DataSet> rsp){
-    	if (rsp.get().getAction()==Action.TX_FAILED){
+    	if (rsp.get().getAction()==Action.TX_CANCELED){
     		Promise<Void> fail = msgClient.sendMessage(rsp.get());
     		fail(fail, "transaction failed");
     		return;
@@ -150,11 +176,10 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 	}
     
 	@Asynchronous
-	public void setConfirm(@NoWait Settable<DataSet> account, OrPromise trigger, Promise<Boolean> isConfirmed, DataSet data) throws Throwable{
-		System.out.println("call response: "+isConfirmed.get());
+	public void setConfirm(@NoWait Settable<DataSet> account, OrPromise trigger, Promise<Action> isConfirmed, DataSet data) throws Throwable{
 		if (isConfirmed.isReady()){
-			if (null==isConfirmed.get() || !isConfirmed.get()){
-				data.setAction(Action.TX_FAILED);
+			if (null==isConfirmed.get() || isConfirmed.get()!=Action.WITHDRAWAL_REQ){
+				data.setAction(isConfirmed.get());
 			}
 			account.set(data);
 		}else{

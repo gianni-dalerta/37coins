@@ -28,11 +28,13 @@ public class DataSet {
 		SIGNUP("Signup"), // create a new account
 		DEPOSIT_CONF("DepositConf"),
 		FORMAT_ERROR("FormatError"),
-		UNKNOWN_COMMAND("UnknownCommand"), 
+		UNKNOWN_COMMAND("UnknownCommand"),
+		ACCOUNT_BLOCKED("AccountBlocked"),
 		INSUFISSIENT_FUNDS("InsufficientFunds"),
 		BELOW_FEE("BelowFee"), 
 		TIMEOUT("Timeout"),
-		TX_FAILED("TransactionFailed");
+		TX_FAILED("TransactionFailed"),
+		TX_CANCELED("TransactionCanceled");
 
 		private String text;
 

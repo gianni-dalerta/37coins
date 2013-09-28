@@ -20,6 +20,7 @@ import com._37coins.activities.MessagingActivities;
 import com._37coins.bcJsonRpc.pojo.Transaction;
 import com._37coins.bizLogic.NonTxWorkflowImpl;
 import com._37coins.bizLogic.WithdrawalWorkflowImpl;
+import com._37coins.workflow.WithdrawalWorkflow;
 import com._37coins.workflow.WithdrawalWorkflowClient;
 import com._37coins.workflow.WithdrawalWorkflowClientFactory;
 import com._37coins.workflow.WithdrawalWorkflowClientFactoryImpl;
@@ -44,6 +45,34 @@ public class WithdrawalWorkflowTest {
 	public WorkflowTest workflowTest = new WorkflowTest();
 
 	final List<DataSet> trace = new ArrayList<>();
+	
+	public static BigDecimal FEE = new BigDecimal("0.0005").setScale(8);
+	
+	// a test user that has 2.5 BTC in his wallet
+	// and outgoing tx volume of 0.2
+	public static Withdrawal USER1 = new Withdrawal()
+			.setMsgDest(new MessageAddress()
+				.setAddressType(MsgType.SMS))
+			.setPayDest(new PaymentAddress()
+				.setAddress("1")
+				.setAddressType(PaymentType.ACCOUNT))
+			.setBalance(new BigDecimal("2.5").setScale(8))
+			//for 24h transaction volume
+			.setAmount(new BigDecimal("0.1").setScale(8));
+	
+	// another user 
+	// if this user sends a transaction, he always rejects it later
+	public static Withdrawal USER2 = new Withdrawal()
+		.setMsgDest(new MessageAddress()
+			.setAddressType(MsgType.SMS))
+		.setPayDest(new PaymentAddress()
+			.setAddress("2")
+			.setAddressType(PaymentType.ACCOUNT));	
+
+	// sending to this user will always give a network error
+	public static Withdrawal USER3 = new Withdrawal()
+		.setPayDest(new PaymentAddress().setAddress("n3Rf315KpvWR7cq2VnZkgkC11KARck2rS4").setAddressType(PaymentType.BTC));
+	
 
 	private WithdrawalWorkflowClientFactory workflowFactory = new WithdrawalWorkflowClientFactoryImpl();
 
@@ -56,7 +85,11 @@ public class WithdrawalWorkflowTest {
 			public String sendTransaction(BigDecimal amount, BigDecimal fee,
 					Long fromId, String toId, String toAddress, String id, String comment) {
 				if (null!=amount && null!=fee && null!=fromId &&(null!=toId || null!=toAddress)){
-					return "txid2038942304";
+					if (null!=toAddress && toAddress.equalsIgnoreCase(USER3.getPayDest().getAddress())){
+						throw new RuntimeException("unknown reason");
+					}else{
+						return "txid2038942304";
+					}
 				}else{
 					throw new RuntimeException("param missing");
 				}
@@ -64,27 +97,26 @@ public class WithdrawalWorkflowTest {
 
 			@Override
 			public BigDecimal getAccountBalance(Long accountId) {
-				Assert.assertNotNull(accountId);
-				return new BigDecimal("2.5");
+				Assert.assertNotNull("getAccountId called with null",accountId);
+				return USER1.getBalance();
 			}
 
 			@Override
 			public String getNewAddress(Long accountId) {
 				return null;
 			}
-
 			@Override
 			public Long getAccount(String bcAddress) {
-				if (bcAddress.equalsIgnoreCase("123")){
-					return 2L;
-				}
+				return null;
+			}
+			@Override
+			public List<Transaction> getAccountTransactions(Long accountId) {
 				return null;
 			}
 
 			@Override
-			public List<Transaction> getAccountTransactions(Long accountId) {
-				// TODO Auto-generated method stub
-				return null;
+			public BigDecimal getTransactionVolume(Long accountId, int hours) {
+				return USER1.getAmount();
 			}
 		};
 		MessagingActivities mailActivities = new MessagingActivities() {
@@ -95,11 +127,16 @@ public class WithdrawalWorkflowTest {
 			}
 
 			@Override
-			public void sendConfirmation(DataSet rsp, String workflowId) {
-				Withdrawal w = (Withdrawal)rsp.getPayload();
-				w.setConfKey("123");
-				w.setConfLink("http://test.com/123");
-				trace.add(rsp);
+			public Action sendConfirmation(DataSet rsp, String workflowId) {
+				if (rsp.getAccountId()==Long.parseLong(USER2.getPayDest().getAddress())){
+					return Action.TX_CANCELED;
+				}else{
+					Withdrawal w = (Withdrawal)rsp.getPayload();
+					w.setConfKey("123");
+					w.setConfLink("http://test.com/123");
+					trace.add(rsp);
+					return Action.WITHDRAWAL_REQ;
+				}
 			}
 			@Override
 			public DataSet readMessageAddress(DataSet data) {
@@ -110,9 +147,13 @@ public class WithdrawalWorkflowTest {
 			}
 
 			@Override
-			public Boolean phoneConfirmation(DataSet rsp, String workflowId) {
-				trace.add(rsp);
-				return true;
+			public Action phoneConfirmation(DataSet rsp, String workflowId) {
+				if (rsp.getAccountId()==Long.parseLong(USER2.getPayDest().getAddress())){
+					return Action.TX_CANCELED;
+				}else{
+					trace.add(rsp);
+					return Action.WITHDRAWAL_REQ;
+				}
 			}
 		};
 		
@@ -126,92 +167,258 @@ public class WithdrawalWorkflowTest {
 	public void tearDown() throws Exception {
 		// trace = null;
 	}
-
+	
+	/**
+	 * Send a transaction that will only be verified by sms
+	 * should be tx history + txamout < 100x(smsFee+callFee)
+	 * so 0.2 + 0.0001 > 100x(0.0005+0.0015)
+	 */
 	@Test
-	public void testSend() throws AddressException {
+	public void testSendSms() throws AddressException {
 		WithdrawalWorkflowClient workflow = workflowFactory.getClient();
 		DataSet req = new DataSet()
 			.setAction(Action.WITHDRAWAL_REQ)
-			.setAccountId(0L)
-			.setTo(new MessageAddress()
-				.setAddressType(MsgType.SMS))
+			.setAccountId(Long.parseLong(USER1.getPayDest().getAddress()))
+			.setTo(USER1.getMsgDest())
 			.setPayload(new Withdrawal()
-				.setComment("hallo")
-				.setAmount(new BigDecimal("0.5").setScale(8))
-				.setFee(new BigDecimal("0.0005").setScale(8))
+				.setAmount(new BigDecimal("0.0011").setScale(8))
+				.setFee(FEE)
 				.setFeeAccount("1")
-				.setPayDest(new PaymentAddress()
-					.setAddress("2")
-					.setAddressType(PaymentType.ACCOUNT)));
+				.setPayDest(USER2.getPayDest()));
 		Promise<Void> booked = workflow.executeCommand(req);
-		DataSet expected = new DataSet()
-			.setAction(Action.WITHDRAWAL_REQ)
-			.setService("37coins")
-			.setAccountId(0L)
-			.setPayload(new Withdrawal()
-				.setComment("hallo")
-				.setAmount(new BigDecimal("0.5").setScale(8))
-				.setFee(new BigDecimal("0.0005").setScale(8))
-				.setFeeAccount("1")
-				.setConfKey("123")
-				.setConfLink("http://test.com/123")
-				.setPayDest(new PaymentAddress()
-					.setAddress("2")
-					.setAddressType(PaymentType.ACCOUNT)))
-			.setTo(new MessageAddress()
-				.setAddressType(MsgType.SMS));
-		validate("send no confirm", expected, trace, booked);
+		validateSendSms(booked);
 	}
 	
+	@Asynchronous
+	public void validateSendSms(Promise<Void> booked){
+		Assert.assertTrue("verification not executed, no result", trace.size()==3 
+				&& trace.get(0).getAction()==Action.WITHDRAWAL_REQ
+				&& trace.get(1).getAction()==Action.WITHDRAWAL_CONF
+				&& trace.get(2).getAction()==Action.DEPOSIT_CONF);
+		Assert.assertEquals(((Withdrawal)trace.get(0).getPayload()).getConfKey(), "123");
+		Withdrawal w = (Withdrawal)trace.get(1).getPayload();
+		Assert.assertTrue("tx not executed", w.getTxId().equalsIgnoreCase("txid2038942304"));
+	}
+
+	/**
+	 * Send a transaction that is substantial enough to trigger call verification
+	 * should be tx history + txamout > 100x(smsFee+callFee)
+	 * so 0.2 + 0.5 > 100x(0.0005+0.0015)
+	 */
 	@Test
-	public void testInsufficientFunds() throws AddressException {
+	public void testSendCall() throws AddressException {
+		WithdrawalWorkflowClient workflow = workflowFactory.getClient();
+		DataSet req = new DataSet()
+			.setAction(Action.WITHDRAWAL_REQ)
+			.setAccountId(Long.parseLong(USER1.getPayDest().getAddress()))
+			.setTo(USER1.getMsgDest())
+			.setPayload(new Withdrawal()
+				.setComment("hallo")
+				.setAmount(new BigDecimal("0.5").setScale(8))
+				.setFee(FEE)
+				.setFeeAccount("1")
+				.setPayDest(USER2.getPayDest()));
+		Promise<Void> booked = workflow.executeCommand(req);
+		validateSendCall(booked);
+	}
+	
+	@Asynchronous
+	public void validateSendCall(Promise<Void> booked){
+		Assert.assertTrue("verification not executed, no result", trace.size()==3
+				&& trace.get(0).getAction()==Action.WITHDRAWAL_REQ
+				&& trace.get(1).getAction()==Action.WITHDRAWAL_CONF
+				&& trace.get(2).getAction()==Action.DEPOSIT_CONF);
+		Assert.assertEquals(
+				((Withdrawal)trace.get(0).getPayload()).getConfKey(), WithdrawalWorkflow.VOICE_VER_TOKEN);
+		Withdrawal w = (Withdrawal)trace.get(1).getPayload();
+		Assert.assertTrue("comment not processed", w.getComment().equalsIgnoreCase("hallo"));
+		Assert.assertTrue("tx not executed", w.getTxId().equalsIgnoreCase("txid2038942304"));
+	}
+	
+	/**
+	 * User failed sms verification
+	 */
+	@Test
+	public void testSendSmsVerFail() throws AddressException {
 		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
 		final DataSet req = new DataSet()
 			.setAction(Action.WITHDRAWAL_REQ)
-			.setAccountId(0L)
-			.setTo(new MessageAddress()
-				.setAddressType(MsgType.SMS))
+			.setAccountId(Long.parseLong(USER2.getPayDest().getAddress()))
+			.setTo(USER2.getMsgDest())
 			.setPayload(new Withdrawal()
-				.setAmount(new BigDecimal("100.005").setScale(8))
-				.setFee(new BigDecimal("0.0005").setScale(8))
+				.setComment("hallo")
+				.setAmount(new BigDecimal("0.0011").setScale(8))
+				.setFee(FEE)
 				.setFeeAccount("1")
-				.setPayDest(new PaymentAddress()
-					.setAddress("2")
-					.setAddressType(PaymentType.ACCOUNT)));		
+				.setPayDest(USER1.getPayDest()));
 		new TryCatch() {
 			@Override
 			protected void doTry() throws Throwable {
 				Promise<Void> booked = workflow.executeCommand(req);
-				AsyncAssert.assertEquals("should have aborded because receiver not found", 0, booked);
+				AsyncAssert.assertEquals("expected Insuficient Funds exception not thrown", 0, booked);
 			}
             @Override
             protected void doCatch(Throwable e) throws Throwable {
             	if (e.getCause()!=null && e.getCause().getClass() == CancellationException.class){
-            		DataSet expected = new DataSet()
-	        			.setAction(Action.INSUFISSIENT_FUNDS)
-	        			.setService("37coins")
-	        			.setAccountId(0L)
-	        			.setPayload(new Withdrawal()
-	        				.setAmount(new BigDecimal("100.0055").setScale(8))
-	        				.setBalance(new BigDecimal("2.5").setScale(8)))
-	        			.setTo(new MessageAddress()
-	        				.setAddressType(MsgType.SMS));
-            		validate("insufficient funds", expected, trace);
+            		Assert.assertTrue("unexpected result", trace.size()==1 
+            				&& trace.get(0).getAction()==Action.TX_CANCELED);
+            		Withdrawal w = (Withdrawal)trace.get(0).getPayload();
+            		Assert.assertTrue("verification has returned result",w.getConfKey()==null);
             	}else{
             		throw e;
             	}
 			}
 		};
-	}	
-
-	@Asynchronous
-	public void validate(String desc, Object expected, List<DataSet> l){
-		AsyncAssert.assertEqualsWaitFor(desc, expected, l.get(0));
 	}
 	
-	@Asynchronous
-	public void validate(String desc, Object expected, List<DataSet> l,Promise<Void> booked){
-		AsyncAssert.assertEqualsWaitFor(desc, expected, l.get(0), booked);
+	/**
+	 * User failed voice call verification
+	 */
+	@Test
+	public void testSendVoiceVerFail() throws AddressException {
+		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
+		final DataSet req = new DataSet()
+			.setAction(Action.WITHDRAWAL_REQ)
+			.setAccountId(Long.parseLong(USER2.getPayDest().getAddress()))
+			.setTo(USER2.getMsgDest())
+			.setPayload(new Withdrawal()
+				.setComment("hallo")
+				.setAmount(new BigDecimal("1.0").setScale(8))
+				.setFee(FEE)
+				.setFeeAccount("1")
+				.setPayDest(USER1.getPayDest()));
+		new TryCatch() {
+			@Override
+			protected void doTry() throws Throwable {
+				Promise<Void> booked = workflow.executeCommand(req);
+				AsyncAssert.assertEquals("expected Insuficient Funds exception not thrown", 0, booked);
+			}
+            @Override
+            protected void doCatch(Throwable e) throws Throwable {
+            	if (e.getCause()!=null && e.getCause().getClass() == CancellationException.class){
+            		Assert.assertTrue("unexpected result", trace.size()==1 
+            				&& trace.get(0).getAction()==Action.TX_CANCELED);
+            		Withdrawal w = (Withdrawal)trace.get(0).getPayload();
+            		Assert.assertEquals(w.getConfKey(), WithdrawalWorkflow.VOICE_VER_TOKEN);
+            	}else{
+            		throw e;
+            	}
+			}
+		};
+	}
+	
+	/**
+	 * Error on the network
+	 * 2 results will return, a successful sms verification, then the error 
+	 */
+	@Test
+	public void testSendFail() throws AddressException {
+		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
+		final DataSet req = new DataSet()
+			.setAction(Action.WITHDRAWAL_REQ)
+			.setAccountId(Long.parseLong(USER1.getPayDest().getAddress()))
+			.setTo(USER1.getMsgDest())
+			.setPayload(new Withdrawal()
+				.setAmount(new BigDecimal("0.0011").setScale(8))
+				.setFee(FEE)
+				.setFeeAccount("1")
+				.setPayDest(USER3.getPayDest()));
+		new TryCatch() {
+			@Override
+			protected void doTry() throws Throwable {
+				Promise<Void> booked = workflow.executeCommand(req);
+				AsyncAssert.assertEquals("expected Insuficient Funds exception not thrown", 0, booked);
+			}
+            @Override
+            protected void doCatch(Throwable e) throws Throwable {
+            	if (e.getCause()!=null && e.getCause().getClass() == CancellationException.class){
+            		List<DataSet> t = trace;
+            		Assert.assertTrue("verification not executed, no result", t.size()==2 
+            				&& t.get(0).getAction()==Action.WITHDRAWAL_REQ
+            				&& t.get(1).getAction()==Action.TX_FAILED);
+            		Withdrawal w = (Withdrawal)t.get(0).getPayload();
+            		Assert.assertEquals(w.getConfKey(), "123");
+            	}else{
+            		throw e;
+            	}
+			}
+		};
+	}
+	
+	/**
+	 * try to send a to big transaction
+	 */
+	@Test
+	public void testInsufficientFunds() throws AddressException {
+		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
+		final DataSet req = new DataSet()
+			.setAction(Action.WITHDRAWAL_REQ)
+			.setAccountId(Long.parseLong(USER1.getPayDest().getAddress()))
+			.setTo(USER1.getMsgDest())
+			.setPayload(new Withdrawal()
+				.setAmount(new BigDecimal("100.005").setScale(8))
+				.setFee(FEE)
+				.setFeeAccount("1")
+				.setPayDest(USER2.getPayDest()));		
+		new TryCatch() {
+			@Override
+			protected void doTry() throws Throwable {
+				Promise<Void> booked = workflow.executeCommand(req);
+				AsyncAssert.assertEquals("expected Insuficient Funds exception not thrown", 0, booked);
+			}
+            @Override
+            protected void doCatch(Throwable e) throws Throwable {
+            	if (e.getCause()!=null && e.getCause().getClass() == CancellationException.class){
+            		Assert.assertTrue("unexpected result", trace.size()==1 
+            				&& trace.get(0).getAction()==Action.INSUFISSIENT_FUNDS);
+            		Withdrawal w = (Withdrawal)trace.get(0).getPayload();
+            		//amount needed as displayed to user
+            		Assert.assertEquals(new BigDecimal("100.0055").setScale(8),w.getAmount());
+            		//current balance as displayed to user
+            		Assert.assertEquals(new BigDecimal("2.5").setScale(8),w.getBalance());
+            	}else{
+            		throw e;
+            	}
+			}
+		};
+	}
+	
+	/**
+	 * filter all transaction that are < 2 fee
+	 */
+	@Test
+	public void testBelowFee() throws AddressException {
+		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
+		final DataSet req = new DataSet()
+			.setAction(Action.WITHDRAWAL_REQ)
+			.setAccountId(Long.parseLong(USER1.getPayDest().getAddress()))
+			.setTo(USER1.getMsgDest())
+			.setPayload(new Withdrawal()
+				.setAmount(new BigDecimal("0.0005").setScale(8))
+				.setFee(FEE)
+				.setFeeAccount("1")
+				.setPayDest(USER2.getPayDest()));		
+		new TryCatch() {
+			@Override
+			protected void doTry() throws Throwable {
+				Promise<Void> booked = workflow.executeCommand(req);
+				AsyncAssert.assertEquals("expected Insuficient Funds exception not thrown", 0, booked);
+			}
+            @Override
+            protected void doCatch(Throwable e) throws Throwable {
+            	if (e.getCause()!=null && e.getCause().getClass() == CancellationException.class){
+            		Assert.assertTrue("unexpected result", trace.size()==1 
+            				&& trace.get(0).getAction()==Action.BELOW_FEE);
+            		Withdrawal w = (Withdrawal)trace.get(0).getPayload();
+            		//amount send by user
+            		Assert.assertEquals(FEE,w.getAmount());
+            		//amount displaying the fee in the response
+            		Assert.assertEquals(FEE,w.getBalance());
+            	}else{
+            		throw e;
+            	}
+			}
+		};
 	}
 
 }

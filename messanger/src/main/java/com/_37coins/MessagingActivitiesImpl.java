@@ -14,6 +14,7 @@ import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.persistence.dto.Transaction;
 import com._37coins.sendMail.MailTransporter;
 import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
 import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.Withdrawal;
@@ -62,7 +63,7 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 
 	@Override
 	@ManualActivityCompletion
-	public void sendConfirmation(DataSet rsp, String workflowId) {
+	public Action sendConfirmation(DataSet rsp, String workflowId) {
 		ActivityExecutionContext executionContext = contextProvider.getActivityExecutionContext();
 		String taskToken = executionContext.getTaskToken();
 		try{
@@ -80,11 +81,12 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 		}finally{
 			dao.closePersistenceManager();
 		}
+		return null;
 	}
 	
 	@Override
 	@ManualActivityCompletion
-	public Boolean phoneConfirmation(DataSet rsp, String workflowId) {
+	public Action phoneConfirmation(DataSet rsp, String workflowId) {
 		ActivityExecutionContext executionContext = contextProvider.getActivityExecutionContext();
 		String taskToken = executionContext.getTaskToken();
 		try{
@@ -93,28 +95,34 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 			tt.setTaskToken(taskToken);
 			dao.flush();
 			
-			RestAPI restAPI = new RestAPI(MessagingServletConfig.plivoKey, MessagingServletConfig.plivoSecret, "v1");
-
-			LinkedHashMap<String, String> params = new LinkedHashMap<String, String>();
-		    params.put("from", rsp.getTo().getGateway());
-		    params.put("to", rsp.getTo().getAddress());
-		    params.put("answer_url", MessagingServletConfig.basePath + "/plivo/"+rsp.getAccountId()+"/"+workflowId+"/answer");
-		   // params.put("time_limit", "55");
-		   // params.put("ring_timeout", "10");
-		   // params.put("machine_detection", "hangup");
-		    params.put("hangup_url", MessagingServletConfig.basePath + "/plivo/"+rsp.getAccountId()+"/"+workflowId+"/hangup");
-		   // params.put("caller_name", "37 Coins");
-		    Call response = restAPI.makeCall(params);
-		    if (response.serverCode != 200 && response.serverCode != 201 && response.serverCode !=204){
-		    	throw new PlivoException(response.message);
-		    }
-		    return true;
+			Account a = dao.getObjectById(rsp.getAccountId(), Account.class);
+			
+			if (a.getPinWrongCount()<3){
+				RestAPI restAPI = new RestAPI(MessagingServletConfig.plivoKey, MessagingServletConfig.plivoSecret, "v1");
+	
+				LinkedHashMap<String, String> params = new LinkedHashMap<String, String>();
+			    params.put("from", rsp.getTo().getGateway());
+			    params.put("to", rsp.getTo().getAddress());
+			    params.put("answer_url", MessagingServletConfig.basePath + "/plivo/answer/"+rsp.getAccountId()+"/"+workflowId+"/"+rsp.getLocale());
+			    params.put("time_limit", "55");
+			   // params.put("ring_timeout", "10");
+			   // params.put("machine_detection", "hangup");
+			    params.put("hangup_url", MessagingServletConfig.basePath + "/plivo/hangup/"+workflowId);
+			   // params.put("caller_name", "37 Coins");
+			    Call response = restAPI.makeCall(params);
+			    if (response.serverCode != 200 && response.serverCode != 201 && response.serverCode !=204){
+			    	throw new PlivoException(response.message);
+			    }
+			}else{
+				
+			}
+		    return null;
 		} catch (PlivoException e) {
 	        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
 	        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(taskToken);
-	        manualCompletionClient.complete(false);
+	        manualCompletionClient.complete(Action.TX_CANCELED);
 	        e.printStackTrace();
-	        return false;
+	        return null;
 		}finally{
 			dao.closePersistenceManager();
 		}

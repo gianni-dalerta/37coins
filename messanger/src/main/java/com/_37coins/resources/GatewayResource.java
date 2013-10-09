@@ -2,17 +2,24 @@ package com._37coins.resources;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 
 import org.restnucleus.dao.GenericRepository;
 import org.restnucleus.dao.RNQuery;
@@ -24,7 +31,7 @@ import com._37coins.persistence.dto.MsgAddress;
 @Path(GatewayResource.PATH)
 @Produces(MediaType.APPLICATION_JSON)
 public class GatewayResource {
-	public final static String PATH = "/gateway";
+	public final static String PATH = "/api/gateway";
 	public final static String HTML_RESPONSE_DONE = "<html><head><title>Confirmation</title></head><body>The gateway has been registered successfully.</body></html>";
 	
 	final private GenericRepository dao;
@@ -32,6 +39,36 @@ public class GatewayResource {
 	@Inject public GatewayResource(ServletRequest request) {
 		HttpServletRequest httpReq = (HttpServletRequest)request;
 		dao = (GenericRepository)httpReq.getAttribute("gr");
+	}
+	
+	@GET
+	@RolesAllowed({"gateway"})
+	public Response get(@Context SecurityContext context){
+		if (null!=context.getUserPrincipal()){
+			String username = context.getUserPrincipal().getName();
+			return Response.ok("<html><body>username: "+username+"</body></html>", MediaType.TEXT_HTML_TYPE).build();
+		}else{
+			return Response.ok("<html><body>unautheticated</body></html>", MediaType.TEXT_HTML_TYPE).build();
+		}
+	}
+	
+	@POST
+	@Path("/login")
+	@RolesAllowed({"gateway","admin"})
+	public List<String> login(@Context SecurityContext context){
+		List<String> roles = new ArrayList<>();
+		if (null!=context.getUserPrincipal()){
+			roles.add("gateway");
+			roles.add("admin");
+			Iterator<String> i = roles.iterator();
+			while (i.hasNext()){
+				String role = i.next();
+				if (!context.isUserInRole(role)){
+					i.remove();
+				}
+			}
+		}
+		return roles;
 	}
 
 	@POST

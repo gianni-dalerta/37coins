@@ -27,7 +27,7 @@ public class MessageFactory {
 	public static final String CT_TEXT_HTML = "text/html";
 	public static final String CT_PLAIN_TEXT = "text/plain";
 	public static final String TEXT_FOLDER = "text/";
-	public static final String HTML_FOLDER = "html/";
+	public static final String HTML_FOLDER = "email/";
 
 	private final Configuration cfg;
 	private final ServletContext servletContext;
@@ -98,9 +98,14 @@ public class MessageFactory {
 
 	public String processTemplate(DataSet rsp, String folder) throws IOException,
 			TemplateException {
-
+		String filePath = null;
+		if (null!=folder){
+			filePath = folder + rsp.getAction().getText() + ((folder.contains(HTML_FOLDER))?".html":".txt");
+		}else{
+			filePath = rsp.getService() + ".html";
+		}
 		// make email template
-		Template template = cfg.getTemplate(folder + rsp.getAction().getText() + ((folder.contains("html"))?".html":".txt"));
+		Template template = cfg.getTemplate(filePath);
 
 		Writer stringWriter = null;
 

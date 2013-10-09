@@ -114,7 +114,7 @@ public class EnvayaSmsResource {
 		try{
 			if (!isValid(params, sig, uriInfo.getRequestUri().toString())){
 				throw new WebApplicationException("signature missmatch",
-						javax.ws.rs.core.Response.Status.FORBIDDEN);
+						javax.ws.rs.core.Response.Status.UNAUTHORIZED);
 			}
 			switch (params.getFirst("action")) {
 			case "status":

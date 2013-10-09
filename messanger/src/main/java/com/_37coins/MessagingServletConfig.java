@@ -10,6 +10,7 @@ import javax.jdo.PersistenceManagerFactory;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
+import org.apache.shiro.guice.web.GuiceShiroFilter;
 import org.restnucleus.PersistenceConfiguration;
 import org.restnucleus.filter.PaginationFilter;
 import org.restnucleus.filter.PersistenceFilter;
@@ -66,6 +67,11 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 	public static String queueUri;
 	public static String plivoKey;
 	public static String plivoSecret;
+	public static String resPath;
+	public static String ldapUrl;
+	public static String ldapUser;
+	public static String ldapPw;
+	public static String ldapBaseDn;
 	public static Logger log = LoggerFactory.getLogger(MessagingServletConfig.class);
 	public static Injector injector;
 	static {
@@ -88,6 +94,11 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 		queueUri = System.getProperty("queueUri");
 		plivoKey = System.getProperty("plivoKey");
 		plivoSecret = System.getProperty("plivoSecret");
+		resPath = System.getProperty("resPath");
+		ldapUrl = System.getProperty("ldapUrl");
+		ldapUser = System.getProperty("ldapUser");
+		ldapPw = System.getProperty("ldapPw");
+		ldapBaseDn = System.getProperty("ldapBaseDn");
 	}
 	
 	private ServletContext servletContext;
@@ -122,6 +133,7 @@ public class MessagingServletConfig extends GuiceServletContextListener {
         injector = Guice.createInjector(new ServletModule(){
             @Override
             protected void configureServlets(){
+            	filter("/*").through(GuiceShiroFilter.class);
             	filter("/*").through(PersistenceFilter.class);
             	filter("/*").through(QueryFilter.class);
             	filter("/*").through(PaginationFilter.class);
@@ -234,8 +246,7 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 			@Provides @Singleton @SuppressWarnings("unused")
 			public MessageFactory provideMessageFactory() {
 				return new MessageFactory(servletContext);
-			}
-		});
+			}},new MessagingShiroWebModule(this.servletContext));
         return injector;
     }
 	

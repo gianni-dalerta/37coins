@@ -10,7 +10,13 @@ import javax.jdo.PersistenceManagerFactory;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.config.CacheConfiguration;
+import net.sf.ehcache.store.MemoryStoreEvictionPolicy;
+
 import org.apache.shiro.guice.web.GuiceShiroFilter;
+import org.apache.shiro.realm.ldap.JndiLdapContextFactory;
 import org.restnucleus.PersistenceConfiguration;
 import org.restnucleus.filter.PaginationFilter;
 import org.restnucleus.filter.PersistenceFilter;
@@ -246,7 +252,32 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 			@Provides @Singleton @SuppressWarnings("unused")
 			public MessageFactory provideMessageFactory() {
 				return new MessageFactory(servletContext);
-			}},new MessagingShiroWebModule(this.servletContext));
+			}
+			
+			@Provides @Singleton @SuppressWarnings("unused")
+			public JndiLdapContextFactory provideLdapClientFactory(){
+				JndiLdapContextFactory jlc = new JndiLdapContextFactory();
+				jlc.setUrl(ldapUrl);
+				jlc.setAuthenticationMechanism("simple");
+				jlc.setSystemUsername(ldapUser);
+				jlc.setSystemPassword(ldapPw);
+				return jlc;
+			}
+        
+        	@Provides @Singleton @SuppressWarnings("unused")
+        	public Cache provideCache(){
+        		//Create a singleton CacheManager using defaults
+        		CacheManager manager = CacheManager.create();
+        		//Create a Cache specifying its configuration.
+        		Cache testCache = new Cache(new CacheConfiguration("cache", 1000)
+        		    .memoryStoreEvictionPolicy(MemoryStoreEvictionPolicy.LFU)
+        		    .eternal(false)
+        		    .timeToLiveSeconds(7200)
+        		    .timeToIdleSeconds(3600)
+        		    .diskExpiryThreadIntervalSeconds(0));
+        		  manager.addCache(testCache);
+        		  return testCache;
+        	}},new MessagingShiroWebModule(this.servletContext));
         return injector;
     }
 	

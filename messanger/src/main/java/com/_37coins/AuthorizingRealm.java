@@ -5,6 +5,9 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import javax.inject.Inject;
+import javax.naming.LimitExceededException;
+import javax.naming.NameNotFoundException;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -27,35 +30,42 @@ import org.apache.shiro.subject.PrincipalCollection;
 public class AuthorizingRealm extends JndiLdapRealm {
 	public static final String SF = "(&(objectClass=person)(|(mail={0})(cn={0})(givenName={0})))";
 	
-	public AuthorizingRealm(){
-		JndiLdapContextFactory jlc = new JndiLdapContextFactory();
-		jlc.setUrl(MessagingServletConfig.ldapUrl);
-		jlc.setAuthenticationMechanism("simple");
-		jlc.setSystemUsername(MessagingServletConfig.ldapUser);
-		jlc.setSystemPassword(MessagingServletConfig.ldapPw);
+	@Inject
+	public AuthorizingRealm(JndiLdapContextFactory jlc){
 		this.setContextFactory(jlc);
 		this.setUserDnTemplate("cn={0},"+MessagingServletConfig.ldapBaseDn);
 	}
 	
+	public static SearchResult searchUnique(String searchFilter,JndiLdapContextFactory jlc) throws IllegalStateException, NamingException{
+		InitialLdapContext ctx = null;
+		AuthenticationToken at = new UsernamePasswordToken(MessagingServletConfig.ldapUser, MessagingServletConfig.ldapPw);
+		ctx = (InitialLdapContext)jlc.getLdapContext(at.getPrincipal(),at.getCredentials());
+		ctx.setRequestControls(null);
+		SearchControls searchControls = new SearchControls();
+		searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+		searchControls.setTimeLimit(5000);
+		NamingEnumeration<?> namingEnum = ctx.search(MessagingServletConfig.ldapBaseDn, searchFilter, searchControls);
+		if (namingEnum.hasMore ()){
+			SearchResult result = (SearchResult) namingEnum.next();
+			if (namingEnum.hasMore()){
+				throw new LimitExceededException("search with filter "+searchFilter+" returned more than 1 result");
+			}
+			namingEnum.close();
+			ctx.close();
+			return result;
+		}else{
+			throw new NameNotFoundException("search with filter "+searchFilter+" returned no result");
+		}
+	}
+	
 	@Override
 	protected Object getLdapPrincipal(AuthenticationToken arg0) {
-		InitialLdapContext ctx = null;
 		String rv = null;
 		try {
-			AuthenticationToken at = new UsernamePasswordToken(MessagingServletConfig.ldapUser, MessagingServletConfig.ldapPw);
-			ctx = (InitialLdapContext)this.getContextFactory().getLdapContext(at.getPrincipal(),at.getCredentials());
-			ctx.setRequestControls(null);
 			String sf = SF.replace("{0}", (String)arg0.getPrincipal());
-			SearchControls searchControls = new SearchControls();
-			searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
-			searchControls.setTimeLimit(5000);
-			NamingEnumeration<?> namingEnum = ctx.search(MessagingServletConfig.ldapBaseDn, sf, searchControls);
-	        while (namingEnum.hasMore ()) {
-	            SearchResult result = (SearchResult) namingEnum.next();
-	            Attributes attrs = result.getAttributes();
-	            rv = "cn="+attrs.get("cn").get(0)+","+MessagingServletConfig.ldapBaseDn;
-	        } 
-	        namingEnum.close();
+			SearchResult result = searchUnique(sf, (JndiLdapContextFactory)this.getContextFactory());
+	        Attributes attrs = result.getAttributes();
+	        rv = "cn="+attrs.get("cn").get(0)+","+MessagingServletConfig.ldapBaseDn; 
 		} catch (NamingException e) {
 			e.printStackTrace();
 		}

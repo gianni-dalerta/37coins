@@ -18,9 +18,6 @@ import net.sf.ehcache.store.MemoryStoreEvictionPolicy;
 import org.apache.shiro.guice.web.GuiceShiroFilter;
 import org.apache.shiro.realm.ldap.JndiLdapContextFactory;
 import org.restnucleus.PersistenceConfiguration;
-import org.restnucleus.filter.PaginationFilter;
-import org.restnucleus.filter.PersistenceFilter;
-import org.restnucleus.filter.QueryFilter;
 import org.restnucleus.log.SLF4JTypeListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,9 +137,7 @@ public class MessagingServletConfig extends GuiceServletContextListener {
             @Override
             protected void configureServlets(){
             	filter("/*").through(GuiceShiroFilter.class);
-            	filter("/*").through(PersistenceFilter.class);
-            	filter("/*").through(QueryFilter.class);
-            	filter("/*").through(PaginationFilter.class);
+            	filter("/api/*").through(DirectoryFilter.class);
             	bindListener(Matchers.any(), new SLF4JTypeListener());
         		bind(MessagingActivitiesImpl.class).annotatedWith(Names.named("activityImpl")).to(MessagingActivitiesImpl.class);
         	}

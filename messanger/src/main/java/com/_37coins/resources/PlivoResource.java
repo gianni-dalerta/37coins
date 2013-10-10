@@ -206,4 +206,36 @@ public class PlivoResource {
 		}
 		return rv;
 	}
+	
+	@POST
+	@Produces(MediaType.APPLICATION_XML)
+	@Path("/register/{code}/{locale}")
+	public Response register(
+			@PathParam("code") String code,
+			@PathParam("locale") String locale){
+		Response rv = null;
+		String[] l = locale.split("[-_]");
+		Locale loc;
+		switch(l.length){
+	        case 2: loc = new Locale(l[0], l[1]); break;
+	        case 3: loc = new Locale(l[0], l[1], l[2]); break;
+	        default: loc = new Locale(l[0]); break;
+	    }
+		String spokenCode = "";
+		for (char c : code.toCharArray()){
+			spokenCode+=c+", ";
+		}
+		DataSet ds = new DataSet()
+			.setLocale(loc)
+			.setPayload(spokenCode);
+		try {	
+			String text = msgFactory.getText("VoiceRegister",ds);
+			rv = new Response().add(new Speak()
+				.setText(text)
+				.setLanguage(loc.toString().replace("_", "-")));
+		} catch (IOException | TemplateException e) {
+			e.printStackTrace();
+		}
+		return rv;
+	}
 }

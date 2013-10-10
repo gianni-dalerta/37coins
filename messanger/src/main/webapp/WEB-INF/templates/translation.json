@@ -1,0 +1,19 @@
+<#function objectToJsonFunction object> 
+    <#local json = "">
+    <#if object?is_enumerable> 
+        <#local first="true"> 
+        <#local json = json + '{'>
+        <#list object as key> 
+            <#if first="false">
+            	<#local json = json + ','>
+            </#if>
+            <#local json = json + '"${key}": "${resBundle(key)?trim}"'>
+            <#local first="false"> 
+        </#list> 
+        <#local json = json + '}'>
+    <#else>
+        <#local json = json + '"${object?trim}"'>
+    </#if>
+    <#return json>
+</#function>
+${objectToJsonFunction(payload)}

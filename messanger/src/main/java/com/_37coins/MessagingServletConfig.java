@@ -10,10 +10,14 @@ import javax.jdo.PersistenceManagerFactory;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.config.CacheConfiguration;
+import net.sf.ehcache.store.MemoryStoreEvictionPolicy;
+
+import org.apache.shiro.guice.web.GuiceShiroFilter;
+import org.apache.shiro.realm.ldap.JndiLdapContextFactory;
 import org.restnucleus.PersistenceConfiguration;
-import org.restnucleus.filter.PaginationFilter;
-import org.restnucleus.filter.PersistenceFilter;
-import org.restnucleus.filter.QueryFilter;
 import org.restnucleus.log.SLF4JTypeListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +70,11 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 	public static String queueUri;
 	public static String plivoKey;
 	public static String plivoSecret;
+	public static String resPath;
+	public static String ldapUrl;
+	public static String ldapUser;
+	public static String ldapPw;
+	public static String ldapBaseDn;
 	public static Logger log = LoggerFactory.getLogger(MessagingServletConfig.class);
 	public static Injector injector;
 	static {
@@ -88,6 +97,11 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 		queueUri = System.getProperty("queueUri");
 		plivoKey = System.getProperty("plivoKey");
 		plivoSecret = System.getProperty("plivoSecret");
+		resPath = System.getProperty("resPath");
+		ldapUrl = System.getProperty("ldapUrl");
+		ldapUser = System.getProperty("ldapUser");
+		ldapPw = System.getProperty("ldapPw");
+		ldapBaseDn = System.getProperty("ldapBaseDn");
 	}
 	
 	private ServletContext servletContext;
@@ -122,9 +136,8 @@ public class MessagingServletConfig extends GuiceServletContextListener {
         injector = Guice.createInjector(new ServletModule(){
             @Override
             protected void configureServlets(){
-            	filter("/*").through(PersistenceFilter.class);
-            	filter("/*").through(QueryFilter.class);
-            	filter("/*").through(PaginationFilter.class);
+            	filter("/*").through(GuiceShiroFilter.class);
+            	filter("/api/*").through(DirectoryFilter.class);
             	bindListener(Matchers.any(), new SLF4JTypeListener());
         		bind(MessagingActivitiesImpl.class).annotatedWith(Names.named("activityImpl")).to(MessagingActivitiesImpl.class);
         	}
@@ -235,7 +248,31 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 			public MessageFactory provideMessageFactory() {
 				return new MessageFactory(servletContext);
 			}
-		});
+			
+			@Provides @Singleton @SuppressWarnings("unused")
+			public JndiLdapContextFactory provideLdapClientFactory(){
+				JndiLdapContextFactory jlc = new JndiLdapContextFactory();
+				jlc.setUrl(ldapUrl);
+				jlc.setAuthenticationMechanism("simple");
+				jlc.setSystemUsername(ldapUser);
+				jlc.setSystemPassword(ldapPw);
+				return jlc;
+			}
+        
+        	@Provides @Singleton @SuppressWarnings("unused")
+        	public Cache provideCache(){
+        		//Create a singleton CacheManager using defaults
+        		CacheManager manager = CacheManager.create();
+        		//Create a Cache specifying its configuration.
+        		Cache testCache = new Cache(new CacheConfiguration("cache", 1000)
+        		    .memoryStoreEvictionPolicy(MemoryStoreEvictionPolicy.LFU)
+        		    .eternal(false)
+        		    .timeToLiveSeconds(7200)
+        		    .timeToIdleSeconds(3600)
+        		    .diskExpiryThreadIntervalSeconds(0));
+        		  manager.addCache(testCache);
+        		  return testCache;
+        	}},new MessagingShiroWebModule(this.servletContext));
         return injector;
     }
 	

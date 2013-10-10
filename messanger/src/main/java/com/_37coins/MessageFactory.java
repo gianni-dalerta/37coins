@@ -7,6 +7,9 @@ import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.ResourceBundle;
 
 import javax.servlet.ServletContext;
@@ -27,7 +30,7 @@ public class MessageFactory {
 	public static final String CT_TEXT_HTML = "text/html";
 	public static final String CT_PLAIN_TEXT = "text/plain";
 	public static final String TEXT_FOLDER = "text/";
-	public static final String HTML_FOLDER = "html/";
+	public static final String HTML_FOLDER = "email/";
 
 	private final Configuration cfg;
 	private final ServletContext servletContext;
@@ -73,6 +76,22 @@ public class MessageFactory {
 		return processTemplate(rsp, HTML_FOLDER);
 	}
 
+	public String constructJson(DataSet rsp,String file)
+			throws IOException, TemplateException {
+		prepare(rsp);
+		rsp.setService(file);
+		List<String> data = new ArrayList<>();
+		Enumeration<String> keys = rb.getKeys();
+		while(keys.hasMoreElements()){
+			String key = keys.nextElement();
+			if (key.indexOf("web")==0){
+				data.add(key);
+			}
+		}
+		rsp.setPayload(data);
+		return processTemplate(rsp, null);
+	}
+	
 	public String constructTxt(DataSet rsp)
 			throws IOException, TemplateException {
 		prepare(rsp);
@@ -98,9 +117,14 @@ public class MessageFactory {
 
 	public String processTemplate(DataSet rsp, String folder) throws IOException,
 			TemplateException {
-
+		String filePath = null;
+		if (null!=folder){
+			filePath = folder + rsp.getAction().getText() + ((folder.contains(HTML_FOLDER))?".html":".txt");
+		}else{
+			filePath = rsp.getService();
+		}
 		// make email template
-		Template template = cfg.getTemplate(folder + rsp.getAction().getText() + ((folder.contains("html"))?".html":".txt"));
+		Template template = cfg.getTemplate(filePath);
 
 		Writer stringWriter = null;
 

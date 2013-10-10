@@ -17,14 +17,6 @@ public class Account extends Model {
 	private static final long serialVersionUID = -792538125194459327L;
 	public static final int PIN_MAX_WRONG = 3;
 	
-	// the name
-	@Persistent
-	private String firstName;
-
-	// the name
-	@Persistent
-	private String lastName;
-	
 	// the language of the user
 	@Persistent
 	private String language;
@@ -63,24 +55,6 @@ public class Account extends Model {
 		Iterator<MsgAddress> i = msgAddresses.iterator();
 		return (i.hasNext())?i.next():null;
 	}
-	
-	public String getFirstName() {
-		return firstName;
-	}
-
-	public Account setFirstName(String firstName) {
-		this.firstName = firstName;
-		return this;
-	}
-
-	public String getLastName() {
-		return lastName;
-	}
-
-	public Account setLastName(String lastName) {
-		this.lastName = lastName;
-		return this;
-	}
 
 	public String getLanguage() {
 		return language;
@@ -112,8 +86,6 @@ public class Account extends Model {
 	public void update(Model newInstance) {
 		Account n = (Account) newInstance;
 		if (null != n.getMsgAddresses())this.setMsgAddresses(n.getMsgAddresses());
-		if (null != n.getFirstName())this.setFirstName(n.getFirstName());
-		if (null != n.getLastName())this.setLastName(n.getLastName());
 		if (null != n.getLanguage())this.setLanguage(n.getLanguage());
 		if (null != n.getPin())this.setPin(n.getPin());
 	}

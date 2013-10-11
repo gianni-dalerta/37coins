@@ -114,6 +114,10 @@ public class DataSet {
 		this.action = action;
 		return this;
 	}
+	
+	public String getLocaleString() {
+		return locale.toString().replace("_", "-");
+	}
 
 	public Locale getLocale() {
 		return locale;
@@ -121,6 +125,16 @@ public class DataSet {
 
 	public DataSet setLocale(Locale locale) {
 		this.locale = locale;
+		return this;
+	}
+	
+	public DataSet setLocale(String locale){
+		String[] l = locale.split("[-_]");
+		switch(l.length){
+	        case 2: this.locale = new Locale(l[0], l[1]); break;
+	        case 3: this.locale = new Locale(l[0], l[1], l[2]); break;
+	        default: this.locale = new Locale(l[0]); break;
+	    }
 		return this;
 	}
 

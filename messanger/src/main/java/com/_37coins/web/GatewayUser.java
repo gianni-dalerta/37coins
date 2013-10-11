@@ -4,24 +4,52 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
+@JsonInclude(Include.NON_NULL)
 public class GatewayUser {
 	
 	private String id;
 	private List<String> roles;
-	private Long sessionTime;
 	private Locale locale;
 	private String mobile;
 	private String code;
 	private BigDecimal fee;
-	private long testTime;
+	private String envayaToken;
 	
+	public String getEnvayaToken() {
+		return envayaToken;
+	}
+
+	public GatewayUser setEnvayaToken(String envayaToken) {
+		this.envayaToken = envayaToken;
+		return this;
+	}
+
 	public Locale getLocale() {
 		return locale;
 	}
+	
+	public String getLocaleString() {
+		return locale.toString().replace("_", "-");
+	}
+	
 	public GatewayUser setLocale(Locale locale) {
 		this.locale = locale;
 		return this;
 	}
+	
+	public GatewayUser setLocale(String locale){
+		String[] l = locale.split("[-_]");
+		switch(l.length){
+	        case 2: this.locale = new Locale(l[0], l[1]); break;
+	        case 3: this.locale = new Locale(l[0], l[1], l[2]); break;
+	        default: this.locale = new Locale(l[0]); break;
+	    }
+		return this;
+	}
+	
 	public String getId() {
 		return id;
 	}
@@ -34,13 +62,6 @@ public class GatewayUser {
 	}
 	public GatewayUser setRoles(List<String> roles) {
 		this.roles = roles;
-		return this;
-	}
-	public Long getSessionTime() {
-		return sessionTime;
-	}
-	public GatewayUser setSessionTime(Long sessionTime) {
-		this.sessionTime = sessionTime;
 		return this;
 	}
 	public String getMobile() {
@@ -62,13 +83,6 @@ public class GatewayUser {
 	}
 	public GatewayUser setFee(BigDecimal fee) {
 		this.fee = fee;
-		return this;
-	}
-	public long getTestTime() {
-		return testTime;
-	}
-	public GatewayUser setTestTime(long testTime) {
-		this.testTime = testTime;
 		return this;
 	}
 

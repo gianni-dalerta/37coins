@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
@@ -106,9 +107,10 @@ public class EnvayaSmsResource {
 	
 	
 	@POST
-	@Path("/{address}/sms/")
+	@Path("/{cn}/sms/")
 	public Map<String, Object> receive(MultivaluedMap<String, String> params,
 			@HeaderParam("X-Request-Signature") String sig,
+			@PathParam("cn") String cn,
 			@Context UriInfo uriInfo){
 		Map<String, Object> rv = new HashMap<>();
 		try{

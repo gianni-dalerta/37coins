@@ -27,6 +27,7 @@ import com._37coins.plivo.Redirect;
 import com._37coins.plivo.Response;
 import com._37coins.plivo.Speak;
 import com._37coins.plivo.Wait;
+import com._37coins.web.GatewayUser;
 import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.DataSet.Action;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
@@ -214,25 +215,18 @@ public class PlivoResource {
 			@PathParam("code") String code,
 			@PathParam("locale") String locale){
 		Response rv = null;
-		String[] l = locale.split("[-_]");
-		Locale loc;
-		switch(l.length){
-	        case 2: loc = new Locale(l[0], l[1]); break;
-	        case 3: loc = new Locale(l[0], l[1], l[2]); break;
-	        default: loc = new Locale(l[0]); break;
-	    }
 		String spokenCode = "";
 		for (char c : code.toCharArray()){
 			spokenCode+=c+", ";
 		}
 		DataSet ds = new DataSet()
-			.setLocale(loc)
+			.setLocale(locale)
 			.setPayload(spokenCode);
 		try {	
 			String text = msgFactory.getText("VoiceRegister",ds);
 			rv = new Response().add(new Speak()
 				.setText(text)
-				.setLanguage(loc.toString().replace("_", "-")));
+				.setLanguage(ds.getLocaleString()));
 		} catch (IOException | TemplateException e) {
 			e.printStackTrace();
 		}

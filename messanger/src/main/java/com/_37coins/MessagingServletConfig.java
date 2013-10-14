@@ -25,7 +25,10 @@ import org.slf4j.LoggerFactory;
 import com._37coins.bizLogic.NonTxWorkflowImpl;
 import com._37coins.bizLogic.WithdrawalWorkflowImpl;
 import com._37coins.imap.JavaPushMailAccount;
-import com._37coins.parse.MessageParser;
+import com._37coins.parse.CommandParser;
+import com._37coins.parse.InterpreterFilter;
+import com._37coins.parse.ParserAccessFilter;
+import com._37coins.parse.ParserFilter;
 import com._37coins.sendMail.AmazonEmailClient;
 import com._37coins.sendMail.MailServiceClient;
 import com._37coins.sendMail.SmtpEmailClient;
@@ -137,7 +140,12 @@ public class MessagingServletConfig extends GuiceServletContextListener {
             @Override
             protected void configureServlets(){
             	filter("/*").through(GuiceShiroFilter.class);
+            	filter("/envayasms/*").through(DirectoryFilter.class);
             	filter("/api/*").through(DirectoryFilter.class);
+            	filter("/parser/*").through(ParserAccessFilter.class); //make sure no-one can access those urls
+            	filter("/parser/*").through(ParserFilter.class); //read message into dataset
+            	filter("/parser/*").through(DirectoryFilter.class); //allow directory access
+            	filter("/parser/*").through(InterpreterFilter.class); //do semantic stuff
             	bindListener(Matchers.any(), new SLF4JTypeListener());
         		bind(MessagingActivitiesImpl.class).annotatedWith(Names.named("activityImpl")).to(MessagingActivitiesImpl.class);
         	}
@@ -152,8 +160,8 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 			@Provides
 			@Singleton
 			@SuppressWarnings("unused")
-			public MessageParser getMessageProcessor() {
-				return new MessageParser(servletContext);
+			public CommandParser getMessageProcessor() {
+				return new CommandParser(servletContext);
 			}
 			
 			@Provides @Singleton @SuppressWarnings("unused")

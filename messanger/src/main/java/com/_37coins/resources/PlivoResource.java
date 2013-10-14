@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.util.Locale;
 
 import javax.inject.Inject;
+import javax.naming.AuthenticationException;
+import javax.naming.NamingException;
+import javax.naming.directory.Attributes;
+import javax.naming.ldap.InitialLdapContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.FormParam;
@@ -11,15 +15,19 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
-import org.restnucleus.dao.GenericRepository;
-import org.restnucleus.dao.RNQuery;
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.Element;
+
+import org.apache.shiro.authc.AuthenticationToken;
+import org.apache.shiro.authc.UsernamePasswordToken;
+import org.apache.shiro.realm.ldap.JndiLdapContextFactory;
 
 import com._37coins.MessageFactory;
 import com._37coins.MessagingServletConfig;
-import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.Transaction;
 import com._37coins.persistence.dto.Transaction.State;
 import com._37coins.plivo.GetDigits;
@@ -27,7 +35,6 @@ import com._37coins.plivo.Redirect;
 import com._37coins.plivo.Response;
 import com._37coins.plivo.Speak;
 import com._37coins.plivo.Wait;
-import com._37coins.web.GatewayUser;
 import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.DataSet.Action;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
@@ -41,42 +48,59 @@ import freemarker.template.TemplateException;
 @Produces(MediaType.APPLICATION_JSON)
 public class PlivoResource {
 	public final static String PATH = "/plivo";
+	public static final int NUM_DIGIT = 5;
 	
-	private final GenericRepository dao;
+	final private InitialLdapContext ctx;
+	
+	final private JndiLdapContextFactory jlc;
 	
 	private final AmazonSimpleWorkflow swfService;
 	
 	private final MessageFactory msgFactory;
 	
+	final private Cache cache;
+	
 	@Inject public PlivoResource(
+			JndiLdapContextFactory jlc,
 			ServletRequest request,
 			AmazonSimpleWorkflow swfService,
-			MessageFactory msgFactory) {
+			MessageFactory msgFactory,
+			Cache cache) {
 		HttpServletRequest httpReq = (HttpServletRequest)request;
-		dao = (GenericRepository)httpReq.getAttribute("gr");
+		ctx = (InitialLdapContext)httpReq.getAttribute("ctx");
 		this.swfService = swfService;
 		this.msgFactory = msgFactory;
+		this.cache = cache;
+		this.jlc = jlc;
 	}
 	
 	
 	@POST
 	@Produces(MediaType.APPLICATION_XML)
-	@Path("/answer/{accountId}/{workflowId}/{locale}")
+	@Path("/answer/{cn}/{workflowId}/{locale}")
 	public Response answer(
-			@PathParam("accountId") String accountId,
+			@PathParam("cn") String cn,
 			@PathParam("workflowId") String workflowId,
 			@PathParam("locale") String locale){
 		Response rv = null;
 		DataSet ds = new DataSet().setLocale(new Locale(locale));
-		Account a = dao.getObjectById(Long.parseLong(accountId), Account.class);
-		if (a.getPin()!=null){
+		String dn = "cn="+cn+",ou=accounts,"+MessagingServletConfig.ldapBaseDn;
+		String pw = null;
+		try{
+			Attributes atts = ctx.getAttributes(dn,new String[]{"userPassword"});
+			pw = (atts.get("userPassword")!=null)?(String)atts.get("userPassword").get():null;
+		}catch(Exception e){
+			e.printStackTrace();
+			throw new WebApplicationException(e, javax.ws.rs.core.Response.Status.NOT_FOUND);
+		}
+		if (pw!=null){
 			//only check pin
 			try {
 				rv = new Response()
 					.add(new Speak().setText(msgFactory.getText("VoiceHello",ds)))
 					.add(new GetDigits()
-						.setAction(MessagingServletConfig.basePath+"/plivo/check/"+accountId+"/"+workflowId+"/"+locale)
-						.setNumDigits(5)
+						.setAction(MessagingServletConfig.basePath+"/plivo/check/"+cn+"/"+workflowId+"/"+locale)
+						.setNumDigits(NUM_DIGIT)
 						.setRedirect(true)
 						.setSpeak(new Speak()
 							.setText(msgFactory.getText("VoiceEnter",ds))));
@@ -90,17 +114,11 @@ public class PlivoResource {
 					.add(new Speak().setText(msgFactory.getText("VoiceHello",ds)+ msgFactory.getText("VoiceSetup",ds)))
 					.add(new Wait())
 					.add(new GetDigits()
-						.setAction(MessagingServletConfig.basePath+ "/plivo/create/"+accountId)
-						.setNumDigits(5)
-						.setRedirect(false)
-						.setSpeak(new Speak()
-							.setText(msgFactory.getText("VoiceCreate",ds))))
-					.add(new GetDigits()
-						.setAction(MessagingServletConfig.basePath+ "/plivo/confirm/"+accountId+"/"+workflowId+"/"+locale)
-						.setNumDigits(5)
+						.setAction(MessagingServletConfig.basePath+ "/plivo/create/"+cn+"/"+workflowId+"/"+locale)
+						.setNumDigits(NUM_DIGIT)
 						.setRedirect(true)
 						.setSpeak(new Speak()
-							.setText(msgFactory.getText("VoiceConfirm",ds))));
+							.setText(msgFactory.getText("VoiceCreate",ds))));
 			} catch (IOException | TemplateException e) {
 				e.printStackTrace();
 			}
@@ -114,8 +132,8 @@ public class PlivoResource {
 	public void hangup(
 			MultivaluedMap<String, String> params,
 			@PathParam("workflowId") String workflowId){
-		RNQuery q = new RNQuery().addFilter("key", workflowId);
-		Transaction tx = dao.queryEntity(q, Transaction.class);
+		Element e = cache.get(workflowId); 
+		Transaction tx = (Transaction) e.getObjectValue();
 		if (tx.getState() == State.STARTED){
 			ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
 	        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());
@@ -125,87 +143,114 @@ public class PlivoResource {
 	
 	@POST
 	@Produces(MediaType.APPLICATION_XML)
-	@Path("/create/{accountId}")
-	public void create(
-			@PathParam("accountId") String accountId, 
-			@FormParam("Digits") String digits){
-		Account a = dao.getObjectById(Long.parseLong(accountId), Account.class);
-		a.setPin(Integer.parseInt(digits));
-	}
-	
-	@POST
-	@Produces(MediaType.APPLICATION_XML)
-	@Path("/check/{accountId}/{workflowId}/{locale}")
+	@Path("/check/{cn}/{workflowId}/{locale}")
 	public Response check(
-			@PathParam("accountId") String accountId,
+			@PathParam("cn") String cn,
 			@PathParam("workflowId") String workflowId,
 			@PathParam("locale") String locale,
 			@FormParam("Digits") String digits){
-		Account a = dao.getObjectById(Long.parseLong(accountId), Account.class);
-		DataSet ds = new DataSet().setLocale(new Locale(locale));
         Response rv =null;
-		if (null!=digits && null!=a.getPin() && Integer.parseInt(digits) == a.getPin()){
-			RNQuery q = new RNQuery().addFilter("key", workflowId);
-			Transaction tx = dao.queryEntity(q, Transaction.class);
+		String dn = "cn="+cn+",ou=accounts,"+MessagingServletConfig.ldapBaseDn;
+		try {
+			InitialLdapContext context = null;
+			AuthenticationToken at = new UsernamePasswordToken(dn, MessagingServletConfig.ldapPw);
+			context = (InitialLdapContext)jlc.getLdapContext(at.getPrincipal(),at.getCredentials());
+			context.bind(dn, null);
+			Element e = cache.get(workflowId);
+			Transaction tx = (Transaction) e.getObjectValue();
 			tx.setState(State.CONFIRMED);
+			cache.put(e);
 		    ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
 		    ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());		 
 			manualCompletionClient.complete(Action.WITHDRAWAL_REQ);
-			try {
-				rv = new Response().add(new Speak().setText(msgFactory.getText("VoiceMatch",ds)));
-			} catch (IOException | TemplateException e) {
-				e.printStackTrace();
-			}
-		}else{
-			int wrongCount = a.getPinWrongCount();
-			a.setPinWrongCount(wrongCount+1);
+			rv = new Response().add(new Speak().setText(msgFactory.getText("VoiceMatch",new DataSet().setLocale(locale))));
+		} catch (AuthenticationException ae){
 			String callText;
 			try {
-				callText = msgFactory.getText("VoiceFail",new DataSet().setPayload(new Integer(3-wrongCount)));
+				callText = msgFactory.getText("VoiceFail",new DataSet().setLocale(locale));
 				rv = new Response()
 				.add(new Speak().setText(callText))
-				.add(new Redirect().setText(MessagingServletConfig.basePath+ "/plivo/answer/"+accountId+"/"+workflowId+"/"+locale));
+				.add(new Redirect().setText(MessagingServletConfig.basePath+ "/plivo/answer/"+dn+"/"+workflowId+"/"+locale));
 			} catch (IOException | TemplateException e) {
 				e.printStackTrace();
+				throw new WebApplicationException(e, javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR);
 			}
+		} catch (IllegalStateException | NamingException | IOException | TemplateException e) {
+			e.printStackTrace();
+			throw new WebApplicationException(e, javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR);
+		}
+		return rv;
+	}
+	
+	
+	@POST
+	@Produces(MediaType.APPLICATION_XML)
+	@Path("/create/{cn}/{workflowId}/{locale}")
+	public Response create(
+			@PathParam("cn") String cn, 
+			@PathParam("locale") String locale,
+			@PathParam("workflowId") String workflowId, 
+			@FormParam("Digits") String digits){
+		Response rv = null;
+		try {
+			if (digits.length()!=NUM_DIGIT){
+				throw new IOException();
+			}
+			rv = new Response()
+				.add(new GetDigits()
+				.setAction(MessagingServletConfig.basePath+ "/plivo/confirm/"+cn+"/"+workflowId+"/"+locale+"/"+digits)
+				.setNumDigits(5)
+				.setRedirect(true)
+				.setSpeak(new Speak()
+					.setText(msgFactory.getText("VoiceConfirm",new DataSet().setLocale(locale)))));
+		} catch (IOException | TemplateException e) {
+			e.printStackTrace();
+			throw new WebApplicationException(e, javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR);
 		}
 		return rv;
 	}
 	
 	@POST
 	@Produces(MediaType.APPLICATION_XML)
-	@Path("/confirm/{accountId}/{workflowId}/{locale}")
+	@Path("/confirm/{cn}/{workflowId}/{locale}/{prev}")
 	public Response confirm(
-			@PathParam("accountId") String accountId, 
+			@PathParam("cn") String cn, 
 			@PathParam("locale") String locale,
 			@PathParam("workflowId") String workflowId,
+			@PathParam("prev") String prev,
 			@FormParam("Digits") String digits){
-		Account a = dao.getObjectById(Long.parseLong(accountId), Account.class);
-		DataSet ds = new DataSet().setLocale(new Locale(locale));
         Response rv =null;
-		if (null!=digits && null!=a.getPin() && Integer.parseInt(digits) == a.getPin()){
-			RNQuery q = new RNQuery().addFilter("key", workflowId);
-			Transaction tx = dao.queryEntity(q, Transaction.class);
-			tx.setState(State.CONFIRMED);
-		    ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
-		    ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());		 
-			manualCompletionClient.complete(Action.WITHDRAWAL_REQ);
-			try {
-				rv = new Response().add(new Speak().setText(msgFactory.getText("VoiceSuccess",ds)));
-			} catch (IOException | TemplateException e) {
-				e.printStackTrace();
-			}
-		}else{
-			a.setPin(null);
-			try {
+        DataSet ds = new DataSet().setLocale(locale);
+        try{
+	        if (digits!=null && prev != null && Integer.parseInt(digits)==Integer.parseInt(prev)){
+	        	//set password
+				Element e = cache.get(workflowId);
+				Transaction tx = (Transaction) e.getObjectValue();
+				tx.setState(State.CONFIRMED);
+				cache.put(e);
+			    ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
+			    ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());		 
+				manualCompletionClient.complete(Action.WITHDRAWAL_REQ);
+				rv = new Response().add(new Speak().setText(msgFactory.getText("VoiceSuccess",ds)));        	
+	        }else{
+	        	throw new NumberFormatException();
+	        }
+        }catch(NumberFormatException e){
+        	try{
+	        	cache.remove(workflowId);
 				rv = new Response()
 					.add(new Speak().setText(msgFactory.getText("VoiceMisMatch",ds)))
-					.add(new Redirect().setText(MessagingServletConfig.basePath+ "/plivo/answer/"+accountId+"/"+workflowId+"/"+locale));
-			} catch (IOException | TemplateException e) {
-				e.printStackTrace();
+					.add(new Redirect().setText(MessagingServletConfig.basePath+ "/plivo/answer/"+cn+"/"+workflowId+"/"+locale));
+	        	e.printStackTrace();
+			} catch (IOException | TemplateException e1) {
+				e1.printStackTrace();
+				throw new WebApplicationException(e1, javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR);
 			}
+        } catch (IOException | TemplateException e) {
+        	e.printStackTrace();
+			throw new WebApplicationException(e, javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR);
 		}
-		return rv;
+        return rv;
 	}
 	
 	@POST

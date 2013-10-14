@@ -7,12 +7,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.inject.Inject;
+import javax.naming.directory.Attributes;
+import javax.naming.ldap.InitialLdapContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.HeaderParam;
@@ -27,21 +28,24 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.commons.codec.binary.Base64;
-import org.restnucleus.dao.GenericRepository;
-import org.restnucleus.dao.RNQuery;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com._37coins.MessagingServletConfig;
 import com._37coins.envaya.QueueClient;
-import com._37coins.parse.MessageParser;
-import com._37coins.parse.RequestInterpreter;
-import com._37coins.persistence.dto.Gateway;
+import com._37coins.parse.CommandParser;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.pojo.DataSet;
-import com._37coins.workflow.pojo.MessageAddress;
-import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
+import com._37coins.workflow.pojo.DataSet.Action;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Injector;
 
 @Path(EnvayaSmsResource.PATH)
@@ -50,7 +54,7 @@ public class EnvayaSmsResource {
 	public static Logger log = LoggerFactory.getLogger(EnvayaSmsResource.class);
 	public final static String PATH = "/envayasms";
 
-	private final MessageParser mp;
+	private final CommandParser commandParser;
 
 	private final QueueClient qc;
 	
@@ -58,53 +62,21 @@ public class EnvayaSmsResource {
 	
 	private final WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory;
 	
-	private final AmazonSimpleWorkflow swfService;
-	
-	private final GenericRepository dao;
+	final private InitialLdapContext ctx;
 	
 	@Inject public EnvayaSmsResource(ServletRequest request,
-			MessageParser mp,
+			CommandParser commandParser,
 			QueueClient qc,
 			Injector i,
 			NonTxWorkflowClientExternalFactoryImpl nonTxFactory,
-			WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory,
-			AmazonSimpleWorkflow swfService) {
+			WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory) {
 		HttpServletRequest httpReq = (HttpServletRequest)request;
-		dao = (GenericRepository)httpReq.getAttribute("gr");
-		this.mp =mp;
+		ctx = (InitialLdapContext)httpReq.getAttribute("ctx");
+		this.commandParser =commandParser;
 		this.qc = qc;
 		this.nonTxFactory = nonTxFactory;
 		this.withdrawalFactory = withdrawalFactory;
-		this.swfService = swfService;
 	}
-	
-	private boolean isValid(MultivaluedMap<String,String> params, String sig, String url){
-		try{
-			//read query key
-			String patternStr=".*"+EnvayaSmsResource.PATH+"/(.*)/";
-			Pattern p = Pattern.compile(patternStr);
-			Matcher m = p.matcher(url);
-			m.find();
-			String address = m.group(1);
-			//read password
-			
-			RNQuery q = new RNQuery().addFilter("address", address);
-			Gateway gw = dao.queryEntity(q, Gateway.class);
-			String pw = gw.getPassword();
-			//check signature
-			String calcSig=null;
-			calcSig = calculateSignature(url, params, pw);
-			return sig.equals(calcSig);
-		}catch(Exception e){
-			e.printStackTrace();
-			return false;
-		}finally{
-			if (dao!=null){
-				dao.closePersistenceManager();
-			}
-		}
-	}
-	
 	
 	@POST
 	@Path("/{cn}/sms/")
@@ -114,7 +86,11 @@ public class EnvayaSmsResource {
 			@Context UriInfo uriInfo){
 		Map<String, Object> rv = new HashMap<>();
 		try{
-			if (!isValid(params, sig, uriInfo.getRequestUri().toString())){
+			String dn = "cn="+cn+","+MessagingServletConfig.ldapBaseDn;
+			Attributes atts = ctx.getAttributes(dn,new String[]{"departmentNumber"});
+			String envayaToken = (atts.get("departmentNumber")!=null)?(String)atts.get("departmentNumber").get():null;
+			String calcSig = calculateSignature(uriInfo.getRequestUri().toString(), params, envayaToken);
+			if (!sig.equals(calcSig)){
 				throw new WebApplicationException("signature missmatch",
 						javax.ws.rs.core.Response.Status.UNAUTHORIZED);
 			}
@@ -129,38 +105,35 @@ public class EnvayaSmsResource {
 				break;
 			case "incoming":
 				if (params.getFirst("message_type").equalsIgnoreCase("sms")) {
-					MessageAddress md=null;
-					try {
-						md = MessageAddress.fromString(params.getFirst("from"), params.getFirst("phone_number")).setGateway(params.getFirst("phone_number"));
-					} catch (Exception e1) {
-						e1.printStackTrace();
-						throw new WebApplicationException(e1);
+					//TODO: execute this in a new thread
+					Action action = commandParser.processCommand(params.getFirst("message"));
+					Locale locale = commandParser.guessLocale(params.getFirst("message"));
+					CloseableHttpClient httpclient = HttpClients.createDefault();
+					HttpPost req = new HttpPost("http://localhost/parse/"+action.getText());
+					List <NameValuePair> nvps = new ArrayList <NameValuePair>();
+					nvps.add(new BasicNameValuePair("from", params.getFirst("from")));
+					nvps.add(new BasicNameValuePair("gateway", params.getFirst("phone_number")));
+					nvps.add(new BasicNameValuePair("message", params.getFirst("message")));
+					req.addHeader("Accept-Language", locale.toString().replace("_", "-"));
+					req.setEntity(new UrlEncodedFormEntity(nvps));
+					CloseableHttpResponse rsp = httpclient.execute(req);
+					DataSet result = new ObjectMapper().readValue(rsp.getEntity().getContent(),DataSet.class);
+					String next = "";
+					switch(next){
+					case "withdrawal":
+						String workflowId = "???";
+						if (workflowId.equalsIgnoreCase("???"))
+							throw new RuntimeException("implement workflowId passing");
+						withdrawalFactory.getClient(workflowId).executeCommand(result);
+						break;
+					case "deposit":
+						nonTxFactory.getClient(result.getAction()+"-"+result.getCn()).executeCommand(result);
+						break;
+					case "respond":
+						qc.send(result, MessagingServletConfig.queueUri,
+								(String) result.getTo().getGateway(), "amq.direct",
+								"SmsResource" + System.currentTimeMillis());
 					}
-					
-					//implement actions
-					RequestInterpreter ri = new RequestInterpreter(mp, dao, swfService) {							
-						@Override
-						public void startWithdrawal(DataSet data, String workflowId) {
-							withdrawalFactory.getClient(workflowId).executeCommand(data);
-						}
-						@Override
-						public void startDeposit(DataSet data) {
-							nonTxFactory.getClient(data.getAction()+"-"+data.getAccountId()).executeCommand(data);
-						}
-						@Override
-						public void respond(DataSet rsp) {
-							try {
-								qc.send(rsp, MessagingServletConfig.queueUri,
-										(String) rsp.getTo().getGateway(), "amq.direct",
-										"SmsResource" + System.currentTimeMillis());
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-						}
-					};
-	
-					//interprete received message/command
-					ri.process(md, params.getFirst("message"));
 				}
 				break;
 			}

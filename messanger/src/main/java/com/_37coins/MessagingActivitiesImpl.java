@@ -1,15 +1,19 @@
 package com._37coins;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.LinkedHashMap;
 import java.util.Set;
 
-import org.restnucleus.dao.GenericRepository;
-import org.restnucleus.dao.RNQuery;
+import javax.naming.NamingException;
+import javax.naming.directory.Attributes;
+import javax.naming.ldap.InitialLdapContext;
+
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.Element;
 
 import com._37coins.activities.MessagingActivities;
 import com._37coins.envaya.QueueClient;
-import com._37coins.persistence.dto.Account;
 import com._37coins.persistence.dto.MsgAddress;
 import com._37coins.persistence.dto.Transaction;
 import com._37coins.sendMail.MailTransporter;
@@ -41,10 +45,13 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 	QueueClient qc;
 	
 	@Inject
-	GenericRepository dao;
+	InitialLdapContext ctx;
 	
 	@Inject
 	AmazonSimpleWorkflow swfService;
+	
+	@Inject
+	Cache cache;
 
 	@Override
 	public void sendMessage(DataSet rsp) {
@@ -67,19 +74,16 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 		ActivityExecutionContext executionContext = contextProvider.getActivityExecutionContext();
 		String taskToken = executionContext.getTaskToken();
 		try{
-			RNQuery q = new RNQuery().addFilter("key", workflowId);
-			Transaction tt = dao.queryEntity(q, Transaction.class);
+			Element e = cache.get(workflowId);
+			Transaction tt = (Transaction)e.getObjectValue();
 			tt.setTaskToken(taskToken);
-			dao.flush();
 			String confLink = MessagingServletConfig.basePath + "/rest/withdrawal/approve?key="+URLEncoder.encode(tt.getKey(),"UTF-8");
 			Withdrawal w = (Withdrawal)rsp.getPayload();
 			w.setConfKey(tt.getKey());
 			w.setConfLink(confLink);
 			sendMessage(rsp);
-		} catch (Exception e) {
+		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
-		}finally{
-			dao.closePersistenceManager();
 		}
 		return null;
 	}
@@ -90,20 +94,20 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 		ActivityExecutionContext executionContext = contextProvider.getActivityExecutionContext();
 		String taskToken = executionContext.getTaskToken();
 		try{
-			RNQuery q = new RNQuery().addFilter("key", workflowId);
-			Transaction tt = dao.queryEntity(q, Transaction.class);
+			Element e = cache.get(workflowId);
+			Transaction tt = (Transaction)e.getObjectValue();
 			tt.setTaskToken(taskToken);
-			dao.flush();
 			
-			Account a = dao.getObjectById(rsp.getAccountId(), Account.class);
+			Attributes atts = ctx.getAttributes("cn="+rsp.getCn()+",ou=accounts,"+MessagingServletConfig.ldapBaseDn,new String[]{"pwdAccountLockedTime", "cn"});
+			boolean pwLocked = (atts.get("pwdAccountLockedTime")!=null)?true:false;
 			
-			if (a.getPinWrongCount()<3){
+			if (pwLocked){
 				RestAPI restAPI = new RestAPI(MessagingServletConfig.plivoKey, MessagingServletConfig.plivoSecret, "v1");
 	
 				LinkedHashMap<String, String> params = new LinkedHashMap<String, String>();
 			    params.put("from", rsp.getTo().getGateway());
 			    params.put("to", rsp.getTo().getAddress());
-			    params.put("answer_url", MessagingServletConfig.basePath + "/plivo/answer/"+rsp.getAccountId()+"/"+workflowId+"/"+rsp.getLocale());
+			    params.put("answer_url", MessagingServletConfig.basePath + "/plivo/answer/"+rsp.getCn()+"/"+workflowId+"/"+rsp.getLocale());
 			    params.put("time_limit", "55");
 			   // params.put("ring_timeout", "10");
 			   // params.put("machine_detection", "hangup");
@@ -117,14 +121,12 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 				
 			}
 		    return null;
-		} catch (PlivoException e) {
+		} catch (PlivoException | NamingException e) {
 	        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
 	        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(taskToken);
 	        manualCompletionClient.complete(Action.TX_CANCELED);
 	        e.printStackTrace();
 	        return null;
-		}finally{
-			dao.closePersistenceManager();
 		}
 	}
 
@@ -132,18 +134,23 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 	@Override
 	public DataSet readMessageAddress(DataSet data) {
 		try{
-			Account a = dao.getObjectById(data.getAccountId(), Account.class);
-			MsgAddress ma = pickMsgAddress(a.getMsgAddresses());
+			Attributes atts = ctx.getAttributes("cn="+data.getCn()+",ou=accounts,"+MessagingServletConfig.ldapBaseDn,new String[]{"mobile", "manager","preferedLocale"});
+			String locale = (atts.get("preferedLocale")!=null)?(String)atts.get("preferedLocale").get():null;
+			String gwDn = (atts.get("manager")!=null)?(String)atts.get("manager").get():null;
+			String mobile = (atts.get("mobile")!=null)?(String)atts.get("mobile").get():null;
+			Attributes gwAtts = ctx.getAttributes(gwDn,new String[]{"mobile"});
+			String gwMobile = (gwAtts.get("mobile")!=null)?(String)gwAtts.get("mobile").get():null;
 			MessageAddress to =  new MessageAddress()
-				.setAddress(ma.getAddress())
-				.setAddressType(ma.getType())
-				.setGateway(ma.getGateway().getAddress());
+				.setAddress(mobile)
+				.setAddressType(MsgType.SMS)
+				.setGateway(gwMobile);
 			return data.setTo(to)
-				.setLocale(ma.getLocale())
+				.setLocale(locale)
 				.setService("37coins");
-		}finally{
-			dao.closePersistenceManager();
+		}catch(NamingException e){
+			e.printStackTrace();
 		}
+		return null;
 	}
 
 	public MsgAddress pickMsgAddress(Set<MsgAddress> list){

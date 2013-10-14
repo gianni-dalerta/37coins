@@ -102,7 +102,7 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 							sum = sum.add(tx.getAmount().setScale(8,RoundingMode.UNNECESSARY)).setScale(0, RoundingMode.UNNECESSARY);
 						}
 						DataSet rsp = new DataSet()
-						.setAccountId(Long.parseLong(e.getKey()))
+						.setCn(e.getKey())
 						.setPayload(new Withdrawal()
 							.setTxId(t.getTxid())
 							.setAmount(sum.setScale(8, RoundingMode.FLOOR)))

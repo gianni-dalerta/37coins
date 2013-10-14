@@ -21,15 +21,15 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 	BitcoindInterface client;
 
 	@Override
-	public String sendTransaction(BigDecimal amount, BigDecimal fee, Long fromId, String toId, String toAddress, String id, String message){
-		BigDecimal balance = client.getbalance(fromId.toString()).setScale(8,RoundingMode.FLOOR);
+	public String sendTransaction(BigDecimal amount, BigDecimal fee, String fromCn, String toCn, String toAddress, String id, String message){
+		BigDecimal balance = client.getbalance(fromCn).setScale(8,RoundingMode.FLOOR);
 		if (balance.compareTo(amount.add(fee).setScale(8))<0){
 			throw new RuntimeException("insufficient funds.");
 		}
-		if (null!=toId){
+		if (null!=toCn){
 			boolean rv = client.move(
-					fromId.toString(), 
-					toId, 
+					fromCn, 
+					toCn, 
 					amount, 
 					1L, 
 					id + ((null!=message)?"::"+message:"::_")+((null!=toAddress)?"::"+toAddress:""));
@@ -38,22 +38,22 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 			}
 		}else{
 			String rv = null;
-				rv = client.sendfrom(fromId.toString(), toAddress, amount, 1L, id + ((null!=message)?"::"+message:null),toAddress);
+				rv = client.sendfrom(fromCn, toAddress, amount, 1L, id + ((null!=message)?"::"+message:null),toAddress);
 			return rv;
 		}
 		return null;
 	}
 
 	@Override
-	public BigDecimal getAccountBalance(Long accountId) {
-		BigDecimal rv = client.getbalance(accountId.toString(), 0);
+	public BigDecimal getAccountBalance(String cn) {
+		BigDecimal rv = client.getbalance(cn, 0);
 		rv = rv.setScale(8, RoundingMode.DOWN);
 		return rv;
 	}
 	
 	@Override
-	public String getNewAddress(Long accountId) {
-		return client.getaccountaddress(accountId.toString());
+	public String getNewAddress(String cn) {
+		return client.getaccountaddress(cn);
 	}
 
 	@Override
@@ -63,9 +63,9 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 	}
 	
 	@Override
-	public BigDecimal getTransactionVolume(Long accountId, int hours) {
+	public BigDecimal getTransactionVolume(String cn, int hours) {
 		//get last transactions
-		List<Transaction> list = client.listtransactions(accountId.toString(), 1000, 0);
+		List<Transaction> list = client.listtransactions(cn, 1000, 0);
 		
 		BigDecimal total = BigDecimal.ZERO;
 		for (Transaction tx :list){
@@ -80,9 +80,9 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 	}
 
 	@Override
-	public List<Transaction> getAccountTransactions(Long accountId) {
+	public List<Transaction> getAccountTransactions(String cn) {
 		//get last transactions
-		List<Transaction> list = client.listtransactions(accountId.toString(), 12, 0);
+		List<Transaction> list = client.listtransactions(cn, 12, 0);
 		//group them by workflowId
 		Map<String, List<Transaction>> sets = new HashMap<>();
 		for (Transaction t: list){

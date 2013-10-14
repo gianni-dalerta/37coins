@@ -61,7 +61,7 @@ public class IndexResource {
 	public Response fullindex(@HeaderParam("Accept-Language") String lng){
 		return index(lng);
 	}
-	
+		
 	@GET
 	@Path("res/scripts/templates/{name}.htm")
 	public Response proxy(@PathParam("name") String name) throws IOException{

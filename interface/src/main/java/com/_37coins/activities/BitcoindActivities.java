@@ -11,28 +11,28 @@ import com.amazonaws.services.simpleworkflow.flow.annotations.ActivityRegistrati
 @Activities
 public interface BitcoindActivities {
 	
-    @Activity(name = "SendTransaction", version = "0.5")
+    @Activity(name = "SendTransaction", version = "0.6")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
-    String sendTransaction(BigDecimal amount, BigDecimal fee, Long fromId, String toId, String toAddress, String workflowId, String comment);
+    String sendTransaction(BigDecimal amount, BigDecimal fee, String fromCn, String toCn, String toAddress, String workflowId, String comment);
     
-    @Activity(name = "getAccountBalance", version = "0.2")
+    @Activity(name = "getAccountBalance", version = "0.3")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
-    BigDecimal getAccountBalance(Long accountId);    
+    BigDecimal getAccountBalance(String cn);    
     
-    @Activity(name = "getNewAddress", version = "0.2")
+    @Activity(name = "getNewAddress", version = "0.3")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
-    String getNewAddress(Long accountId);
+    String getNewAddress(String cn);
     
     @Activity(name = "getAccount", version = "0.2")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
     Long getAccount(String bcAddress);
     
-    @Activity(name = "getAccountTransactions", version = "0.1")
+    @Activity(name = "getAccountTransactions", version = "0.2")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
-    List<Transaction> getAccountTransactions(Long accountId);
+    List<Transaction> getAccountTransactions(String cn);
 
-    @Activity(name = "getTransactionVolume", version = "0.1")
+    @Activity(name = "getTransactionVolume", version = "0.2")
     @ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = 30, defaultTaskStartToCloseTimeoutSeconds = 30)
-	BigDecimal getTransactionVolume(Long accountId, int hours);
+	BigDecimal getTransactionVolume(String cn, int hours);
     
 }

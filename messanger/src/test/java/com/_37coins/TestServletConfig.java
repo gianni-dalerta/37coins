@@ -7,7 +7,7 @@ import org.restnucleus.filter.PersistenceFilter;
 import org.restnucleus.log.SLF4JTypeListener;
 
 import com._37coins.envaya.QueueClient;
-import com._37coins.parse.MessageParser;
+import com._37coins.parse.CommandParser;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
@@ -44,8 +44,8 @@ public class TestServletConfig extends GuiceServletContextListener {
 				@Provides
 				@Singleton
 				@SuppressWarnings("unused")
-				public MessageParser getMessageProcessor() {
-				  return new MessageParser();
+				public CommandParser getMessageProcessor() {
+				  return new CommandParser();
 				}
 				
 				@Provides @Singleton @SuppressWarnings("unused")

@@ -1,5 +1,6 @@
 package com._37coins.workflow.pojo;
 
+import java.math.BigDecimal;
 import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -78,7 +79,13 @@ public class DataSet {
 	
 	private String service;
 	
-	private Long accountId;
+	private String gwDn;
+	
+	private BigDecimal gwFee;
+	
+	private String txKey;
+	
+	private String cn;
 	
 	private ResourceBundleModel resBundle;
 	
@@ -165,15 +172,42 @@ public class DataSet {
 		return this;
 	}
 
-	public Long getAccountId() {
-		return accountId;
+	public String getCn() {
+		return cn;
 	}
 
-	public DataSet setAccountId(Long accountId) {
-		this.accountId = accountId;
+	public DataSet setCn(String cn) {
+		this.cn = cn;
 		return this;
 	}
 	
+	public String getGwDn() {
+		return gwDn;
+	}
+
+	public DataSet setGwDn(String gwDn) {
+		this.gwDn = gwDn;
+		return this;
+	}
+
+	public BigDecimal getGwFee() {
+		return gwFee;
+	}
+
+	public DataSet setGwFee(BigDecimal gwFee) {
+		this.gwFee = gwFee;
+		return this;
+	}
+
+	public String getTxKey() {
+		return txKey;
+	}
+
+	public DataSet setTxKey(String txKey) {
+		this.txKey = txKey;
+		return this;
+	}
+
 	public ResourceBundleModel getResBundle() {
 		return resBundle;
 	}

@@ -49,17 +49,17 @@ public class NonTxWorkflowTest {
         // Create and register mock activity implementation to be used during test run
         BitcoindActivities activities = new BitcoindActivities() {
 			@Override
-			public String sendTransaction(BigDecimal amount, BigDecimal fee, Long fromId,
-					String toId, String toAddress, String id, String comment) {
+			public String sendTransaction(BigDecimal amount, BigDecimal fee, String fromCn,
+					String toCn, String toAddress, String id, String comment) {
 				return null;
 			}
 			@Override
-			public BigDecimal getAccountBalance(Long accountId) {
+			public BigDecimal getAccountBalance(String cn) {
 				return new BigDecimal("2.5");
 			}
 			@Override
-			public String getNewAddress(Long accountId) {
-				if (accountId == 1L){
+			public String getNewAddress(String cn) {
+				if (cn.equalsIgnoreCase("1")){
 					return "1Nsateouhasontuh234";
 				}else{
 					throw new RuntimeException("not found");
@@ -70,12 +70,12 @@ public class NonTxWorkflowTest {
 				return null;
 			}
 			@Override
-			public List<Transaction> getAccountTransactions(Long accountId) {
+			public List<Transaction> getAccountTransactions(String cn) {
 				list.add(new Transaction().setTime(System.currentTimeMillis()).setComment("hallo").setAmount(new BigDecimal("0.4")).setTo("hast@test.com"));
 				return list;
 			}
 			@Override
-			public BigDecimal getTransactionVolume(Long accountId, int hours) {
+			public BigDecimal getTransactionVolume(String cn, int hours) {
 				return null;
 			}
         };
@@ -118,7 +118,7 @@ public class NonTxWorkflowTest {
 		NonTxWorkflowClient workflow = workflowFactory.getClient();
 		DataSet data = new DataSet()
 			.setAction(Action.SIGNUP)
-			.setAccountId(1L)
+			.setCn("1")
 			.setTo(new MessageAddress()
 				.setAddress("test@37coins.com"));
 		Promise<Void> booked = workflow.executeCommand(data);
@@ -133,7 +133,7 @@ public class NonTxWorkflowTest {
 		NonTxWorkflowClient workflow = workflowFactory.getClient();
 		DataSet data = new DataSet()
 			.setAction(Action.DEPOSIT_REQ)
-			.setAccountId(1L)
+			.setCn("1")
 			.setTo(new MessageAddress()
 				.setAddress("test@37coins.com"));
 		Promise<Void> booked = workflow.executeCommand(data);
@@ -149,7 +149,7 @@ public class NonTxWorkflowTest {
 		NonTxWorkflowClient workflow = workflowFactory.getClient();
 		DataSet data = new DataSet()
 			.setAction(Action.BALANCE)
-			.setAccountId(1L);
+			.setCn("1");
 		Promise<Void> booked = workflow.executeCommand(data);
 		data.setPayload(new Withdrawal()
 				.setBalance(new BigDecimal("2.5")));
@@ -161,7 +161,7 @@ public class NonTxWorkflowTest {
 		NonTxWorkflowClient workflow = workflowFactory.getClient();
 		DataSet data = new DataSet()
 			.setAction(Action.TRANSACTION)
-			.setAccountId(1L);
+			.setCn("1");
 		Promise<Void> booked = workflow.executeCommand(data);
 		data.setPayload(list);
 		validate("successfull tx", data, trace, booked);

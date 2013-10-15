@@ -168,9 +168,8 @@ public class smsIT {
 	
 	@Test
 	public void testEnvayaReceive() throws InterruptedException, JsonParseException, JsonMappingException, IOException {
-		Long account = 3L;
 		DataSet rsp = new DataSet()
-			.setAccountId(account)
+			.setCn("3")
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.5").setScale(8))
 				.setTxId("1234"))

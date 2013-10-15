@@ -26,16 +26,16 @@ public class NonTxWorkflowImpl implements NonTxWorkflow {
 	public void executeCommand(final DataSet data) {
 		if (data.getAction()==Action.DEPOSIT_REQ 
 				||data.getAction()==Action.SIGNUP){
-			Promise<String> bcAddress = bcdClient.getNewAddress(data.getAccountId());
+			Promise<String> bcAddress = bcdClient.getNewAddress(data.getCn());
 			respondDepositReq(bcAddress, data);
 		}else if (data.getAction()==Action.BALANCE){
-			Promise<BigDecimal> balance = bcdClient.getAccountBalance(data.getAccountId());
+			Promise<BigDecimal> balance = bcdClient.getAccountBalance(data.getCn());
 			respondBalance(balance, data);
 		}else if (data.getAction()==Action.TRANSACTION){
-			Promise<List<Transaction>> transactions = bcdClient.getAccountTransactions(data.getAccountId());
+			Promise<List<Transaction>> transactions = bcdClient.getAccountTransactions(data.getCn());
 			respondTransactions(transactions, data);
 		}else if (data.getAction() == Action.DEPOSIT_CONF){
-			Promise<BigDecimal> balance = bcdClient.getAccountBalance(data.getAccountId());
+			Promise<BigDecimal> balance = bcdClient.getAccountBalance(data.getCn());
 			respondDepositConf(balance, data);
 		}else{
 			throw new RuntimeException("unknown action");

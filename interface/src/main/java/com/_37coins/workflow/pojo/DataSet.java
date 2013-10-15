@@ -1,8 +1,10 @@
 package com._37coins.workflow.pojo;
 
+import java.math.BigDecimal;
 import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -78,7 +80,13 @@ public class DataSet {
 	
 	private String service;
 	
-	private Long accountId;
+	private String gwCn;
+	
+	private BigDecimal gwFee;
+	
+	private String txKey;
+	
+	private String cn;
 	
 	private ResourceBundleModel resBundle;
 	
@@ -114,6 +122,11 @@ public class DataSet {
 		this.action = action;
 		return this;
 	}
+	
+	@JsonIgnore
+	public String getLocaleString() {
+		return locale.toString().replace("_", "-");
+	}
 
 	public Locale getLocale() {
 		return locale;
@@ -121,6 +134,18 @@ public class DataSet {
 
 	public DataSet setLocale(Locale locale) {
 		this.locale = locale;
+		return this;
+	}
+	
+	public DataSet setLocale(String locale){
+		if (null==locale)
+			return this;
+		String[] l = locale.split("[-_]");
+		switch(l.length){
+	        case 2: this.locale = new Locale(l[0], l[1]); break;
+	        case 3: this.locale = new Locale(l[0], l[1], l[2]); break;
+	        default: this.locale = new Locale(l[0]); break;
+	    }
 		return this;
 	}
 
@@ -151,15 +176,44 @@ public class DataSet {
 		return this;
 	}
 
-	public Long getAccountId() {
-		return accountId;
+	public String getCn() {
+		return cn;
 	}
 
-	public DataSet setAccountId(Long accountId) {
-		this.accountId = accountId;
+	public DataSet setCn(String cn) {
+		this.cn = cn;
 		return this;
 	}
 	
+	@JsonIgnore
+	public String getGwCn() {
+		return gwCn;
+	}
+
+	public DataSet setGwCn(String gwCn) {
+		this.gwCn = gwCn;
+		return this;
+	}
+
+	@JsonIgnore
+	public BigDecimal getGwFee() {
+		return gwFee;
+	}
+
+	public DataSet setGwFee(BigDecimal gwFee) {
+		this.gwFee = gwFee;
+		return this;
+	}
+
+	public String getTxKey() {
+		return txKey;
+	}
+
+	public DataSet setTxKey(String txKey) {
+		this.txKey = txKey;
+		return this;
+	}
+
 	public ResourceBundleModel getResBundle() {
 		return resBundle;
 	}

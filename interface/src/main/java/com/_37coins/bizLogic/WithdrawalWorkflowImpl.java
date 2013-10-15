@@ -43,8 +43,8 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     
     @Override
     public void executeCommand(final DataSet data) {
-    	Promise<BigDecimal> balance = bcdClient.getAccountBalance(data.getAccountId());
-    	Promise<BigDecimal> volume24h = bcdClient.getTransactionVolume(data.getAccountId(),24);
+    	Promise<BigDecimal> balance = bcdClient.getAccountBalance(data.getCn());
+    	Promise<BigDecimal> volume24h = bcdClient.getTransactionVolume(data.getCn(),24);
     	handleAccount(balance, volume24h, data);
     }
     
@@ -126,7 +126,7 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
 	    		Promise<String> tx = bcdClient.sendTransaction(
 	    				w.getAmount(), 
 	    				w.getFee(), 
-	    				rsp.get().getAccountId(), 
+	    				rsp.get().getCn(), 
 	    				toId, 
 	    				toAddress,
 	    				contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId(),
@@ -149,7 +149,7 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     	bcdClient.sendTransaction(
     			w.getFee(), 
     			BigDecimal.ZERO, 
-    			data.getAccountId(), 
+    			data.getCn(), 
     			w.getFeeAccount(), 
     			null,
     			contextProvider.getDecisionContext().getWorkflowContext().getWorkflowExecution().getWorkflowId(),
@@ -161,7 +161,7 @@ public class WithdrawalWorkflowImpl implements WithdrawalWorkflow {
     		//start child workflow to tell receiver about his luck
     		DataSet rsp2 = new DataSet()
     			.setAction(Action.DEPOSIT_CONF)
-    			.setAccountId(Long.parseLong(w.getPayDest().getAddress()))
+    			.setCn(w.getPayDest().getAddress())
     			.setPayload(new Withdrawal()
     				.setAmount(w.getAmount())
     				.setTxId(context.getWorkflowContext().getWorkflowExecution().getRunId()));

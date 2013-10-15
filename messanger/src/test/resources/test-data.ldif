@@ -1,0 +1,41 @@
+dn: dc=37coins,dc=com
+objectClass: top
+objectClass: domain
+dc: 37coins
+
+dn: ou=gateways,dc=37coins,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: gateways
+
+dn: ou=accounts,dc=37coins,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: accounts
+
+dn: cn=OZV4N1JS2Z3476NL,ou=gateways,dc=37coins,dc=com
+objectClass: top
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: person
+cn: OZV4N1JS2Z3476NL
+sn: barbie
+givenName: johann
+departmentNumber: test9900
+description: 0.0007
+mail: extraterrestrialintelligence@gmail.com
+mobile: +821027423984
+
+dn: cn=DEV4N1JS2Z3476DE,ou=gateways,dc=37coins,dc=com
+objectClass: top
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: person
+cn: DEV4N1JS2Z3476DE
+sn: german
+givenName: gateway
+departmentNumber: test9900
+description: 0.002
+preferredLanguage: de-DE
+mail: johannbarbie@me.com
+mobile: +491027423984

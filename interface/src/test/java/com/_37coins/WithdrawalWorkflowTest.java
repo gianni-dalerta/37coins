@@ -83,8 +83,8 @@ public class WithdrawalWorkflowTest {
 		BitcoindActivities activities = new BitcoindActivities() {
 			@Override
 			public String sendTransaction(BigDecimal amount, BigDecimal fee,
-					Long fromId, String toId, String toAddress, String id, String comment) {
-				if (null!=amount && null!=fee && null!=fromId &&(null!=toId || null!=toAddress)){
+					String fromCn, String toCn, String toAddress, String id, String comment) {
+				if (null!=amount && null!=fee && null!=fromCn &&(null!=toCn || null!=toAddress)){
 					if (null!=toAddress && toAddress.equalsIgnoreCase(USER3.getPayDest().getAddress())){
 						throw new RuntimeException("unknown reason");
 					}else{
@@ -96,13 +96,13 @@ public class WithdrawalWorkflowTest {
 			}
 
 			@Override
-			public BigDecimal getAccountBalance(Long accountId) {
-				Assert.assertNotNull("getAccountId called with null",accountId);
+			public BigDecimal getAccountBalance(String cn) {
+				Assert.assertNotNull("getAccountId called with null",cn);
 				return USER1.getBalance();
 			}
 
 			@Override
-			public String getNewAddress(Long accountId) {
+			public String getNewAddress(String cn) {
 				return null;
 			}
 			@Override
@@ -110,12 +110,12 @@ public class WithdrawalWorkflowTest {
 				return null;
 			}
 			@Override
-			public List<Transaction> getAccountTransactions(Long accountId) {
+			public List<Transaction> getAccountTransactions(String cn) {
 				return null;
 			}
 
 			@Override
-			public BigDecimal getTransactionVolume(Long accountId, int hours) {
+			public BigDecimal getTransactionVolume(String cn, int hours) {
 				return USER1.getAmount();
 			}
 		};
@@ -128,7 +128,7 @@ public class WithdrawalWorkflowTest {
 
 			@Override
 			public Action sendConfirmation(DataSet rsp, String workflowId) {
-				if (rsp.getAccountId()==Long.parseLong(USER2.getPayDest().getAddress())){
+				if (rsp.getCn().equalsIgnoreCase(USER2.getPayDest().getAddress())){
 					return Action.TX_CANCELED;
 				}else{
 					Withdrawal w = (Withdrawal)rsp.getPayload();
@@ -148,7 +148,7 @@ public class WithdrawalWorkflowTest {
 
 			@Override
 			public Action phoneConfirmation(DataSet rsp, String workflowId) {
-				if (rsp.getAccountId()==Long.parseLong(USER2.getPayDest().getAddress())){
+				if (rsp.getCn().equalsIgnoreCase(USER2.getPayDest().getAddress())){
 					return Action.TX_CANCELED;
 				}else{
 					trace.add(rsp);
@@ -178,7 +178,7 @@ public class WithdrawalWorkflowTest {
 		WithdrawalWorkflowClient workflow = workflowFactory.getClient();
 		DataSet req = new DataSet()
 			.setAction(Action.WITHDRAWAL_REQ)
-			.setAccountId(Long.parseLong(USER1.getPayDest().getAddress()))
+			.setCn(USER1.getPayDest().getAddress())
 			.setTo(USER1.getMsgDest())
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.0011").setScale(8))
@@ -210,7 +210,7 @@ public class WithdrawalWorkflowTest {
 		WithdrawalWorkflowClient workflow = workflowFactory.getClient();
 		DataSet req = new DataSet()
 			.setAction(Action.WITHDRAWAL_REQ)
-			.setAccountId(Long.parseLong(USER1.getPayDest().getAddress()))
+			.setCn(USER1.getPayDest().getAddress())
 			.setTo(USER1.getMsgDest())
 			.setPayload(new Withdrawal()
 				.setComment("hallo")
@@ -243,7 +243,7 @@ public class WithdrawalWorkflowTest {
 		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
 		final DataSet req = new DataSet()
 			.setAction(Action.WITHDRAWAL_REQ)
-			.setAccountId(Long.parseLong(USER2.getPayDest().getAddress()))
+			.setCn(USER2.getPayDest().getAddress())
 			.setTo(USER2.getMsgDest())
 			.setPayload(new Withdrawal()
 				.setComment("hallo")
@@ -279,7 +279,7 @@ public class WithdrawalWorkflowTest {
 		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
 		final DataSet req = new DataSet()
 			.setAction(Action.WITHDRAWAL_REQ)
-			.setAccountId(Long.parseLong(USER2.getPayDest().getAddress()))
+			.setCn(USER2.getPayDest().getAddress())
 			.setTo(USER2.getMsgDest())
 			.setPayload(new Withdrawal()
 				.setComment("hallo")
@@ -316,7 +316,7 @@ public class WithdrawalWorkflowTest {
 		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
 		final DataSet req = new DataSet()
 			.setAction(Action.WITHDRAWAL_REQ)
-			.setAccountId(Long.parseLong(USER1.getPayDest().getAddress()))
+			.setCn(USER1.getPayDest().getAddress())
 			.setTo(USER1.getMsgDest())
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.0011").setScale(8))
@@ -353,7 +353,7 @@ public class WithdrawalWorkflowTest {
 		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
 		final DataSet req = new DataSet()
 			.setAction(Action.WITHDRAWAL_REQ)
-			.setAccountId(Long.parseLong(USER1.getPayDest().getAddress()))
+			.setCn(USER1.getPayDest().getAddress())
 			.setTo(USER1.getMsgDest())
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("100.005").setScale(8))
@@ -391,7 +391,7 @@ public class WithdrawalWorkflowTest {
 		final WithdrawalWorkflowClient workflow = workflowFactory.getClient();
 		final DataSet req = new DataSet()
 			.setAction(Action.WITHDRAWAL_REQ)
-			.setAccountId(Long.parseLong(USER1.getPayDest().getAddress()))
+			.setCn(USER1.getPayDest().getAddress())
 			.setTo(USER1.getMsgDest())
 			.setPayload(new Withdrawal()
 				.setAmount(new BigDecimal("0.0005").setScale(8))

@@ -145,7 +145,7 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 				.setAddressType(MsgType.SMS)
 				.setGateway(gwMobile);
 			return data.setTo(to)
-				.setLocale(locale)
+				.setLocaleString(locale)
 				.setService("37coins");
 		}catch(NamingException e){
 			e.printStackTrace();

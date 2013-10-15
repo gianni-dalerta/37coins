@@ -201,10 +201,9 @@ public class RestTest {
 			.statusCode(200)
 			.body("size()", is(1))
 			.body("[0].action", equalTo("WithdrawalConf"))
-			.body("[0].payload", equalTo("test2"))
+			.body("[0].payload", equalTo("test"))
 		.when()
 			.post(embeddedJetty.getBaseUri() + ParserResource.PATH+"/WithdrawalConf");
-		
 	}
 
 }

@@ -143,7 +143,7 @@ public class ParserResource {
 									.setAddressType(w.getMsgDest().getAddressType())
 									.setGateway(gwMobile))
 								.setCn(cnString)
-								.setLocale((null!=gwLng)?gwLng:data.getLocaleString())
+								.setLocaleString((null!=gwLng)?gwLng:data.getLocaleString())
 								.setService(data.getService());
 							responseList.add(create);
 						} catch (NamingException e1) {

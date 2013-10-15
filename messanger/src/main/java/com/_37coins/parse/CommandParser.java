@@ -14,6 +14,8 @@ import java.util.Set;
 
 import javax.servlet.ServletContext;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import com._37coins.workflow.pojo.DataSet.Action;
 
 public class CommandParser {
@@ -27,7 +29,7 @@ public class CommandParser {
 			Action.WITHDRAWAL_REQ, 
 			Action.WITHDRAWAL_REQ_OTHER);
 	
-	private Map<String, Tag> wordMap = new HashMap<>();
+	private Map<String, Pair<Action,Locale>> wordMap = new HashMap<>();
 
 	public CommandParser() {
 		this(null);
@@ -77,7 +79,7 @@ public class CommandParser {
 				for (Action a : reqCmdList) {
 					String cmdList = rb.getString(a.getText() + "Cmd");
 					for (String cmd : cmdList.split(",")) {
-						wordMap.put(cmd, new Tag(a, locale));
+						wordMap.put(cmd, Pair.of(a, locale));
 					}
 				}
 			} catch (Exception ex) {
@@ -89,7 +91,7 @@ public class CommandParser {
 	private Action replaceCommand(String cmd) {
 		for (String pos : wordMap.keySet()) {
 			if (cmd.equalsIgnoreCase(pos)) {
-				return wordMap.get(pos).getAction();
+				return wordMap.get(pos).getLeft();
 			}
 		}
 		return null;
@@ -98,7 +100,7 @@ public class CommandParser {
 	private Locale readLanguage(String cmd) {
 		for (String pos : wordMap.keySet()) {
 			if (cmd.equalsIgnoreCase(pos)) {
-				return wordMap.get(pos).getLocale();
+				return wordMap.get(pos).getRight();
 			}
 		}
 		return null;

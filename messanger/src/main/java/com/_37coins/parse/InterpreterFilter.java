@@ -72,13 +72,13 @@ public class InterpreterFilter implements Filter {
 			responseData.setGwFee(gwFee).getTo().setGateway(gwMobile);
 			//if existing user, don't forgive wrong commands
 			if (responseData.getAction()==null){
-				responseData.setLocale(locale);//because we did not recognize the command, we also don't know the language
+				responseData.setLocaleString(locale);//because we did not recognize the command, we also don't know the language
 				responseData.setAction(Action.UNKNOWN_COMMAND);
 				respond(responseList,response);
 				return;
 			}
 			//update language if outdated in directory
-			if (responseData.getLocale()!=new DataSet().setLocale(locale).getLocale()){
+			if (responseData.getLocale()!=new DataSet().setLocaleString(locale).getLocale()){
 				Attributes a = new BasicAttributes();
 				a.put("preferredLanguage", responseData.getLocaleString());
 				ctx.modifyAttributes("cn="+cn+",ou=accounts,"+MessagingServletConfig.ldapBaseDn, DirContext.REPLACE_ATTRIBUTE, a);

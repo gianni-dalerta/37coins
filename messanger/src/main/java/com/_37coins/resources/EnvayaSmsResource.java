@@ -1,13 +1,15 @@
 package com._37coins.resources;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -31,39 +33,30 @@ import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com._37coins.MessagingServletConfig;
 import com._37coins.envaya.QueueClient;
-import com._37coins.parse.CommandParser;
+import com._37coins.parse.ParserAction;
+import com._37coins.parse.ParserClient;
 import com._37coins.persistence.dto.Transaction;
-import com._37coins.persistence.dto.Transaction.State;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.pojo.DataSet;
-import com._37coins.workflow.pojo.DataSet.Action;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClient;
 import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactory;
 import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactoryImpl;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Injector;
+
+import freemarker.template.TemplateException;
 
 @Path(EnvayaSmsResource.PATH)
 @Produces(MediaType.APPLICATION_JSON)
 public class EnvayaSmsResource {
-	public static Logger log = LoggerFactory.getLogger(EnvayaSmsResource.class);
 	public final static String PATH = "/envayasms";
-
-	private final CommandParser commandParser;
+	public static Logger log = LoggerFactory.getLogger(EnvayaSmsResource.class);
 
 	private final QueueClient qc;
 	
@@ -71,26 +64,28 @@ public class EnvayaSmsResource {
 	
 	private final WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory;
 	
-	final private AmazonSimpleWorkflow swfService;
+	private final AmazonSimpleWorkflow swfService;
 	
-	final private InitialLdapContext ctx;
+	private final InitialLdapContext ctx;
 	
-	final private Cache cache;
+	private final ParserClient parserClient;
+	
+	private final Cache cache;
 	
 	@Inject public EnvayaSmsResource(ServletRequest request,
-			CommandParser commandParser,
 			QueueClient qc,
 			Injector i,
+			ParserClient parserClient,
 			Cache cache,
 			NonTxWorkflowClientExternalFactoryImpl nonTxFactory,
 			WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory,
 			AmazonSimpleWorkflow swfService) {
 		HttpServletRequest httpReq = (HttpServletRequest)request;
 		ctx = (InitialLdapContext)httpReq.getAttribute("ctx");
-		this.commandParser =commandParser;
 		this.qc = qc;
-		this.swfService = swfService;
 		this.cache = cache;
+		this.swfService = swfService;
+		this.parserClient = parserClient;
 		this.nonTxFactory = nonTxFactory;
 		this.withdrawalFactory = withdrawalFactory;
 	}
@@ -122,48 +117,44 @@ public class EnvayaSmsResource {
 					break;
 				case "incoming":
 					if (params.getFirst("message_type").equalsIgnoreCase("sms")) {
-						//TODO: execute this in a new thread
-						Action action = commandParser.processCommand(params.getFirst("message"));
-						Locale locale = commandParser.guessLocale(params.getFirst("message"));
-						CloseableHttpClient httpclient = HttpClients.createDefault();
-						HttpPost req = new HttpPost("http://localhost/parse/"+action.getText());
-						List <NameValuePair> nvps = new ArrayList <NameValuePair>();
-						nvps.add(new BasicNameValuePair("from", params.getFirst("from")));
-						nvps.add(new BasicNameValuePair("gateway", params.getFirst("phone_number")));
-						nvps.add(new BasicNameValuePair("message", params.getFirst("message")));
-						req.addHeader("Accept-Language", locale.toString().replace("_", "-"));
-						req.setEntity(new UrlEncodedFormEntity(nvps));
-						CloseableHttpResponse rsp = httpclient.execute(req);
-						DataSet result = new ObjectMapper().readValue(rsp.getEntity().getContent(),DataSet.class);
-						String next = "";
-						switch(next){
-						case "withdrawal":
-							//save the transaction id to db
-							Transaction t = new Transaction().setKey(Transaction.generateKey()).setState(State.STARTED);
-							cache.put(new Element(t.getKey(), t));
-							result.setTxKey(t.getKey());
-
-							String workflowId = "???";
-							if (workflowId.equalsIgnoreCase("???"))
-								throw new RuntimeException("implement workflowId passing");
-							withdrawalFactory.getClient(workflowId).executeCommand(result);
-							break;
-						case "deposit":
-							nonTxFactory.getClient(result.getAction()+"-"+result.getCn()).executeCommand(result);
-							break;
-						case "respond":
-							qc.send(result, MessagingServletConfig.queueUri,
-									(String) result.getTo().getGateway(), "amq.direct",
-									"SmsResource" + System.currentTimeMillis());
-							break;
-						case "confirm":
-							Element e = cache.get(result.getPayload());
-							Transaction tx = (Transaction)e.getObjectValue();
-					        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
-					        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());
-					        manualCompletionClient.complete(null);
-					        break;
-						}
+						parserClient.start(params.getFirst("from"), params.getFirst("phone_number"), params.getFirst("message"), 
+						new ParserAction() {
+							@Override
+							public void handleWithdrawal(DataSet data) {
+								//save the transaction id to db
+								Transaction t = new Transaction().setKey(Transaction.generateKey()).setState(Transaction.State.STARTED);
+								cache.put(new Element(t.getKey(), t));
+								withdrawalFactory.getClient(t.getKey()).executeCommand(data);
+							}
+							@Override
+							public void handleResponse(DataSet data) {
+								try {
+									qc.send(data, MessagingServletConfig.queueUri,
+											(String) data.getTo().getGateway(), "amq.direct",
+											"SmsResource" + System.currentTimeMillis());
+								} catch (KeyManagementException
+										| NoSuchAlgorithmException
+										| IOException | TemplateException
+										| URISyntaxException e) {
+									e.printStackTrace();
+								}
+							}
+							
+							@Override
+							public void handleDeposit(DataSet data) {
+								nonTxFactory.getClient(data.getAction()+"-"+data.getCn()).executeCommand(data);
+							}
+							
+							@Override
+							public void handleConfirm(DataSet data) {
+								Element e = cache.get(data.getPayload());
+								Transaction tx = (Transaction)e.getObjectValue();
+						        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
+						        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());
+						        manualCompletionClient.complete(null);
+							}
+						});
+						
 					}
 				break;
 			}

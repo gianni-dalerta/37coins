@@ -70,15 +70,10 @@ public class InterpreterFilter implements Filter {
 			String gwMobile = (gwAtts.get("mobile")!=null)?(String)gwAtts.get("mobile").get():null;
 			String gwCn = (gwAtts.get("cn")!=null)?(String)gwAtts.get("cn").get():null;
 			responseData.setGwFee(gwFee).getTo().setGateway(gwMobile);
-			//if existing user, don't forgive wrong commands
-			if (responseData.getAction()==null){
+			if (responseData.getAction()==Action.UNKNOWN_COMMAND){
 				responseData.setLocaleString(locale);//because we did not recognize the command, we also don't know the language
-				responseData.setAction(Action.UNKNOWN_COMMAND);
-				respond(responseList,response);
-				return;
-			}
-			//update language if outdated in directory
-			if (responseData.getLocale()!=new DataSet().setLocaleString(locale).getLocale()){
+			}else if (responseData.getLocale()!=new DataSet().setLocaleString(locale).getLocale()){
+				//update language if outdated in directory
 				Attributes a = new BasicAttributes();
 				a.put("preferredLanguage", responseData.getLocaleString());
 				ctx.modifyAttributes("cn="+cn+",ou=accounts,"+MessagingServletConfig.ldapBaseDn, DirContext.REPLACE_ATTRIBUTE, a);
@@ -116,10 +111,6 @@ public class InterpreterFilter implements Filter {
 					.setService(responseData.getService());
 				responseList.add(create);
 				httpReq.setAttribute("create", create);
-				//nothing to do if this was the first message and had no meaning 
-				if (responseData.getAction()==null){
-					return;
-				}
 			}catch(NamingException e1){
 				e1.printStackTrace();
 				httpResponse.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -135,6 +126,7 @@ public class InterpreterFilter implements Filter {
 		OutputStream os = null;
 		try {
 			HttpServletResponse httpResponse = (HttpServletResponse) response;
+			httpResponse.setContentType("application/json");
 			os = httpResponse.getOutputStream();
 			new ObjectMapper().writeValue(os, dsl);
 		} catch (IOException e) {

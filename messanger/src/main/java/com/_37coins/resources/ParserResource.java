@@ -1,6 +1,5 @@
 package com._37coins.resources;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -180,7 +179,6 @@ public class ParserResource {
 		//(otherwise tx history gets screwed up)
 		if (w.getAmount().compareTo(w.getFee())<=0){
 			data.setAction(Action.BELOW_FEE);
-			w.setAmount(w.getFee().add(new BigDecimal("0.00001").setScale(8)));
 			return responseList;
 		}
 		return responseList;
@@ -198,6 +196,13 @@ public class ParserResource {
 		return responseList;
 	}
 	
-	
+	@POST
+	@Path("/UnknownCommand")
+	public List<DataSet> unknown(){
+		if (responseList.size()==2){
+			responseList.remove(0);
+		}
+		return (responseList.size()>0)?responseList:null;
+	}	
 
 }

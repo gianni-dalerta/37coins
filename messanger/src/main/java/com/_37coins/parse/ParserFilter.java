@@ -79,7 +79,7 @@ public class ParserFilter implements Filter {
 			List<DataSet> responseList = new ArrayList<>();
 			responseList.add(responseData);
 			//use it
-			if (responseData.getAction()==null||CommandParser.reqCmdList.contains(responseData.getAction())){
+			if (responseData.getAction()==Action.UNKNOWN_COMMAND||CommandParser.reqCmdList.contains(responseData.getAction())){
 				httpReq.setAttribute("dsl", responseList);
 				chain.doFilter(request, response);
 			}else{

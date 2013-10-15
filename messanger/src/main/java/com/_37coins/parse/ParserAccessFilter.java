@@ -19,10 +19,10 @@ public class ParserAccessFilter implements Filter {
 		String clientAddr = request.getRemoteAddr();
 		if (clientAddr.equalsIgnoreCase("localhost")
 				|| clientAddr.equalsIgnoreCase("127.0.0.1")) {
+			chain.doFilter(request, response);
+		} else {
 			handleInvalidAccess(request, response, clientAddr);
 			return;
-		} else {
-			chain.doFilter(request, response);
 		}
 	}
 

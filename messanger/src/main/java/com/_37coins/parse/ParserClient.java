@@ -45,7 +45,7 @@ public class ParserClient extends Thread {
 		Action action = commandParser.processCommand(message);
 		Locale locale = commandParser.guessLocale(message);
 		CloseableHttpClient httpclient = HttpClients.createDefault();
-		HttpPost req = new HttpPost("http://localhost/parse/"+((null!=action)?action.getText():"unknown"));
+		HttpPost req = new HttpPost("http://localhost/parse/"+((null!=action)?action.getText():"UnknownCommand"));
 		List <NameValuePair> nvps = new ArrayList <NameValuePair>();
 		nvps.add(new BasicNameValuePair("from", from));
 		nvps.add(new BasicNameValuePair("gateway", gateway));

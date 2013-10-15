@@ -190,9 +190,9 @@ public class RestTest {
 			.body("[0].payload.fee", equalTo(0.002f))
 			.body("[0].payload.feeAccount", equalTo("DEV4N1JS2Z3476DE"))
 			.body("[0].cn", equalTo("491087654321"))
-		//confirm a transaction
 		.when()
 			.post(embeddedJetty.getBaseUri() + ParserResource.PATH+"/WithdrawalReqOther");
+		//confirm a transaction
 		given()
 			.formParam("from", "+821012345678")
 			.formParam("gateway", "+821027423984")
@@ -204,6 +204,40 @@ public class RestTest {
 			.body("[0].payload", equalTo("test"))
 		.when()
 			.post(embeddedJetty.getBaseUri() + ParserResource.PATH+"/WithdrawalConf");
+		//ask help
+		given()
+			.formParam("from", "+821099999999")
+			.formParam("gateway", "+821027423984")
+			.formParam("message", "bla")
+		.expect()
+			.statusCode(200)
+			.body("size()", is(1))
+			.body("[0].action", equalTo("Signup"))
+			.body("[0].cn", equalTo("821099999999"))
+			.body("[0].to.gateway", equalTo("+821027423984"))
+		.when()
+			.post(embeddedJetty.getBaseUri() + ParserResource.PATH+"/UnknownCommand");
+		//ask again
+		given()
+			.formParam("from", "+821099999999")
+			.formParam("gateway", "+821027423984")
+			.formParam("message", "bla")
+		.expect()
+			.statusCode(200)
+			.body("size()", is(1))
+			.body("[0].action", equalTo("UnknownCommand"))
+		.when()
+			.post(embeddedJetty.getBaseUri() + ParserResource.PATH+"/UnknownCommand");
+		//to little
+		given()
+			.formParam("from", "+821099999999")
+			.formParam("gateway", "+821027423984")
+			.formParam("message", "send 0.0001 +821012345678")
+		.expect()
+			.statusCode(200)
+			.body("[0].action", equalTo("BelowFee"))
+		.when()
+			.post(embeddedJetty.getBaseUri() + ParserResource.PATH+"/WithdrawalReq");
 	}
 
 }

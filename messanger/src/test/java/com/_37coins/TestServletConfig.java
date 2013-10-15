@@ -1,13 +1,17 @@
 package com._37coins;
 
-import javax.jdo.PersistenceManagerFactory;
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.config.CacheConfiguration;
+import net.sf.ehcache.store.MemoryStoreEvictionPolicy;
 
-import org.restnucleus.PersistenceConfiguration;
-import org.restnucleus.filter.PersistenceFilter;
+import org.apache.shiro.realm.ldap.JndiLdapContextFactory;
 import org.restnucleus.log.SLF4JTypeListener;
 
 import com._37coins.envaya.QueueClient;
 import com._37coins.parse.CommandParser;
+import com._37coins.parse.InterpreterFilter;
+import com._37coins.parse.ParserFilter;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
@@ -30,22 +34,29 @@ public class TestServletConfig extends GuiceServletContextListener {
 		 injector = Guice.createInjector(new ServletModule(){
 	            @Override
 	            protected void configureServlets(){
-	            	filter("/*").through(PersistenceFilter.class);
+	            	filter("/envayasms/*").through(DirectoryFilter.class);
+	            	//filter("/parser/*").through(ParserAccessFilter.class); //make sure no-one can access those urls
+	            	filter("/parser/*").through(ParserFilter.class); //read message into dataset
+	            	filter("/parser/*").through(DirectoryFilter.class); //allow directory access
+	            	filter("/parser/*").through(InterpreterFilter.class); //do semantic stuff
 	            	bindListener(Matchers.any(), new SLF4JTypeListener());
 	        	}
-	            
-				@Provides @Singleton @SuppressWarnings("unused")
-				PersistenceManagerFactory providePersistence(){
-					PersistenceConfiguration pc = new PersistenceConfiguration();
-					pc.createEntityManagerFactory();
-					return pc.getPersistenceManagerFactory();
-				}
 				
 				@Provides
 				@Singleton
 				@SuppressWarnings("unused")
 				public CommandParser getMessageProcessor() {
 				  return new CommandParser();
+				}
+				
+				@Provides @Singleton @SuppressWarnings("unused")
+				public JndiLdapContextFactory provideLdapClientFactory(){
+					JndiLdapContextFactory jlc = new JndiLdapContextFactory();
+					jlc.setUrl(MessagingServletConfig.ldapUrl);
+					jlc.setAuthenticationMechanism("simple");
+					jlc.setSystemUsername(MessagingServletConfig.ldapUser);
+					jlc.setSystemPassword(MessagingServletConfig.ldapPw);
+					return jlc;
 				}
 				
 				@Provides @Singleton @SuppressWarnings("unused")
@@ -74,7 +85,21 @@ public class TestServletConfig extends GuiceServletContextListener {
 				@Provides @Singleton @SuppressWarnings("unused")
 				public QueueClient provideMessageFactory(MessageFactory mf) {
 					return new QueueClient(mf);
-				}				
+				}	
+		       	@Provides @Singleton @SuppressWarnings("unused")
+	        	public Cache provideCache(){
+	        		//Create a singleton CacheManager using defaults
+	        		CacheManager manager = CacheManager.create();
+	        		//Create a Cache specifying its configuration.
+	        		Cache testCache = new Cache(new CacheConfiguration("cache", 1000)
+	        		    .memoryStoreEvictionPolicy(MemoryStoreEvictionPolicy.LFU)
+	        		    .eternal(false)
+	        		    .timeToLiveSeconds(7200)
+	        		    .timeToIdleSeconds(3600)
+	        		    .diskExpiryThreadIntervalSeconds(0));
+	        		  manager.addCache(testCache);
+	        		  return testCache;
+	        	}
 			});
 		return injector;
 	}

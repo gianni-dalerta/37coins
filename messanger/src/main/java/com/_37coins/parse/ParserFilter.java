@@ -3,7 +3,7 @@ package com._37coins.parse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.RoundingMode;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -31,8 +31,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.bitcoin.core.AddressFormatException;
 import com.google.bitcoin.core.Base58;
 import com.google.i18n.phonenumbers.NumberParseException;
-import com.google.inject.Key;
-import com.google.inject.name.Names;
 
 @Singleton
 public class ParserFilter implements Filter {
@@ -46,40 +44,42 @@ public class ParserFilter implements Filter {
 		String gateway = httpReq.getParameter("gateway");
 		String message = httpReq.getParameter("message");
 		// Parse the locale
-		String str = httpReq.getHeader("Accept-Language").split(",")[0];
-		String[] arr = str.trim().replace("-", "_").split(";");
+		String acceptLng = httpReq.getHeader("Accept-Language");
 		Locale locale = null;
-		String[] l = arr[0].split("_");
-		switch (l.length) {
-		case 2:
-			locale = new Locale(l[0], l[1]);
-			break;
-		case 3:
-			locale = new Locale(l[0], l[1], l[2]);
-			break;
-		default:
-			locale = new Locale(l[0]);
-			break;
+		if (null!=acceptLng){
+			String str = acceptLng.split(",")[0];
+			String[] arr = str.trim().replace("-", "_").split(";");
+			
+			String[] l = arr[0].split("_");
+			switch (l.length) {
+			case 2:
+				locale = new Locale(l[0], l[1]);
+				break;
+			case 3:
+				locale = new Locale(l[0], l[1], l[2]);
+				break;
+			default:
+				locale = new Locale(l[0]);
+				break;
+			}
 		}
-		//TODO: set default
-		//		if (null==data.getLocale()){
-		//			data.setLocale(new Locale("en"));
-		//		}
+		if (null==locale){
+			locale = new Locale("eo_UY"); //esperanto
+		}
 		// parse action
 		String url = httpReq.getRequestURL().toString();
 		String actionString = url.substring(
-				url.indexOf(ParserResource.PATH) + 1, url.length());
+				url.indexOf(ParserResource.PATH) + ParserResource.PATH.length() + 1, url.length());
 		try {
 			// parse message address
 			MessageAddress md = MessageAddress.fromString(from, gateway)
 					.setGateway(gateway);
 			// parse message into dataset
 			DataSet responseData = process(md, message, locale,Action.fromString(actionString));
-			List<DataSet> responseList = Arrays.asList(responseData);
+			List<DataSet> responseList = new ArrayList<>();
+			responseList.add(responseData);
 			//use it
 			if (responseData.getAction()==null||CommandParser.reqCmdList.contains(responseData.getAction())){
-				httpReq.setAttribute(Key.get(List.class, Names.named("dsl"))
-						.toString(), responseList);
 				httpReq.setAttribute("dsl", responseList);
 				chain.doFilter(request, response);
 			}else{

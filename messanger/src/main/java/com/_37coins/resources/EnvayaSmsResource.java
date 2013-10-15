@@ -27,6 +27,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriInfo;
 
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.Element;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -41,10 +44,16 @@ import org.slf4j.LoggerFactory;
 import com._37coins.MessagingServletConfig;
 import com._37coins.envaya.QueueClient;
 import com._37coins.parse.CommandParser;
+import com._37coins.persistence.dto.Transaction;
+import com._37coins.persistence.dto.Transaction.State;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.DataSet.Action;
+import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClient;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactory;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactoryImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Injector;
 
@@ -62,18 +71,26 @@ public class EnvayaSmsResource {
 	
 	private final WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory;
 	
+	final private AmazonSimpleWorkflow swfService;
+	
 	final private InitialLdapContext ctx;
+	
+	final private Cache cache;
 	
 	@Inject public EnvayaSmsResource(ServletRequest request,
 			CommandParser commandParser,
 			QueueClient qc,
 			Injector i,
+			Cache cache,
 			NonTxWorkflowClientExternalFactoryImpl nonTxFactory,
-			WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory) {
+			WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory,
+			AmazonSimpleWorkflow swfService) {
 		HttpServletRequest httpReq = (HttpServletRequest)request;
 		ctx = (InitialLdapContext)httpReq.getAttribute("ctx");
 		this.commandParser =commandParser;
 		this.qc = qc;
+		this.swfService = swfService;
+		this.cache = cache;
 		this.nonTxFactory = nonTxFactory;
 		this.withdrawalFactory = withdrawalFactory;
 	}
@@ -86,7 +103,7 @@ public class EnvayaSmsResource {
 			@Context UriInfo uriInfo){
 		Map<String, Object> rv = new HashMap<>();
 		try{
-			String dn = "cn="+cn+","+MessagingServletConfig.ldapBaseDn;
+			String dn = "cn="+cn+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
 			Attributes atts = ctx.getAttributes(dn,new String[]{"departmentNumber"});
 			String envayaToken = (atts.get("departmentNumber")!=null)?(String)atts.get("departmentNumber").get():null;
 			String calcSig = calculateSignature(uriInfo.getRequestUri().toString(), params, envayaToken);
@@ -95,46 +112,59 @@ public class EnvayaSmsResource {
 						javax.ws.rs.core.Response.Status.UNAUTHORIZED);
 			}
 			switch (params.getFirst("action")) {
-			case "status":
-				log.info("id " + params.get("id"));
-				log.info("status " + params.get("status"));
-				log.info("error " + params.get("error"));
-				break;
-			case "amqp_started":
-				log.info("consumerTag " + params.get("consumer_tag"));
-				break;
-			case "incoming":
-				if (params.getFirst("message_type").equalsIgnoreCase("sms")) {
-					//TODO: execute this in a new thread
-					Action action = commandParser.processCommand(params.getFirst("message"));
-					Locale locale = commandParser.guessLocale(params.getFirst("message"));
-					CloseableHttpClient httpclient = HttpClients.createDefault();
-					HttpPost req = new HttpPost("http://localhost/parse/"+action.getText());
-					List <NameValuePair> nvps = new ArrayList <NameValuePair>();
-					nvps.add(new BasicNameValuePair("from", params.getFirst("from")));
-					nvps.add(new BasicNameValuePair("gateway", params.getFirst("phone_number")));
-					nvps.add(new BasicNameValuePair("message", params.getFirst("message")));
-					req.addHeader("Accept-Language", locale.toString().replace("_", "-"));
-					req.setEntity(new UrlEncodedFormEntity(nvps));
-					CloseableHttpResponse rsp = httpclient.execute(req);
-					DataSet result = new ObjectMapper().readValue(rsp.getEntity().getContent(),DataSet.class);
-					String next = "";
-					switch(next){
-					case "withdrawal":
-						String workflowId = "???";
-						if (workflowId.equalsIgnoreCase("???"))
-							throw new RuntimeException("implement workflowId passing");
-						withdrawalFactory.getClient(workflowId).executeCommand(result);
-						break;
-					case "deposit":
-						nonTxFactory.getClient(result.getAction()+"-"+result.getCn()).executeCommand(result);
-						break;
-					case "respond":
-						qc.send(result, MessagingServletConfig.queueUri,
-								(String) result.getTo().getGateway(), "amq.direct",
-								"SmsResource" + System.currentTimeMillis());
+				case "status":
+					log.info("id " + params.get("id"));
+					log.info("status " + params.get("status"));
+					log.info("error " + params.get("error"));
+					break;
+				case "amqp_started":
+					log.info("consumerTag " + params.get("consumer_tag"));
+					break;
+				case "incoming":
+					if (params.getFirst("message_type").equalsIgnoreCase("sms")) {
+						//TODO: execute this in a new thread
+						Action action = commandParser.processCommand(params.getFirst("message"));
+						Locale locale = commandParser.guessLocale(params.getFirst("message"));
+						CloseableHttpClient httpclient = HttpClients.createDefault();
+						HttpPost req = new HttpPost("http://localhost/parse/"+action.getText());
+						List <NameValuePair> nvps = new ArrayList <NameValuePair>();
+						nvps.add(new BasicNameValuePair("from", params.getFirst("from")));
+						nvps.add(new BasicNameValuePair("gateway", params.getFirst("phone_number")));
+						nvps.add(new BasicNameValuePair("message", params.getFirst("message")));
+						req.addHeader("Accept-Language", locale.toString().replace("_", "-"));
+						req.setEntity(new UrlEncodedFormEntity(nvps));
+						CloseableHttpResponse rsp = httpclient.execute(req);
+						DataSet result = new ObjectMapper().readValue(rsp.getEntity().getContent(),DataSet.class);
+						String next = "";
+						switch(next){
+						case "withdrawal":
+							//save the transaction id to db
+							Transaction t = new Transaction().setKey(Transaction.generateKey()).setState(State.STARTED);
+							cache.put(new Element(t.getKey(), t));
+							result.setTxKey(t.getKey());
+
+							String workflowId = "???";
+							if (workflowId.equalsIgnoreCase("???"))
+								throw new RuntimeException("implement workflowId passing");
+							withdrawalFactory.getClient(workflowId).executeCommand(result);
+							break;
+						case "deposit":
+							nonTxFactory.getClient(result.getAction()+"-"+result.getCn()).executeCommand(result);
+							break;
+						case "respond":
+							qc.send(result, MessagingServletConfig.queueUri,
+									(String) result.getTo().getGateway(), "amq.direct",
+									"SmsResource" + System.currentTimeMillis());
+							break;
+						case "confirm":
+							Element e = cache.get(result.getPayload());
+							Transaction tx = (Transaction)e.getObjectValue();
+					        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
+					        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());
+					        manualCompletionClient.complete(null);
+					        break;
+						}
 					}
-				}
 				break;
 			}
 		}catch(Exception e){

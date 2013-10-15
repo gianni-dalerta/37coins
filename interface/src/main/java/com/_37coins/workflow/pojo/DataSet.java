@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -79,7 +80,7 @@ public class DataSet {
 	
 	private String service;
 	
-	private String gwDn;
+	private String gwCn;
 	
 	private BigDecimal gwFee;
 	
@@ -122,6 +123,7 @@ public class DataSet {
 		return this;
 	}
 	
+	@JsonIgnore
 	public String getLocaleString() {
 		return locale.toString().replace("_", "-");
 	}
@@ -136,6 +138,8 @@ public class DataSet {
 	}
 	
 	public DataSet setLocale(String locale){
+		if (null==locale)
+			return this;
 		String[] l = locale.split("[-_]");
 		switch(l.length){
 	        case 2: this.locale = new Locale(l[0], l[1]); break;
@@ -181,15 +185,17 @@ public class DataSet {
 		return this;
 	}
 	
-	public String getGwDn() {
-		return gwDn;
+	@JsonIgnore
+	public String getGwCn() {
+		return gwCn;
 	}
 
-	public DataSet setGwDn(String gwDn) {
-		this.gwDn = gwDn;
+	public DataSet setGwCn(String gwCn) {
+		this.gwCn = gwCn;
 		return this;
 	}
 
+	@JsonIgnore
 	public BigDecimal getGwFee() {
 		return gwFee;
 	}

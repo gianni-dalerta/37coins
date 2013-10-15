@@ -23,13 +23,8 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.Element;
-
 import com._37coins.BasicAccessAuthFilter;
 import com._37coins.MessagingServletConfig;
-import com._37coins.persistence.dto.Transaction;
-import com._37coins.persistence.dto.Transaction.State;
 import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
@@ -37,33 +32,23 @@ import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
 import com._37coins.workflow.pojo.Withdrawal;
-import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
-import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClient;
-import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactory;
-import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactoryImpl;
-import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
 
 @Path(ParserResource.PATH)
 @Produces(MediaType.APPLICATION_JSON)
 public class ParserResource {
 	public final static String PATH = "/parser";
 	
-	final private AmazonSimpleWorkflow swfService;
 	final private List<DataSet> responseList;
 	final private InitialLdapContext ctx;
-	final private Cache cache;
 	
 	@SuppressWarnings("unchecked")
-	@Inject public ParserResource(Cache cache,
-			ServletRequest request, 
-			AmazonSimpleWorkflow swfService,
-			InitialLdapContext ctx) {
+	@Inject public ParserResource(ServletRequest request) {
 		HttpServletRequest httpReq = (HttpServletRequest)request;
 		responseList = (List<DataSet>)httpReq.getAttribute("dsl");
-		this.swfService = swfService;
-		this.cache = cache;
-		this.ctx = ctx;
+		DataSet ds = (DataSet)httpReq.getAttribute("create");
+		if (null!=ds)
+			responseList.add(ds);
+		this.ctx = (InitialLdapContext)httpReq.getAttribute("ctx");;
 	}
 	
 	@POST
@@ -97,6 +82,7 @@ public class ParserResource {
 			String cn = null;
 			String gwDn = null;
 			String gwMobile = null;
+			String gwLng = null;
 			try{
 				Attributes atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)(mobile="+w.getMsgDest().getAddress()+"))", ctx).getAttributes();
 				cn = (atts.get("cn")!=null)?(String)atts.get("cn").get():null;
@@ -106,7 +92,7 @@ public class ParserResource {
 					//set gateway from referring user's gateway
 					if (data.getTo().getAddressType() == MsgType.SMS 
 							&& w.getMsgDest().getPhoneNumber().getCountryCode() == data.getTo().getPhoneNumber().getCountryCode()){
-						gwDn = data.getGwDn();
+						gwDn = "cn="+data.getGwCn()+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
 						gwMobile = data.getTo().getGateway();
 					}else{//or try to find a gateway in the database
 						try{
@@ -114,11 +100,14 @@ public class ParserResource {
 							SearchControls searchControls = new SearchControls();
 							searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
 							searchControls.setTimeLimit(1000);
-							NamingEnumeration<?> namingEnum = ctx.search("ou=gateways,"+MessagingServletConfig.ldapBaseDn, "(&(objectClass=person)(mobile="+w.getMsgDest().getPhoneNumber().getCountryCode()+"*))", searchControls);
+							String cc = "+" + w.getMsgDest().getPhoneNumber().getCountryCode();
+							NamingEnumeration<?> namingEnum = ctx.search("ou=gateways,"+MessagingServletConfig.ldapBaseDn, "(&(objectClass=person)(mobile="+cc+"*))", searchControls);
 							if (namingEnum.hasMore ()){
 								Attributes attributes = ((SearchResult) namingEnum.next()).getAttributes();
 								gwMobile = (attributes.get("mobile")!=null)?(String)attributes.get("mobile").get():null;
-								gwDn = "cn="+cn+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
+								String gwCn = (attributes.get("cn")!=null)?(String)attributes.get("cn").get():null;
+								gwLng = (attributes.get("preferredLanguage")!=null)?(String)attributes.get("preferredLanguage").get():null;
+								gwDn = "cn="+gwCn+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
 								namingEnum.close();
 							}else{
 								throw new RuntimeException("no gateway available for this user");
@@ -136,13 +125,14 @@ public class ParserResource {
 						Attribute sn=new BasicAttribute("sn");
 						Attribute cnAtr=new BasicAttribute("cn");
 						String cnString = w.getMsgDest().getAddress().replace("+", "");
+						cn = cnString;
 						sn.add(cnString);
 						cnAtr.add(cnString);
 						attributes.put(sn);
 						attributes.put(cnAtr);
 						attributes.put("manager", gwDn);
 						attributes.put((w.getMsgDest().getAddressType()==MsgType.SMS)?"mobile":"mail", w.getMsgDest().getAddress());
-						attributes.put("preferredLocale", data.getLocaleString());
+						attributes.put("preferredLanguage", data.getLocaleString());
 						try {
 							ctx.createSubcontext("cn="+cnString+",ou=accounts,"+MessagingServletConfig.ldapBaseDn, attributes);
 							//and say hi to new user
@@ -151,9 +141,9 @@ public class ParserResource {
 								.setTo(new MessageAddress()
 									.setAddress(w.getMsgDest().getAddressObject())
 									.setAddressType(w.getMsgDest().getAddressType())
-									.setGateway(PhoneNumberUtil.getInstance().format(w.getMsgDest().getPhoneNumber(),PhoneNumberFormat.E164)))
+									.setGateway(gwMobile))
 								.setCn(cnString)
-								.setLocale(data.getLocale())
+								.setLocale((null!=gwLng)?gwLng:data.getLocaleString())
 								.setService(data.getService());
 							responseList.add(create);
 						} catch (NamingException e1) {
@@ -185,7 +175,7 @@ public class ParserResource {
 		}
 		//set the fee
 		w.setFee(data.getGwFee());
-		w.setFeeAccount(data.getGwDn());
+		w.setFeeAccount(data.getGwCn());
 		//check that transaction amount is > fee 
 		//(otherwise tx history gets screwed up)
 		if (w.getAmount().compareTo(w.getFee())<=0){
@@ -193,10 +183,6 @@ public class ParserResource {
 			w.setAmount(w.getFee().add(new BigDecimal("0.00001").setScale(8)));
 			return responseList;
 		}
-		//save the transaction id to db
-		Transaction t = new Transaction().setKey(Transaction.generateKey()).setState(State.STARTED);
-		cache.put(new Element(t.getKey(), t));
-		data.setTxKey(t.getKey());
 		return responseList;
 	}
 
@@ -208,12 +194,8 @@ public class ParserResource {
 	
 	@POST
 	@Path("/WithdrawalConf")
-	public void withdrawalConf(){
-		Element e = cache.get(responseList.get(0).getPayload());
-		Transaction tx = (Transaction)e.getObjectValue();
-        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
-        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());
-        manualCompletionClient.complete(null);
+	public List<DataSet> withdrawalConf(){
+		return responseList;
 	}
 	
 	

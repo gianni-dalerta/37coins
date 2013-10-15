@@ -54,7 +54,7 @@ public class InterpreterFilter implements Filter {
 			//read the user
 			Attributes atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)(mobile="+responseData.getTo().getAddress()+"))", ctx).getAttributes();
 			boolean pwLocked = (atts.get("pwdAccountLockedTime")!=null)?true:false;
-			String locale = (atts.get("preferedLocale")!=null)?(String)atts.get("preferedLocale").get():null;
+			String locale = (atts.get("preferredLanguage")!=null)?(String)atts.get("preferredLanguage").get():null;
 			String gwDn = (atts.get("manager")!=null)?(String)atts.get("manager").get():null;
 			String cn = (atts.get("cn")!=null)?(String)atts.get("cn").get():null;
 			//check if account is disabled
@@ -65,9 +65,10 @@ public class InterpreterFilter implements Filter {
 			}
 			responseData.setCn(cn);
 				//read the gateway
-			Attributes gwAtts = ctx.getAttributes(gwDn,new String[]{"mobile", "cn"});
-			BigDecimal gwFee = (atts.get("description")!=null)?new BigDecimal((String)atts.get("description").get()).setScale(8):null;
+			Attributes gwAtts = ctx.getAttributes(gwDn,new String[]{"mobile", "cn", "description"});
+			BigDecimal gwFee = (gwAtts.get("description")!=null)?new BigDecimal((String)gwAtts.get("description").get()).setScale(8):null;
 			String gwMobile = (gwAtts.get("mobile")!=null)?(String)gwAtts.get("mobile").get():null;
+			String gwCn = (gwAtts.get("cn")!=null)?(String)gwAtts.get("cn").get():null;
 			responseData.setGwFee(gwFee).getTo().setGateway(gwMobile);
 			//if existing user, don't forgive wrong commands
 			if (responseData.getAction()==null){
@@ -79,16 +80,15 @@ public class InterpreterFilter implements Filter {
 			//update language if outdated in directory
 			if (responseData.getLocale()!=new DataSet().setLocale(locale).getLocale()){
 				Attributes a = new BasicAttributes();
-				a.put("preferedLocale", responseData.getLocale());
+				a.put("preferredLanguage", responseData.getLocaleString());
 				ctx.modifyAttributes("cn="+cn+",ou=accounts,"+MessagingServletConfig.ldapBaseDn, DirContext.REPLACE_ATTRIBUTE, a);
 			}
-			responseData.setGwDn(gwDn);
+			responseData.setGwCn(gwCn);
 		}catch (NameNotFoundException e){//new user
 			try{
 				//search the gateway from directory
 				Attributes atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)(mobile="+responseData.getTo().getGateway()+"))", ctx).getAttributes();
 				String gwCn = (atts.get("cn")!=null)?(String)atts.get("cn").get():null;
-				String gwDn = "cn="+gwCn+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
 				BigDecimal gwFee = (atts.get("description")!=null)?new BigDecimal((String)atts.get("description").get()).setScale(8):null;
 				//build a new user and same
 				Attributes attributes=new BasicAttributes();
@@ -104,9 +104,9 @@ public class InterpreterFilter implements Filter {
 				attributes.put(cn);
 				attributes.put("manager", "cn="+gwCn+",ou=gateways,"+MessagingServletConfig.ldapBaseDn);
 				attributes.put((responseData.getTo().getAddressType()==MsgType.SMS)?"mobile":"mail", responseData.getTo().getAddress());
-				attributes.put("preferredLocale", responseData.getLocaleString());
+				attributes.put("preferredLanguage", responseData.getLocaleString());
 				ctx.createSubcontext("cn="+cnString+",ou=accounts,"+MessagingServletConfig.ldapBaseDn, attributes);
-				responseData.setCn(cnString).setGwDn(gwDn).setGwFee(gwFee);
+				responseData.setCn(cnString).setGwCn(gwCn).setGwFee(gwFee);
 				//respond to new user with welcome message
 				DataSet create = new DataSet()
 					.setAction(Action.SIGNUP)
@@ -115,6 +115,7 @@ public class InterpreterFilter implements Filter {
 					.setLocale(responseData.getLocale())
 					.setService(responseData.getService());
 				responseList.add(create);
+				httpReq.setAttribute("create", create);
 				//nothing to do if this was the first message and had no meaning 
 				if (responseData.getAction()==null){
 					return;

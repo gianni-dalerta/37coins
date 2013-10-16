@@ -72,6 +72,8 @@ public class EnvayaSmsResource {
 	
 	private final Cache cache;
 	
+	private int localPort;
+	
 	@Inject public EnvayaSmsResource(ServletRequest request,
 			QueueClient qc,
 			Injector i,
@@ -81,6 +83,7 @@ public class EnvayaSmsResource {
 			WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory,
 			AmazonSimpleWorkflow swfService) {
 		HttpServletRequest httpReq = (HttpServletRequest)request;
+		localPort = httpReq.getLocalPort();
 		ctx = (InitialLdapContext)httpReq.getAttribute("ctx");
 		this.qc = qc;
 		this.cache = cache;
@@ -117,7 +120,7 @@ public class EnvayaSmsResource {
 					break;
 				case "incoming":
 					if (params.getFirst("message_type").equalsIgnoreCase("sms")) {
-						parserClient.start(params.getFirst("from"), params.getFirst("phone_number"), params.getFirst("message"), 
+						parserClient.start(params.getFirst("from"), params.getFirst("phone_number"), params.getFirst("message"), localPort,
 						new ParserAction() {
 							@Override
 							public void handleWithdrawal(DataSet data) {

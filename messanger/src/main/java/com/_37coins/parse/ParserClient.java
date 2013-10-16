@@ -24,6 +24,7 @@ public class ParserClient extends Thread {
 	private String from;
 	private String gateway;
 	private String message;
+	private int localPort;
 	private final CommandParser commandParser;
 	private ParserAction pa;
 	
@@ -32,10 +33,11 @@ public class ParserClient extends Thread {
 		this.commandParser = commandParser;
 	}
 	
-	public void start(String from, String gateway, String message, ParserAction pa){
+	public void start(String from, String gateway, String message, int localPort, ParserAction pa){
 		this.from = from;
 		this.gateway = gateway;
 		this.message = message;
+		this.localPort = localPort;
 		this.pa = pa;
 		this.start();
 	}
@@ -45,7 +47,7 @@ public class ParserClient extends Thread {
 		Action action = commandParser.processCommand(message);
 		Locale locale = commandParser.guessLocale(message);
 		CloseableHttpClient httpclient = HttpClients.createDefault();
-		HttpPost req = new HttpPost("http://localhost/parse/"+((null!=action)?action.getText():"UnknownCommand"));
+		HttpPost req = new HttpPost("http://127.0.0.1:"+localPort+"/parse/"+((null!=action)?action.getText():"UnknownCommand"));
 		List <NameValuePair> nvps = new ArrayList <NameValuePair>();
 		nvps.add(new BasicNameValuePair("from", from));
 		nvps.add(new BasicNameValuePair("gateway", gateway));

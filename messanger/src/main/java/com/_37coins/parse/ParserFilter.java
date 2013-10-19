@@ -96,6 +96,7 @@ public class ParserFilter implements Filter {
 		OutputStream os = null;
 		try {
 			HttpServletResponse httpResponse = (HttpServletResponse) response;
+			httpResponse.setContentType("application/json");
 			os = httpResponse.getOutputStream();
 			new ObjectMapper().writeValue(os, dsl);
 		} catch (IOException e) {
@@ -135,6 +136,8 @@ public class ParserFilter implements Filter {
 			w.setMsgDest(MessageAddress.fromString(receiver, to));
 			return true;
 		} catch (AddressException | NumberParseException e1) {
+			return false;
+		} catch (RuntimeException e2){
 			return false;
 		}
 	}

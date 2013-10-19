@@ -52,7 +52,7 @@ public class InterpreterFilter implements Filter {
 		//get user from directory
 		try{
 			//read the user
-			Attributes atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)(mobile="+responseData.getTo().getAddress()+"))", ctx).getAttributes();
+			Attributes atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)("+((responseData.getTo().getAddressType()==MsgType.SMS)?"mobile":"mail")+"="+responseData.getTo().getAddress()+"))", ctx).getAttributes();
 			boolean pwLocked = (atts.get("pwdAccountLockedTime")!=null)?true:false;
 			String locale = (atts.get("preferredLanguage")!=null)?(String)atts.get("preferredLanguage").get():null;
 			String gwDn = (atts.get("manager")!=null)?(String)atts.get("manager").get():null;
@@ -65,11 +65,17 @@ public class InterpreterFilter implements Filter {
 			}
 			responseData.setCn(cn);
 				//read the gateway
-			Attributes gwAtts = ctx.getAttributes(gwDn,new String[]{"mobile", "cn", "description"});
+			Attributes gwAtts = ctx.getAttributes(gwDn,new String[]{"mobile", "cn", "mail", "description"});
 			BigDecimal gwFee = (gwAtts.get("description")!=null)?new BigDecimal((String)gwAtts.get("description").get()).setScale(8):null;
 			String gwMobile = (gwAtts.get("mobile")!=null)?(String)gwAtts.get("mobile").get():null;
+			String gwMail = (gwAtts.get("mail")!=null)?(String)gwAtts.get("mail").get():null;
 			String gwCn = (gwAtts.get("cn")!=null)?(String)gwAtts.get("cn").get():null;
-			responseData.setGwFee(gwFee).getTo().setGateway(gwMobile);
+			responseData.setGwFee(gwFee);
+			if (responseData.getTo().getAddressType() == MsgType.SMS){
+				responseData.getTo().setGateway(gwMobile);
+			}else{
+				responseData.getTo().setGateway(gwMail);
+			}
 			if (responseData.getAction()==Action.UNKNOWN_COMMAND){
 				responseData.setLocaleString(locale);//because we did not recognize the command, we also don't know the language
 			}else if (responseData.getLocale()!=new DataSet().setLocaleString(locale).getLocale()){
@@ -82,7 +88,8 @@ public class InterpreterFilter implements Filter {
 		}catch (NameNotFoundException e){//new user
 			try{
 				//search the gateway from directory
-				Attributes atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)(mobile="+responseData.getTo().getGateway()+"))", ctx).getAttributes();
+				String searchAtr = (responseData.getTo().getAddressType() == MsgType.SMS)?"mobile":"mail";
+				Attributes atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)("+searchAtr+"="+responseData.getTo().getGateway()+"))", ctx).getAttributes();
 				String gwCn = (atts.get("cn")!=null)?(String)atts.get("cn").get():null;
 				BigDecimal gwFee = (atts.get("description")!=null)?new BigDecimal((String)atts.get("description").get()).setScale(8):null;
 				//build a new user and same

@@ -85,7 +85,9 @@ public class GatewayResource {
 			Attributes atts = ctx.getAttributes(gu.getId(),new String[]{"mobile", "description","preferedLocale","departmentNumber"});
 			gu.setMobile((atts.get("mobile")!=null)?(String)atts.get("mobile").get():null);
 			gu.setCode("");
-			gu.setLocale((atts.get("preferedLocale")!=null)?(String)atts.get("preferedLocale").get():null);
+			if (atts.get("preferedLocale")!=null){
+				gu.setLocaleString((String)atts.get("preferedLocale").get());
+			}
 			//some abuses here: description -> fee and departementNumber -> envayaToken
 			gu.setFee((atts.get("description")!=null)?new BigDecimal((String)atts.get("description").get()).setScale(8):null);
 			gu.setEnvayaToken((atts.get("departmentNumber")!=null)?(String)atts.get("departmentNumber").get():null);
@@ -111,7 +113,7 @@ public class GatewayResource {
 			throw new WebApplicationException(e,Response.Status.INTERNAL_SERVER_ERROR);
 		}
 		PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
-		if (mobile ==null && gu.getCode()==null){
+		if (mobile ==null && gu.getCode()==null && null!=gu.getMobile()){
 			//start validation for received mobile number
 			try {
 				// parse the number
@@ -154,11 +156,11 @@ public class GatewayResource {
 			PhoneNumber pn = (PhoneNumber)e.getObjectValue();
 			try {
 				Attributes a = new BasicAttributes();
-				a.put("preferedLocale", gu.getLocaleString());
+				a.put("preferredLanguage", gu.getLocaleString());
 				a.put("mobile",phoneUtil.format(pn, PhoneNumberFormat.E164));
 				//some abuses here: description -> fee and departementNumber -> envayapw
 				a.put("description",FEE.toString());
-				a.put("departmentNumber",RandomStringUtils.random(8, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789"));
+				a.put("departmentNumber",RandomStringUtils.random(12, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789"));
 				ctx.modifyAttributes(context.getUserPrincipal().getName(), DirContext.REPLACE_ATTRIBUTE, a);
 			} catch (IllegalStateException | NamingException e1) {
 				e1.printStackTrace();
@@ -185,8 +187,8 @@ public class GatewayResource {
 				throw new WebApplicationException(e1, Response.Status.INTERNAL_SERVER_ERROR);
 			}finally{
 				try {
-					if (null!=channel) channel.close();
-					if (null!=conn) conn.close();
+					if (null!=channel&&channel.isOpen()) channel.close();
+					if (null!=conn&&conn.isOpen()) conn.close();
 				} catch (IOException e1) {}
 			}
 		}else if (mobile.equalsIgnoreCase(gu.getMobile()) && gu.getFee()!=null) {

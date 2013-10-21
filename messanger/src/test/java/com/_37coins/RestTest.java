@@ -11,17 +11,25 @@ import java.security.NoSuchAlgorithmException;
 
 import javax.ws.rs.core.Form;
 
+import junit.framework.Assert;
+
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com._37coins.parse.CommandParser;
+import com._37coins.parse.ParserAction;
+import com._37coins.parse.ParserClient;
 import com._37coins.persistence.dto.Account;
 import com._37coins.resources.EnvayaSmsResource;
 import com._37coins.resources.HealthCheckResource;
 import com._37coins.resources.ParserResource;
+import com._37coins.workflow.pojo.DataSet;
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.restassured.http.ContentType;
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
@@ -62,6 +70,53 @@ public class RestTest {
     @AfterClass
     public static void afterClass() throws Exception {
         embeddedJetty.stop();
+    }
+    
+    @Test
+	public void testParserClient() throws NoSuchAlgorithmException, UnsupportedEncodingException{
+    	ParserClient parserClient = new ParserClient(new CommandParser());
+		parserClient.start("+821039842742", "+821027423984", "bal", 8087,
+		new ParserAction() {
+			@Override
+			public void handleWithdrawal(DataSet data) {
+				//save the transaction id to db
+				try {
+					System.out.println(new ObjectMapper().writeValueAsString(data));
+				} catch (JsonProcessingException e) {
+					e.printStackTrace();
+				}
+				Assert.assertFalse(data.getTo().getGateway().contains("+"));
+			}
+			@Override
+			public void handleResponse(DataSet data) {
+				try {
+					System.out.println(new ObjectMapper().writeValueAsString(data));
+				} catch (JsonProcessingException e) {
+					e.printStackTrace();
+				}
+				Assert.assertFalse(data.getTo().getGateway().contains("+"));
+			}
+			
+			@Override
+			public void handleDeposit(DataSet data) {
+				try {
+					System.out.println(new ObjectMapper().writeValueAsString(data));
+				} catch (JsonProcessingException e) {
+					e.printStackTrace();
+				}
+				Assert.assertFalse(data.getTo().getGateway().contains("+"));
+			}
+			
+			@Override
+			public void handleConfirm(DataSet data) {
+				try {
+					System.out.println(new ObjectMapper().writeValueAsString(data));
+				} catch (JsonProcessingException e) {
+					e.printStackTrace();
+				}
+				Assert.assertFalse(data.getTo().getGateway().contains("+"));
+			}
+		});
     }
 	
 	@Test

@@ -4,3 +4,11 @@ target
 datanucleus.log
 .classpath
 **/aws.properties
+
+*.crt
+
+*.key
+
+webui/ca.srl
+
+webui/server.csr

@@ -10,7 +10,6 @@ var mountFolder = function (connect, dir) {
 // 'test/spec/{,*/}*.js'
 // use this if you want to match all subfolders:
 // 'test/spec/**/*.js'
-
 module.exports = function (grunt) {
     // load all grunt tasks
     require('matchdep').filterDev('grunt-*').forEach(grunt.loadNpmTasks);
@@ -20,7 +19,7 @@ module.exports = function (grunt) {
         app: 'app',
         dist: 'dist'
     };
-
+    grunt.loadNpmTasks('grunt-contrib-connect');
     grunt.initConfig({
         yeoman: yeomanConfig,
         watch: {
@@ -47,10 +46,18 @@ module.exports = function (grunt) {
             }
         },
         connect: {
+            server: {
+                options: {
+                    protocol: 'https',
+                    hostname: '0.0.0.0',
+                    port: 9000
+                },
+            },
             options: {
                 port: 9000,
                 // change this to '0.0.0.0' to access the server from outside
-                hostname: '0.0.0.0'
+                hostname: '0.0.0.0',
+                protocol: 'https'
             },
             livereload: {
                 options: {
@@ -85,7 +92,7 @@ module.exports = function (grunt) {
         },
         open: {
             server: {
-                path: 'http://localhost:<%= connect.options.port %>'
+                path: 'https://localhost:<%= connect.options.port %>'
             }
         },
         clean: {

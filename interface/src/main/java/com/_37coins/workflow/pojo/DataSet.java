@@ -123,7 +123,9 @@ public class DataSet {
 	
 	@JsonIgnore
 	public String getLocaleString() {
-		return locale.toString().replace("_", "-");
+		if (null!=locale)
+			return locale.toString().replace("_", "-");
+		return null;
 	}
 
 	public Locale getLocale() {

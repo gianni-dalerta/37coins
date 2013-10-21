@@ -72,7 +72,7 @@ public class InterpreterFilter implements Filter {
 			String gwCn = (gwAtts.get("cn")!=null)?(String)gwAtts.get("cn").get():null;
 			responseData.setGwFee(gwFee);
 			if (responseData.getTo().getAddressType() == MsgType.SMS){
-				responseData.getTo().setGateway(gwMobile);
+				responseData.getTo().setGateway(gwCn);
 			}else{
 				responseData.getTo().setGateway(gwMail);
 			}
@@ -100,6 +100,7 @@ public class InterpreterFilter implements Filter {
 				Attribute sn=new BasicAttribute("sn");
 				Attribute cn=new BasicAttribute("cn");
 				String cnString = responseData.getTo().getAddress().replace("+", "");
+				responseData.getTo().setGateway(gwCn);
 				sn.add(cnString);
 				cn.add(cnString);
 				attributes.put(sn);

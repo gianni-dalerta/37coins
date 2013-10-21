@@ -1,9 +1,8 @@
 package com._37coins.resources;
 
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -65,16 +64,15 @@ public class IndexResource {
 	@GET
 	@Path("res/scripts/templates/{name}.htm")
 	public Response proxy(@PathParam("name") String name) throws IOException{
-		URL oracle = new URL(MessagingServletConfig.resPath+"scripts/templates/"+name+".htm");
-        BufferedReader in = new BufferedReader(new InputStreamReader(oracle.openStream()));
+		BufferedReader br = new BufferedReader(new FileReader("/Users/johann/37coins/webui/app/scripts/templates/"+name+".htm"));
         try{
 	        StringBuilder sb = new StringBuilder();
 	        String inputLine;
-	        while ((inputLine = in.readLine()) != null)
+	        while ((inputLine = br.readLine()) != null)
 	        	sb.append(inputLine);
 	        return Response.ok(sb.toString(), MediaType.TEXT_HTML_TYPE).build();
         }finally{
-        	in.close();
+        	br.close();
         }
 	}
 	

@@ -2,10 +2,13 @@ package com._37coins.parse;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
 import javax.inject.Inject;
+import javax.mail.internet.AddressException;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -17,7 +20,10 @@ import org.apache.http.message.BasicNameValuePair;
 
 import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.DataSet.Action;
+import com._37coins.workflow.pojo.MessageAddress;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.i18n.phonenumbers.NumberParseException;
 
 public class ParserClient extends Thread {
 	
@@ -47,37 +53,47 @@ public class ParserClient extends Thread {
 		Action action = commandParser.processCommand(message);
 		Locale locale = commandParser.guessLocale(message);
 		CloseableHttpClient httpclient = HttpClients.createDefault();
-		HttpPost req = new HttpPost("http://127.0.0.1:"+localPort+"/parse/"+((null!=action)?action.getText():"UnknownCommand"));
+		HttpPost req = new HttpPost("http://127.0.0.1:"+localPort+"/parser/"+((null!=action)?action.getText():"UnknownCommand"));
 		List <NameValuePair> nvps = new ArrayList <NameValuePair>();
 		nvps.add(new BasicNameValuePair("from", from));
 		nvps.add(new BasicNameValuePair("gateway", gateway));
 		nvps.add(new BasicNameValuePair("message", message));
-		req.addHeader("Accept-Language", locale.toString().replace("_", "-"));
-		DataSet result = null;
+		if (null!=locale){
+			req.addHeader("Accept-Language", locale.toString().replace("_", "-"));
+		}
+		List<DataSet> results = null;
 		try {
 			req.setEntity(new UrlEncodedFormEntity(nvps));
 			CloseableHttpResponse rsp = httpclient.execute(req);
-			result = new ObjectMapper().readValue(rsp.getEntity().getContent(),DataSet.class);
-		} catch (IOException e) {
+			if (rsp.getStatusLine().getStatusCode()==200){
+				results = new ObjectMapper().readValue(rsp.getEntity().getContent(),new TypeReference<List<DataSet>>() { });
+				Collections.reverse(results);
+			}
+			if (null==results){
+				results = Arrays.asList(new DataSet().setAction(Action.FORMAT_ERROR).setTo(MessageAddress.fromString(from, gateway)).setLocale(locale));
+			}
+		} catch (IOException |AddressException |NumberParseException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return;
 		}
-		switch(result.getAction()){
-		case WITHDRAWAL_REQ_OTHER:
-		case WITHDRAWAL_REQ:
-			pa.handleWithdrawal(result);
-			break;
-		case BALANCE:
-		case TRANSACTION:
-		case DEPOSIT_REQ:
-			pa.handleDeposit(result);
-			break;
-		case WITHDRAWAL_CONF:
-			pa.handleConfirm(result);
-	        break;
-		default:
-			pa.handleResponse(result);
-			break;
+		for (DataSet result: results){
+			switch(result.getAction()){
+			case WITHDRAWAL_REQ_OTHER:
+			case WITHDRAWAL_REQ:
+				pa.handleWithdrawal(result);
+				break;
+			case BALANCE:
+			case TRANSACTION:
+			case DEPOSIT_REQ:
+				pa.handleDeposit(result);
+				break;
+			case WITHDRAWAL_CONF:
+				pa.handleConfirm(result);
+		        break;
+			default:
+				pa.handleResponse(result);
+				break;
+			}
 		}
 	}
 	

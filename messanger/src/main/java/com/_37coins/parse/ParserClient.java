@@ -22,7 +22,10 @@ import com._37coins.workflow.pojo.DataSet;
 import com._37coins.workflow.pojo.DataSet.Action;
 import com._37coins.workflow.pojo.MessageAddress;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
 import com.google.i18n.phonenumbers.NumberParseException;
 
 public class ParserClient extends Thread {
@@ -66,7 +69,11 @@ public class ParserClient extends Thread {
 			req.setEntity(new UrlEncodedFormEntity(nvps));
 			CloseableHttpResponse rsp = httpclient.execute(req);
 			if (rsp.getStatusLine().getStatusCode()==200){
-				results = new ObjectMapper().readValue(rsp.getEntity().getContent(),new TypeReference<List<DataSet>>() { });
+				ObjectMapper mapper = new ObjectMapper();
+				mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false); 
+		        mapper.enableDefaultTyping(DefaultTyping.NON_FINAL);
+				results = mapper.readValue(rsp.getEntity().getContent(),new TypeReference<List<DataSet>>() { });
 				Collections.reverse(results);
 			}
 			if (null==results){

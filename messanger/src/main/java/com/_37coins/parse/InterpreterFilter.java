@@ -64,25 +64,38 @@ public class InterpreterFilter implements Filter {
 				return;
 			}
 			responseData.setCn(cn);
-				//read the gateway
+			//read the gateway
 			Attributes gwAtts = ctx.getAttributes(gwDn,new String[]{"mobile", "cn", "mail", "description"});
 			BigDecimal gwFee = (gwAtts.get("description")!=null)?new BigDecimal((String)gwAtts.get("description").get()).setScale(8):null;
-			String gwMobile = (gwAtts.get("mobile")!=null)?(String)gwAtts.get("mobile").get():null;
 			String gwMail = (gwAtts.get("mail")!=null)?(String)gwAtts.get("mail").get():null;
+			String gwMobile = (gwAtts.get("mobile")!=null)?(String)gwAtts.get("mobile").get():null;
 			String gwCn = (gwAtts.get("cn")!=null)?(String)gwAtts.get("cn").get():null;
-			responseData.setGwFee(gwFee);
-			if (responseData.getTo().getAddressType() == MsgType.SMS){
-				responseData.getTo().setGateway(gwCn);
-			}else{
-				responseData.getTo().setGateway(gwMail);
+
+			Attributes toModify = new BasicAttributes();
+			//check if gateway changed
+			String gwAddress = (responseData.getTo().getAddressType() == MsgType.SMS)?gwMobile:gwMail;
+			if (!(null==responseData.getTo().getGateway()||gwAddress.equalsIgnoreCase(responseData.getTo().getGateway()))){
+				//look up the new gateway and overwrite all values
+				Attributes gw2Atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)("+((responseData.getTo().getAddressType()==MsgType.SMS)?"mobile":"mail")+"="+responseData.getTo().getGateway()+"))", ctx).getAttributes();
+				gwFee = (gw2Atts.get("description")!=null)?new BigDecimal((String)gw2Atts.get("description").get()).setScale(8):null;
+				gwMail = (gw2Atts.get("mail")!=null)?(String)gw2Atts.get("mail").get():null;
+				gwMobile = (gw2Atts.get("mobile")!=null)?(String)gw2Atts.get("mobile").get():null;
+				gwCn = (gw2Atts.get("cn")!=null)?(String)gw2Atts.get("cn").get():null;
+				//update the user
+				toModify.put("manager", "cn="+gwCn+",ou=gateways,"+MessagingServletConfig.ldapBaseDn);
 			}
+			responseData.setGwFee(gwFee);			
+			responseData.getTo().setGateway((responseData.getTo().getAddressType() == MsgType.SMS)?gwCn:gwMail);
+			//deal with language
 			if (responseData.getAction()==Action.UNKNOWN_COMMAND){
 				responseData.setLocaleString(locale);//because we did not recognize the command, we also don't know the language
 			}else if (responseData.getLocale()!=new DataSet().setLocaleString(locale).getLocale()){
 				//update language if outdated in directory
-				Attributes a = new BasicAttributes();
-				a.put("preferredLanguage", responseData.getLocaleString());
-				ctx.modifyAttributes("cn="+cn+",ou=accounts,"+MessagingServletConfig.ldapBaseDn, DirContext.REPLACE_ATTRIBUTE, a);
+				toModify.put("preferredLanguage", responseData.getLocaleString());
+			}
+			//update user if necessary
+			if (toModify.size()>0){
+				ctx.modifyAttributes("cn="+cn+",ou=accounts,"+MessagingServletConfig.ldapBaseDn, DirContext.REPLACE_ATTRIBUTE, toModify);
 			}
 			responseData.setGwCn(gwCn);
 		}catch (NameNotFoundException e){//new user

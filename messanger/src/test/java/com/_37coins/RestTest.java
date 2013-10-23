@@ -75,7 +75,7 @@ public class RestTest {
     @Test
 	public void testParserClient() throws NoSuchAlgorithmException, UnsupportedEncodingException{
     	ParserClient parserClient = new ParserClient(new CommandParser());
-		parserClient.start("+821039842742", "+821027423984", "bal", 8087,
+		parserClient.start("+821039842742", "+821027423984", "send 0.1 +821039842743", 8087,
 		new ParserAction() {
 			@Override
 			public void handleWithdrawal(DataSet data) {
@@ -202,7 +202,7 @@ public class RestTest {
 			.body("size()", is(2))
 			.body("[0].action", equalTo("Help"))
 			.body("[0].cn", equalTo("821012345678"))
-			.body("[0].to.gateway", equalTo("+821027423984"))
+			.body("[0].to.gateway", equalTo("OZV4N1JS2Z3476NL"))
 			.body("[1].action", equalTo("Signup"))
 		.when()
 			.post(embeddedJetty.getBaseUri() + ParserResource.PATH+"/Help");
@@ -301,7 +301,7 @@ public class RestTest {
 			.body("[0].payload.fee", equalTo(0.0007f))
 			.body("[0].payload.feeAccount", equalTo("OZV4N1JS2Z3476NL"))
 			.body("[1].action", equalTo("Signup"))
-			.body("[1].to.gateway", equalTo("+821027423984"))
+			.body("[1].to.gateway", equalTo("OZV4N1JS2Z3476NL"))
 			.body("[1].cn", equalTo("821087654321"))
 		.when()
 			.post(embeddedJetty.getBaseUri() + ParserResource.PATH+"/WithdrawalReq");
@@ -360,7 +360,7 @@ public class RestTest {
 			.body("size()", is(1))
 			.body("[0].action", equalTo("Signup"))
 			.body("[0].cn", equalTo("821099999999"))
-			.body("[0].to.gateway", equalTo("+821027423984"))
+			.body("[0].to.gateway", equalTo("OZV4N1JS2Z3476NL"))
 		.when()
 			.post(embeddedJetty.getBaseUri() + ParserResource.PATH+"/UnknownCommand");
 		//ask again

@@ -1,39 +1,50 @@
 package com._37coins;
 
+import java.io.IOException;
+
 import javax.mail.Message;
+import javax.mail.MessagingException;
 import javax.mail.event.MessageCountEvent;
 import javax.mail.event.MessageCountListener;
 import javax.mail.internet.InternetAddress;
 
-import org.restnucleus.dao.GenericRepository;
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.Element;
 
-import com._37coins.parse.CommandParser;
+import com._37coins.parse.ParserAction;
+import com._37coins.parse.ParserClient;
+import com._37coins.persistence.dto.Transaction;
 import com._37coins.sendMail.MailTransporter;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.pojo.DataSet;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClient;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactory;
+import com.amazonaws.services.simpleworkflow.flow.ManualActivityCompletionClientFactoryImpl;
 import com.google.inject.Inject;
 
-public class EmailListener implements MessageCountListener{
-	
-	@Inject 
+import freemarker.template.TemplateException;
+
+public class EmailListener implements MessageCountListener {
+
+	@Inject
 	WithdrawalWorkflowClientExternalFactoryImpl withdrawalFactory;
-	
-	@Inject 
+
+	@Inject
 	NonTxWorkflowClientExternalFactoryImpl nonTxFactory;
-	
+
 	@Inject
 	MailTransporter mt;
 	
 	@Inject
-	CommandParser mp;
+	ParserClient parserClient;
 	
+	@Inject
+	Cache cache;
+
 	@Inject
 	AmazonSimpleWorkflow swfService;
-	
-	@Inject
-	GenericRepository dao;
 
 	@Override
 	public void messagesRemoved(MessageCountEvent e) {
@@ -41,20 +52,50 @@ public class EmailListener implements MessageCountListener{
 
 	@Override
 	public void messagesAdded(MessageCountEvent e) {
-		
+
 		for (Message m : e.getMessages()) {
-			try{
-			//parse from
+				// parse from
 			String from = null;
-			if (null == m.getFrom() || m.getFrom().length != 1) {
-				DataSet rsp = new DataSet();
-				mt.sendMessage(rsp);
-				return;
-			} else {
+			try{
+				if (null == m.getFrom() || m.getFrom().length != 1) {
+					throw new MessagingException("could not parse from field");
+				}
 				from = ((InternetAddress) m.getFrom()[0]).getAddress();
-			}
-			throw new RuntimeException("not implemented");
-			}catch(Exception ex){
+				parserClient.start(from, MessagingServletConfig.imapUser, m.getSubject(), MessagingServletConfig.localPort,
+				new ParserAction() {
+					@Override
+					public void handleWithdrawal(DataSet data) {
+						//save the transaction id to db
+						Transaction t = new Transaction().setKey(Transaction.generateKey()).setState(Transaction.State.STARTED);
+						cache.put(new Element(t.getKey(), t));
+						withdrawalFactory.getClient(t.getKey()).executeCommand(data);
+					}
+					@Override
+					public void handleResponse(DataSet data) {
+						try {
+							mt.sendMessage(data);
+						} catch (IOException | TemplateException | MessagingException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					
+					@Override
+					public void handleDeposit(DataSet data) {
+						nonTxFactory.getClient(data.getAction()+"-"+data.getCn()).executeCommand(data);
+					}
+					
+					@Override
+					public void handleConfirm(DataSet data) {
+						Element e = cache.get(data.getPayload());
+						Transaction tx = (Transaction)e.getObjectValue();
+				        ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
+				        ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());
+				        manualCompletionClient.complete(null);
+					}
+				});
+
+			} catch (MessagingException ex) {
 				ex.printStackTrace();
 			}
 		}

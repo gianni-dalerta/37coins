@@ -1,12 +1,7 @@
 package com._37coins;
 
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Enumeration;
 import java.util.concurrent.TimeUnit;
 
-import javax.jdo.PersistenceManagerFactory;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
@@ -17,7 +12,6 @@ import net.sf.ehcache.store.MemoryStoreEvictionPolicy;
 
 import org.apache.shiro.guice.web.GuiceShiroFilter;
 import org.apache.shiro.realm.ldap.JndiLdapContextFactory;
-import org.restnucleus.PersistenceConfiguration;
 import org.restnucleus.log.SLF4JTypeListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +46,6 @@ import com.google.inject.name.Named;
 import com.google.inject.name.Names;
 import com.google.inject.servlet.GuiceServletContextListener;
 import com.google.inject.servlet.ServletModule;
-import com.mysql.jdbc.AbandonedConnectionCleanupThread;
 
 
 
@@ -79,6 +72,7 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 	public static String ldapUser;
 	public static String ldapPw;
 	public static String ldapBaseDn;
+	public static int localPort;
 	public static Logger log = LoggerFactory.getLogger(MessagingServletConfig.class);
 	public static Injector injector;
 	static {
@@ -128,10 +122,12 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 				Names.named("withdrawal")));
 		withdrawalWorker.start();
 		// set up receiving mails
-		jPM = new JavaPushMailAccount(imapUser, imapHost, IMAP_PORT, IMAP_SSL);
-		jPM.setCredentials(imapUser, imapPassword);
-		jPM.setMessageCounterListerer(i.getInstance(EmailListener.class));
-		jPM.run();
+		if (null!=imapUser){
+			jPM = new JavaPushMailAccount(imapUser, imapHost, IMAP_PORT, IMAP_SSL);
+			jPM.setCredentials(imapUser, imapPassword);
+			jPM.setMessageCounterListerer(i.getInstance(EmailListener.class));
+			jPM.run();
+		}
 		log.info("ServletContextListener started");
 	}
 	
@@ -151,13 +147,6 @@ public class MessagingServletConfig extends GuiceServletContextListener {
         		bind(MessagingActivitiesImpl.class).annotatedWith(Names.named("activityImpl")).to(MessagingActivitiesImpl.class);
         		bind(ParserClient.class);
         	}
-            
-			@Provides @Singleton @SuppressWarnings("unused")
-			PersistenceManagerFactory providePersistence(){
-				PersistenceConfiguration pc = new PersistenceConfiguration();
-				pc.createEntityManagerFactory();
-				return pc.getPersistenceManagerFactory();
-			}
 			
 			@Provides
 			@Singleton
@@ -288,10 +277,8 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 	
     @Override
 	public void contextDestroyed(ServletContextEvent sce) {
-		Injector injector = (Injector) sce.getServletContext().getAttribute(Injector.class.getName());
-		injector.getInstance(PersistenceManagerFactory.class).close();
-		deregisterJdbc();
-		jPM.disconnect();
+    	if (null!=jPM)
+    		jPM.disconnect();
 		try {
 			activityWorker.shutdownAndAwaitTermination(1, TimeUnit.MINUTES);
             System.out.println("Activity Worker Exited.");
@@ -302,28 +289,5 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 		super.contextDestroyed(sce);
 		log.info("ServletContextListener destroyed");
 	}
-
-	public void deregisterJdbc() {
-		// This manually deregisters JDBC driver, which prevents Tomcat 7 from
-		// complaining about memory leaks wrto this class
-		Enumeration<Driver> drivers = DriverManager.getDrivers();
-		while (drivers.hasMoreElements()) {
-			Driver driver = drivers.nextElement();
-			try {
-				DriverManager.deregisterDriver(driver);
-				log.info(String.format("deregistering jdbc driver: %s", driver));
-			} catch (SQLException e) {
-				log.info(String.format("Error deregistering driver %s", driver));
-				e.printStackTrace();
-			}
-		}
-		try {
-			AbandonedConnectionCleanupThread.shutdown();
-		} catch (InterruptedException e) {
-			log.warn("SEVERE problem cleaning up: " + e.getMessage());
-			e.printStackTrace();
-		}
-	}
-
 
 }

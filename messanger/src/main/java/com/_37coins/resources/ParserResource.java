@@ -31,6 +31,11 @@ import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
 import com._37coins.workflow.pojo.Withdrawal;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 @Path(ParserResource.PATH)
 @Produces(MediaType.APPLICATION_JSON)
@@ -39,6 +44,7 @@ public class ParserResource {
 	
 	final private List<DataSet> responseList;
 	final private InitialLdapContext ctx;
+	final private ObjectMapper mapper;
 	
 	@SuppressWarnings("unchecked")
 	@Inject public ParserResource(ServletRequest request) {
@@ -47,33 +53,53 @@ public class ParserResource {
 		DataSet ds = (DataSet)httpReq.getAttribute("create");
 		if (null!=ds)
 			responseList.add(ds);
-		this.ctx = (InitialLdapContext)httpReq.getAttribute("ctx");;
+		this.ctx = (InitialLdapContext)httpReq.getAttribute("ctx");
+		mapper = new ObjectMapper();
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false); 
+        mapper.enableDefaultTyping(DefaultTyping.NON_FINAL);
 	}
 	
 	@POST
 	@Path("/Balance")
-	public List<DataSet> balance(){
-		return responseList;
+	public Response balance(){
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 	@POST
 	@Path("/Transactions")
-	public List<DataSet> transactions(){
-		return responseList;
+	public Response transactions(){
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 	@POST
 	@Path("/DepositReq")
-	public List<DataSet> depositReq(){
-		return responseList;
+	public Response depositReq(){
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 	@POST
 	@Path("/Help")
-	public List<DataSet> help(){
-		return responseList;
+	public Response help(){
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 	
 	@POST
 	@Path("/WithdrawalReq")
-	public List<DataSet> withdrawalReq(){
+	public Response withdrawalReq(){
 		DataSet data = responseList.get(0);
 		Withdrawal w = (Withdrawal)data.getPayload();
 		if (null!= w.getMsgDest() && w.getMsgDest().getAddress()!=null){
@@ -183,32 +209,56 @@ public class ParserResource {
 		w.setFeeAccount(data.getGwCn());
 		//check that transaction amount is > fee 
 		//(otherwise tx history gets screwed up)
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false); 
+        mapper.enableDefaultTyping(DefaultTyping.NON_FINAL);
 		if (w.getAmount().compareTo(w.getFee())<=0){
 			data.setAction(Action.BELOW_FEE);
-			return responseList;
+			try {
+				return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+			} catch (JsonProcessingException e) {
+				return null;
+			}
 		}
-		return responseList;
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 
 	@POST
 	@Path("/WithdrawalReqOther")
-	public List<DataSet> withdrawalReqOther(){
+	public Response withdrawalReqOther(){
 		return withdrawalReq();
 	}
 	
 	@POST
 	@Path("/WithdrawalConf")
-	public List<DataSet> withdrawalConf(){
-		return responseList;
+	public Response withdrawalConf(){
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 	
 	@POST
 	@Path("/UnknownCommand")
-	public List<DataSet> unknown(){
+	public Response unknown(){
 		if (responseList.size()==2){
 			responseList.remove(0);
 		}
-		return (responseList.size()>0)?responseList:null;
+		try {
+			if (responseList.size()>0){
+				return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+			}else{
+				return null;
+			}
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}	
 
 }

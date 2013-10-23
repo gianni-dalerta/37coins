@@ -1,3 +1,11 @@
 <#setting locale=locale>
-${resBundle("WithdrawalReq",payload.amount?string("#,##0.########"),payload.msgDest.address)}
+<#if payload.msgDest??>
+	<#if payload.msgDest.address?length &lt; 12>
+		${resBundle("WithdrawalReq",payload.amount?string("#,##0.########"),payload.msgDest.address)}
+	<#else>
+		${resBundle("WithdrawalReq",payload.amount?string("#,##0.########"),payload.msgDest.address?substring(0,9)+"..")}
+	</#if>
+<#else>
+	${resBundle("WithdrawalReq",payload.amount?string("#,##0.########"),payload.payDest.address?substring(0,9)+"..")}
+</#if>
 ${resBundle("WithdrawalReqIstr",payload.confKey)}

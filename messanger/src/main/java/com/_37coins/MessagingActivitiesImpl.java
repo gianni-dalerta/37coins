@@ -12,6 +12,10 @@ import javax.naming.ldap.InitialLdapContext;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
 
+import org.apache.shiro.authc.AuthenticationToken;
+import org.apache.shiro.authc.UsernamePasswordToken;
+import org.apache.shiro.realm.ldap.JndiLdapContextFactory;
+
 import com._37coins.activities.MessagingActivities;
 import com._37coins.envaya.QueueClient;
 import com._37coins.persistence.dto.MsgAddress;
@@ -45,7 +49,7 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 	QueueClient qc;
 	
 	@Inject
-	InitialLdapContext ctx;
+	JndiLdapContextFactory jlc;
 	
 	@Inject
 	AmazonSimpleWorkflow swfService;
@@ -64,7 +68,7 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 				qc.send(rsp,MessagingServletConfig.queueUri, rsp.getTo().getGateway(),"amq.direct",runId+"::"+taskId);
 			}
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			return;
 		}
 	}
 
@@ -98,6 +102,9 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 			Transaction tt = (Transaction)e.getObjectValue();
 			tt.setTaskToken(taskToken);
 			
+			InitialLdapContext ctx = null;
+			AuthenticationToken at = new UsernamePasswordToken(MessagingServletConfig.ldapUser, MessagingServletConfig.ldapPw);
+			ctx = (InitialLdapContext)jlc.getLdapContext(at.getPrincipal(),at.getCredentials());
 			Attributes atts = ctx.getAttributes("cn="+rsp.getCn()+",ou=accounts,"+MessagingServletConfig.ldapBaseDn,new String[]{"pwdAccountLockedTime", "cn"});
 			boolean pwLocked = (atts.get("pwdAccountLockedTime")!=null)?true:false;
 			
@@ -133,24 +140,28 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 
 	@Override
 	public DataSet readMessageAddress(DataSet data) {
+		InitialLdapContext ctx = null;
+		AuthenticationToken at = new UsernamePasswordToken(MessagingServletConfig.ldapUser, MessagingServletConfig.ldapPw);
+		try {
+			ctx = (InitialLdapContext)jlc.getLdapContext(at.getPrincipal(),at.getCredentials());
+		} catch (IllegalStateException | NamingException e) {
+			e.printStackTrace();
+		}
 		try{
-			Attributes atts = ctx.getAttributes("cn="+data.getCn()+",ou=accounts,"+MessagingServletConfig.ldapBaseDn,new String[]{"mobile", "manager","preferedLocale"});
-			String locale = (atts.get("preferedLocale")!=null)?(String)atts.get("preferedLocale").get():null;
+			Attributes atts = ctx.getAttributes("cn="+data.getCn()+",ou=accounts,"+MessagingServletConfig.ldapBaseDn,new String[]{"mobile", "manager","preferredLanguage"});
+			String locale = (atts.get("preferredLanguage")!=null)?(String)atts.get("preferredLanguage").get():null;
 			String gwDn = (atts.get("manager")!=null)?(String)atts.get("manager").get():null;
 			String mobile = (atts.get("mobile")!=null)?(String)atts.get("mobile").get():null;
-			Attributes gwAtts = ctx.getAttributes(gwDn,new String[]{"mobile"});
-			String gwMobile = (gwAtts.get("mobile")!=null)?(String)gwAtts.get("mobile").get():null;
 			MessageAddress to =  new MessageAddress()
 				.setAddress(mobile)
 				.setAddressType(MsgType.SMS)
-				.setGateway(gwMobile);
+				.setGateway(gwDn.substring(3, gwDn.indexOf(",")));
 			return data.setTo(to)
 				.setLocaleString(locale)
 				.setService("37coins");
 		}catch(NamingException e){
-			e.printStackTrace();
+			return null;
 		}
-		return null;
 	}
 
 	public MsgAddress pickMsgAddress(Set<MsgAddress> list){

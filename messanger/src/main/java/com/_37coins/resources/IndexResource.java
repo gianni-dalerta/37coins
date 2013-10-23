@@ -60,21 +60,6 @@ public class IndexResource {
 	public Response fullindex(@HeaderParam("Accept-Language") String lng){
 		return index(lng);
 	}
-		
-	@GET
-	@Path("res/scripts/templates/{name}.htm")
-	public Response proxy(@PathParam("name") String name) throws IOException{
-		BufferedReader br = new BufferedReader(new FileReader("/Users/johann/37coins/webui/app/scripts/templates/"+name+".htm"));
-        try{
-	        StringBuilder sb = new StringBuilder();
-	        String inputLine;
-	        while ((inputLine = br.readLine()) != null)
-	        	sb.append(inputLine);
-	        return Response.ok(sb.toString(), MediaType.TEXT_HTML_TYPE).build();
-        }finally{
-        	br.close();
-        }
-	}
 	
 	@GET
 	@Path("res/locales/{language}/{namespace}.json")
@@ -92,6 +77,43 @@ public class IndexResource {
 					javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR);
 		}
 		return Response.ok(rsp, MediaType.APPLICATION_JSON_TYPE).build();
+	}
+	
+	/*
+	 * ###################### TEST SCOPE
+	 */
+	
+	@GET
+	@Path("envayaTest.html")
+	public Response envayaTest(){
+		Map<String,String> data = new HashMap<>();
+		data.put("lng", "en-US");
+		DataSet ds = new DataSet()
+			.setService("envayaTest.html")
+			.setPayload(data);
+		String rsp;
+		try {
+			rsp = htmlFactory.processTemplate(ds, null);
+		} catch (IOException | TemplateException e) {
+			throw new WebApplicationException("template not loaded",
+					javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR);
+		}
+		return Response.ok(rsp, MediaType.TEXT_HTML_TYPE).build();
+	}
+	
+	@GET
+	@Path("res/scripts/templates/{name}.htm")
+	public Response proxy(@PathParam("name") String name) throws IOException{
+		BufferedReader br = new BufferedReader(new FileReader("/Users/johann/37coins/webui/app/scripts/templates/"+name+".htm"));
+        try{
+	        StringBuilder sb = new StringBuilder();
+	        String inputLine;
+	        while ((inputLine = br.readLine()) != null)
+	        	sb.append(inputLine);
+	        return Response.ok(sb.toString(), MediaType.TEXT_HTML_TYPE).build();
+        }finally{
+        	br.close();
+        }
 	}
 	
 }

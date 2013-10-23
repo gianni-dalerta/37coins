@@ -64,7 +64,7 @@ public class ParserFilter implements Filter {
 			}
 		}
 		if (null==locale){
-			locale = new Locale("eo_UY"); //esperanto
+			locale = new Locale("en_US"); //esperanto
 		}
 		// parse action
 		String url = httpReq.getRequestURL().toString();

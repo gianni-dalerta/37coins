@@ -12,3 +12,5 @@ datanucleus.log
 webui/ca.srl
 
 webui/server.csr
+
+bitcoindManager/bcdMan.war

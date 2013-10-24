@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
@@ -31,8 +32,12 @@ public class GatewayUser {
 		return locale;
 	}
 	
+	@JsonIgnore
 	public String getLocaleString() {
-		return locale.toString().replace("_", "-");
+		if (null!=locale){
+			return locale.toString().replace("_", "-");
+		}
+		return null;
 	}
 	
 	public GatewayUser setLocale(Locale locale) {
@@ -40,7 +45,8 @@ public class GatewayUser {
 		return this;
 	}
 	
-	public GatewayUser setLocale(String locale){
+	@JsonIgnore
+	public GatewayUser setLocaleString(String locale){
 		String[] l = locale.split("[-_]");
 		switch(l.length){
 	        case 2: this.locale = new Locale(l[0], l[1]); break;
@@ -72,6 +78,9 @@ public class GatewayUser {
 		return this;
 	}
 	public String getCode() {
+		if (null!=code && code.length()<2){
+			return null;
+		}
 		return code;
 	}
 	public GatewayUser setCode(String code) {

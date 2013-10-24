@@ -79,13 +79,11 @@ public class BasicAccessAuthFilter extends BasicHttpAuthenticationFilter {
 			InitialLdapContext ctx = (InitialLdapContext)jlc.getLdapContext(at.getPrincipal(),at.getCredentials());
 	    	SearchResult result = searchUnique(sf, ctx);
 	        Attributes attrs = result.getAttributes();
-	        username = "cn="+attrs.get("cn").get(0)+","+MessagingServletConfig.ldapBaseDn;
+	        username = "cn="+attrs.get("cn").get(0)+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
 	        ctx.close();
 		} catch (IllegalStateException | NamingException e) {
-			e.printStackTrace();
-			return null;
+			log.warn(username + "not found in directory");
 		}
-
         return createToken(username, password, request, response);
 	}
 

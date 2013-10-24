@@ -42,6 +42,7 @@ public class DirectoryFilter implements Filter{
 			throw new IOException(e);
 		}
 		HttpServletRequest httpReq = (HttpServletRequest)request;
+		MessagingServletConfig.localPort = httpReq.getLocalPort();
 		httpReq.setAttribute(Key.get(InitialLdapContext.class, Names.named("ctx")).toString(),ctx);
 		httpReq.setAttribute("ctx", ctx);
 		try {

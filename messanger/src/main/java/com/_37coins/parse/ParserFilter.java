@@ -64,7 +64,7 @@ public class ParserFilter implements Filter {
 			}
 		}
 		if (null==locale){
-			locale = new Locale("eo_UY"); //esperanto
+			locale = new Locale("en_US"); //esperanto
 		}
 		// parse action
 		String url = httpReq.getRequestURL().toString();
@@ -79,7 +79,7 @@ public class ParserFilter implements Filter {
 			List<DataSet> responseList = new ArrayList<>();
 			responseList.add(responseData);
 			//use it
-			if (responseData.getAction()==null||CommandParser.reqCmdList.contains(responseData.getAction())){
+			if (responseData.getAction()==Action.UNKNOWN_COMMAND||CommandParser.reqCmdList.contains(responseData.getAction())){
 				httpReq.setAttribute("dsl", responseList);
 				chain.doFilter(request, response);
 			}else{
@@ -96,6 +96,7 @@ public class ParserFilter implements Filter {
 		OutputStream os = null;
 		try {
 			HttpServletResponse httpResponse = (HttpServletResponse) response;
+			httpResponse.setContentType("application/json");
 			os = httpResponse.getOutputStream();
 			new ObjectMapper().writeValue(os, dsl);
 		} catch (IOException e) {
@@ -135,6 +136,8 @@ public class ParserFilter implements Filter {
 			w.setMsgDest(MessageAddress.fromString(receiver, to));
 			return true;
 		} catch (AddressException | NumberParseException e1) {
+			return false;
+		} catch (RuntimeException e2){
 			return false;
 		}
 	}

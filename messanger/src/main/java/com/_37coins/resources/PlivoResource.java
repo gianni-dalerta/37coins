@@ -163,11 +163,11 @@ public class PlivoResource {
 		    ManualActivityCompletionClientFactory manualCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(swfService);
 		    ManualActivityCompletionClient manualCompletionClient = manualCompletionClientFactory.getClient(tx.getTaskToken());		 
 			manualCompletionClient.complete(Action.WITHDRAWAL_REQ);
-			rv = new Response().add(new Speak().setText(msgFactory.getText("VoiceMatch",new DataSet().setLocale(locale))));
+			rv = new Response().add(new Speak().setText(msgFactory.getText("VoiceMatch",new DataSet().setLocaleString(locale))));
 		} catch (AuthenticationException ae){
 			String callText;
 			try {
-				callText = msgFactory.getText("VoiceFail",new DataSet().setLocale(locale));
+				callText = msgFactory.getText("VoiceFail",new DataSet().setLocaleString(locale));
 				rv = new Response()
 				.add(new Speak().setText(callText))
 				.add(new Redirect().setText(MessagingServletConfig.basePath+ "/plivo/answer/"+dn+"/"+workflowId+"/"+locale));
@@ -202,7 +202,7 @@ public class PlivoResource {
 				.setNumDigits(5)
 				.setRedirect(true)
 				.setSpeak(new Speak()
-					.setText(msgFactory.getText("VoiceConfirm",new DataSet().setLocale(locale)))));
+					.setText(msgFactory.getText("VoiceConfirm",new DataSet().setLocaleString(locale)))));
 		} catch (IOException | TemplateException e) {
 			e.printStackTrace();
 			throw new WebApplicationException(e, javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR);
@@ -220,7 +220,7 @@ public class PlivoResource {
 			@PathParam("prev") String prev,
 			@FormParam("Digits") String digits){
         Response rv =null;
-        DataSet ds = new DataSet().setLocale(locale);
+        DataSet ds = new DataSet().setLocaleString(locale);
         try{
 	        if (digits!=null && prev != null && Integer.parseInt(digits)==Integer.parseInt(prev)){
 	        	//set password
@@ -265,7 +265,7 @@ public class PlivoResource {
 			spokenCode+=c+", ";
 		}
 		DataSet ds = new DataSet()
-			.setLocale(locale)
+			.setLocaleString(locale)
 			.setPayload(spokenCode);
 		try {	
 			String text = msgFactory.getText("VoiceRegister",ds);

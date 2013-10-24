@@ -84,8 +84,6 @@ public class DataSet {
 	
 	private BigDecimal gwFee;
 	
-	private String txKey;
-	
 	private String cn;
 	
 	private ResourceBundleModel resBundle;
@@ -125,7 +123,9 @@ public class DataSet {
 	
 	@JsonIgnore
 	public String getLocaleString() {
-		return locale.toString().replace("_", "-");
+		if (null!=locale)
+			return locale.toString().replace("_", "-");
+		return null;
 	}
 
 	public Locale getLocale() {
@@ -137,7 +137,8 @@ public class DataSet {
 		return this;
 	}
 	
-	public DataSet setLocale(String locale){
+	@JsonIgnore
+	public DataSet setLocaleString(String locale){
 		if (null==locale)
 			return this;
 		String[] l = locale.split("[-_]");
@@ -202,15 +203,6 @@ public class DataSet {
 
 	public DataSet setGwFee(BigDecimal gwFee) {
 		this.gwFee = gwFee;
-		return this;
-	}
-
-	public String getTxKey() {
-		return txKey;
-	}
-
-	public DataSet setTxKey(String txKey) {
-		this.txKey = txKey;
 		return this;
 	}
 

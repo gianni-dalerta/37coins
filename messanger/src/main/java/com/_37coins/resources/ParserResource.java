@@ -1,6 +1,5 @@
 package com._37coins.resources;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -32,6 +31,11 @@ import com._37coins.workflow.pojo.MessageAddress.MsgType;
 import com._37coins.workflow.pojo.PaymentAddress;
 import com._37coins.workflow.pojo.PaymentAddress.PaymentType;
 import com._37coins.workflow.pojo.Withdrawal;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 @Path(ParserResource.PATH)
 @Produces(MediaType.APPLICATION_JSON)
@@ -40,6 +44,7 @@ public class ParserResource {
 	
 	final private List<DataSet> responseList;
 	final private InitialLdapContext ctx;
+	final private ObjectMapper mapper;
 	
 	@SuppressWarnings("unchecked")
 	@Inject public ParserResource(ServletRequest request) {
@@ -48,43 +53,63 @@ public class ParserResource {
 		DataSet ds = (DataSet)httpReq.getAttribute("create");
 		if (null!=ds)
 			responseList.add(ds);
-		this.ctx = (InitialLdapContext)httpReq.getAttribute("ctx");;
+		this.ctx = (InitialLdapContext)httpReq.getAttribute("ctx");
+		mapper = new ObjectMapper();
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false); 
+        mapper.enableDefaultTyping(DefaultTyping.NON_FINAL);
 	}
 	
 	@POST
 	@Path("/Balance")
-	public List<DataSet> balance(){
-		return responseList;
+	public Response balance(){
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 	@POST
 	@Path("/Transactions")
-	public List<DataSet> transactions(){
-		return responseList;
+	public Response transactions(){
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 	@POST
 	@Path("/DepositReq")
-	public List<DataSet> depositReq(){
-		return responseList;
+	public Response depositReq(){
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 	@POST
 	@Path("/Help")
-	public List<DataSet> help(){
-		return responseList;
+	public Response help(){
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 	
 	@POST
 	@Path("/WithdrawalReq")
-	public List<DataSet> withdrawalReq(){
+	public Response withdrawalReq(){
 		DataSet data = responseList.get(0);
 		Withdrawal w = (Withdrawal)data.getPayload();
 		if (null!= w.getMsgDest() && w.getMsgDest().getAddress()!=null){
 			
 			String cn = null;
 			String gwDn = null;
-			String gwMobile = null;
+			String gwAddress = null;
 			String gwLng = null;
 			try{
-				Attributes atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)(mobile="+w.getMsgDest().getAddress()+"))", ctx).getAttributes();
+				Attributes atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)("+((w.getMsgDest().getAddressType()==MsgType.SMS)?"mobile":"mail")+"="+w.getMsgDest().getAddress()+"))", ctx).getAttributes();
 				cn = (atts.get("cn")!=null)?(String)atts.get("cn").get():null;
 				gwDn = (atts.get("manager")!=null)?(String)atts.get("manager").get():null;
 			}catch(NameNotFoundException e){
@@ -93,7 +118,7 @@ public class ParserResource {
 					if (data.getTo().getAddressType() == MsgType.SMS 
 							&& w.getMsgDest().getPhoneNumber().getCountryCode() == data.getTo().getPhoneNumber().getCountryCode()){
 						gwDn = "cn="+data.getGwCn()+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
-						gwMobile = data.getTo().getGateway();
+						gwAddress = data.getTo().getGateway();
 					}else{//or try to find a gateway in the database
 						try{
 							ctx.setRequestControls(null);
@@ -104,7 +129,7 @@ public class ParserResource {
 							NamingEnumeration<?> namingEnum = ctx.search("ou=gateways,"+MessagingServletConfig.ldapBaseDn, "(&(objectClass=person)(mobile="+cc+"*))", searchControls);
 							if (namingEnum.hasMore ()){
 								Attributes attributes = ((SearchResult) namingEnum.next()).getAttributes();
-								gwMobile = (attributes.get("mobile")!=null)?(String)attributes.get("mobile").get():null;
+								gwAddress = (attributes.get("mobile")!=null)?(String)attributes.get("mobile").get():null;
 								String gwCn = (attributes.get("cn")!=null)?(String)attributes.get("cn").get():null;
 								gwLng = (attributes.get("preferredLanguage")!=null)?(String)attributes.get("preferredLanguage").get():null;
 								gwDn = "cn="+gwCn+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
@@ -116,47 +141,53 @@ public class ParserResource {
 							
 						}
 					}
-					if (null!=gwDn){
-						//create new user
-						Attributes attributes=new BasicAttributes();
-						Attribute objectClass=new BasicAttribute("objectClass");
-						objectClass.add("inetOrgPerson");
-						attributes.put(objectClass);
-						Attribute sn=new BasicAttribute("sn");
-						Attribute cnAtr=new BasicAttribute("cn");
-						String cnString = w.getMsgDest().getAddress().replace("+", "");
-						cn = cnString;
-						sn.add(cnString);
-						cnAtr.add(cnString);
-						attributes.put(sn);
-						attributes.put(cnAtr);
-						attributes.put("manager", gwDn);
-						attributes.put((w.getMsgDest().getAddressType()==MsgType.SMS)?"mobile":"mail", w.getMsgDest().getAddress());
-						attributes.put("preferredLanguage", data.getLocaleString());
-						try {
-							ctx.createSubcontext("cn="+cnString+",ou=accounts,"+MessagingServletConfig.ldapBaseDn, attributes);
-							//and say hi to new user
-							DataSet create = new DataSet()
-								.setAction(Action.SIGNUP)
-								.setTo(new MessageAddress()
-									.setAddress(w.getMsgDest().getAddressObject())
-									.setAddressType(w.getMsgDest().getAddressType())
-									.setGateway(gwMobile))
-								.setCn(cnString)
-								.setLocale((null!=gwLng)?gwLng:data.getLocaleString())
-								.setService(data.getService());
-							responseList.add(create);
-						} catch (NamingException e1) {
-							e1.printStackTrace();
-							throw new WebApplicationException(e1, Response.Status.INTERNAL_SERVER_ERROR);
-						}
-					}
 				}else if (w.getMsgDest().getAddressType()==MsgType.EMAIL){
-					//how to set the email gateway?
-					throw new RuntimeException("not implemented");
-				}else{
-					throw new RuntimeException("not implemented");
-				}				
+					Attributes atts;
+					try {
+						atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)(mail="+MessagingServletConfig.imapUser+"))", ctx).getAttributes();
+						String gwCn = (atts.get("cn")!=null)?(String)atts.get("cn").get():null;
+					    gwDn = "cn="+gwCn + ",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
+					    gwAddress = (atts.get("mail")!=null)?(String)atts.get("mail").get():null;
+					} catch (IllegalStateException | NamingException e1) {
+						throw new RuntimeException(e1);
+					}
+				}
+				if (null!=gwDn){
+					//create new user
+					Attributes attributes=new BasicAttributes();
+					Attribute objectClass=new BasicAttribute("objectClass");
+					objectClass.add("inetOrgPerson");
+					attributes.put(objectClass);
+					Attribute sn=new BasicAttribute("sn");
+					Attribute cnAtr=new BasicAttribute("cn");
+					String cnString = w.getMsgDest().getAddress().replace("+", "");
+					cn = cnString;
+					sn.add(cnString);
+					cnAtr.add(cnString);
+					attributes.put(sn);
+					attributes.put(cnAtr);
+					attributes.put("manager", gwDn);
+					attributes.put((w.getMsgDest().getAddressType()==MsgType.SMS)?"mobile":"mail", w.getMsgDest().getAddress());
+					attributes.put("preferredLanguage", data.getLocaleString());
+					try {
+						ctx.createSubcontext("cn="+cnString+",ou=accounts,"+MessagingServletConfig.ldapBaseDn, attributes);
+						//and say hi to new user
+						DataSet create = new DataSet()
+							.setAction(Action.SIGNUP)
+							.setTo(new MessageAddress()
+								.setAddress(w.getMsgDest().getAddressObject())
+								.setAddressType(w.getMsgDest().getAddressType())
+								.setGateway(gwAddress))
+							.setCn(cnString)
+							.setLocaleString((null!=gwLng)?gwLng:data.getLocaleString())
+							.setService(data.getService());
+						responseList.add(create);
+					} catch (NamingException e1) {
+						e1.printStackTrace();
+						throw new WebApplicationException(e1, Response.Status.INTERNAL_SERVER_ERROR);
+					}
+				}
+				
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new WebApplicationException(e, Response.Status.INTERNAL_SERVER_ERROR);
@@ -170,7 +201,7 @@ public class ParserResource {
 					.setAddress(cn)
 					.setAddressType(PaymentType.ACCOUNT);
 				w.getMsgDest()
-					.setGateway(gwMobile);
+					.setGateway(gwAddress);
 			}
 		}
 		//set the fee
@@ -178,26 +209,56 @@ public class ParserResource {
 		w.setFeeAccount(data.getGwCn());
 		//check that transaction amount is > fee 
 		//(otherwise tx history gets screwed up)
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false); 
+        mapper.enableDefaultTyping(DefaultTyping.NON_FINAL);
 		if (w.getAmount().compareTo(w.getFee())<=0){
 			data.setAction(Action.BELOW_FEE);
-			w.setAmount(w.getFee().add(new BigDecimal("0.00001").setScale(8)));
-			return responseList;
+			try {
+				return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+			} catch (JsonProcessingException e) {
+				return null;
+			}
 		}
-		return responseList;
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 
 	@POST
 	@Path("/WithdrawalReqOther")
-	public List<DataSet> withdrawalReqOther(){
+	public Response withdrawalReqOther(){
 		return withdrawalReq();
 	}
 	
 	@POST
 	@Path("/WithdrawalConf")
-	public List<DataSet> withdrawalConf(){
-		return responseList;
+	public Response withdrawalConf(){
+		try {
+			return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+		} catch (JsonProcessingException e) {
+			return null;
+		}
 	}
 	
-	
+	@POST
+	@Path("/UnknownCommand")
+	public Response unknown(){
+		if (responseList.size()==2){
+			responseList.remove(0);
+		}
+		try {
+			if (responseList.size()>0){
+				return Response.ok(mapper.writeValueAsString(responseList), MediaType.APPLICATION_JSON).build();
+			}else{
+				return null;
+			}
+		} catch (JsonProcessingException e) {
+			return null;
+		}
+	}	
 
 }

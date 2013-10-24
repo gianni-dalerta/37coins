@@ -11,6 +11,8 @@ import org.restnucleus.log.SLF4JTypeListener;
 import com._37coins.envaya.QueueClient;
 import com._37coins.parse.CommandParser;
 import com._37coins.parse.InterpreterFilter;
+import com._37coins.parse.ParserAccessFilter;
+import com._37coins.parse.ParserClient;
 import com._37coins.parse.ParserFilter;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
@@ -35,11 +37,12 @@ public class TestServletConfig extends GuiceServletContextListener {
 	            @Override
 	            protected void configureServlets(){
 	            	filter("/envayasms/*").through(DirectoryFilter.class);
-	            	//filter("/parser/*").through(ParserAccessFilter.class); //make sure no-one can access those urls
+	            	filter("/parser/*").through(ParserAccessFilter.class); //make sure no-one can access those urls
 	            	filter("/parser/*").through(ParserFilter.class); //read message into dataset
 	            	filter("/parser/*").through(DirectoryFilter.class); //allow directory access
 	            	filter("/parser/*").through(InterpreterFilter.class); //do semantic stuff
 	            	bindListener(Matchers.any(), new SLF4JTypeListener());
+	            	bind(ParserClient.class);
 	        	}
 				
 				@Provides

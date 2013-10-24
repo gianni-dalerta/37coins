@@ -39,3 +39,15 @@ description: 0.002
 preferredLanguage: de-DE
 mail: johannbarbie@me.com
 mobile: +491027423984
+
+dn: cn=MAILN1JS2Z34MAIL,ou=gateways,dc=37coins,dc=com
+objectClass: top
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: person
+cn: MAILN1JS2Z34MAIL
+sn: barbie
+givenName: johann
+departmentNumber: test9900
+description: 0.0001
+mail: mail@37coins.com

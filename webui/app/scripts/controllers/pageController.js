@@ -1,4 +1,4 @@
-define(['marionette','models/loginModel','views/templateView','views/loginView','views/gatewayView','vent', 'templates', 'routeFilter'], function(Marionette, LoginModel, TemplateView, LoginView, GatewayView, vent, templates) {
+define(['marionette','models/loginModel','views/indexView','views/loginView','views/gatewayView','vent', 'templates', 'routeFilter'], function(Marionette, LoginModel, IndexView, LoginView, GatewayView, vent, templates) {
     'use strict';
 
     var Controller = {};
@@ -30,19 +30,12 @@ define(['marionette','models/loginModel','views/templateView','views/loginView',
     });
 
     Controller.showIndex = function() {
-        this.showTemplate('index');
+        var view = new IndexView();
+        vent.trigger('app:show', view);
     };
 
     Controller.showGateway = function() {
         var view = new GatewayView({model:this.loginStatus});
-        vent.trigger('app:show', view);
-    };
-
-    Controller.showTemplate = function(tmplt) {
-        if (!templates[tmplt]){
-            tmplt = 'index';
-        }
-        var view = new TemplateView({tmplt:templates[tmplt]});
         vent.trigger('app:show', view);
     };
 

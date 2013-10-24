@@ -29,11 +29,11 @@ define(['underscoreM', 'marionette', 'templates'], function(_, Marionette, templ
         },
         handleRegister: function(e) {
             e.preventDefault();
-            console.log('register');
+            window.location.assign('/pwm/public/NewUser');
         },
         handleLost: function(e) {
             e.preventDefault();
-            console.log('lost');
+            window.location.assign('/pwm/public/ForgottenPassword');
         },
         onRolesChange: function(){
             this.next();

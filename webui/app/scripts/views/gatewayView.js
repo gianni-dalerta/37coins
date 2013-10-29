@@ -25,7 +25,13 @@ define(['underscoreM', 'marionette', 'templates'], function(_, Marionette, templ
         },
         onShow:function () {
             if (!this.model.get('mobile')){
-                //show validation form
+                $('#valFrm').removeClass('hidden');
+            }else if (!this.model.get('fee')){
+                $('#cfmFrm').removeClass('hidden');
+            }else {
+                $('#statusFrm').removeClass('hidden');
+                $('#cnfFrm').removeClass('hidden');
+                $('#feeVal').val(this.model.get('fee'));
             }
         }
     });

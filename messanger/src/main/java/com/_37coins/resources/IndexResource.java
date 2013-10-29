@@ -1,6 +1,7 @@
 package com._37coins.resources;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
@@ -9,6 +10,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 import javax.servlet.ServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
@@ -77,6 +79,21 @@ public class IndexResource {
 					javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR);
 		}
 		return Response.ok(rsp, MediaType.APPLICATION_JSON_TYPE).build();
+	}
+	
+	@GET
+	@Path("deploy")
+	public Response deploy(ServletRequest req){
+		HttpServletRequest request = (HttpServletRequest)req;
+		File jsp = new File(request.getSession().getServletContext().getRealPath(request.getServletPath()));
+		File dir = jsp.getParentFile().getParentFile();
+		File warFile = new File (dir.toString() +  "/ROOT/pwm.war");
+		boolean success = warFile.renameTo (new File (dir, warFile.getName ()));
+		if (!success) {
+			return Response.ok("{\"status\":\"not found. already deployed?\"}", MediaType.APPLICATION_JSON_TYPE).build();
+		}else{
+			return Response.ok("{\"status\":\"deploying!\"}", MediaType.APPLICATION_JSON_TYPE).build();
+		}
 	}
 	
 	/*

@@ -14,3 +14,5 @@ webui/ca.srl
 webui/server.csr
 
 bitcoindManager/bcdMan.war
+
+webui/npm-debug.log

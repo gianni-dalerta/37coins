@@ -36,11 +36,9 @@ define(['underscoreM', 'marionette', 'templates'], function(_, Marionette, templ
                 this.model.set('fee',fee);
                 this.model.once('error', function(){
                     this.$('#error').show();
-                    this.$('#success').hide();
                     this.$('#feeBtn').removeAttr('disabled');
                 }, this);
                 this.model.once('sync', function(){
-                    this.$('#error').hide();
                     this.$('#success').show();
                     this.$('#feeBtn').removeAttr('disabled');
                 }, this);

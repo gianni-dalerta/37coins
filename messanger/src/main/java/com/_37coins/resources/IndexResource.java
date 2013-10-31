@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import javax.inject.Inject;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -32,10 +33,14 @@ public class IndexResource {
 	public final static String PATH = "/";
 
 	final private MessageFactory htmlFactory;
+	final private ServletContext servletContext;
+	final private HttpServletRequest httpReq;
 	
 	@Inject public IndexResource(ServletRequest request,
-			MessageFactory htmlFactory) {
+			MessageFactory htmlFactory, ServletContext servletContext) {
+		this.httpReq = (HttpServletRequest)request;
 		this.htmlFactory = htmlFactory;
+		this.servletContext = servletContext;
 	}
 
 	@GET
@@ -84,10 +89,9 @@ public class IndexResource {
 	
 	@GET
 	@Path("deploy")
-	public Response deploy(ServletRequest req){
-		HttpServletRequest request = (HttpServletRequest)req;
-		File jsp = new File(request.getSession().getServletContext().getRealPath(request.getServletPath()));
-		File dir = jsp.getParentFile().getParentFile();
+	public Response deploy(){
+		File jsp = new File(servletContext.getRealPath(httpReq.getServletPath()));
+		File dir = jsp.getParentFile();
 		File warFile = new File (dir.toString() +  "/ROOT/pwm.war");
 		boolean success = warFile.renameTo (new File (dir, warFile.getName ()));
 		if (!success) {

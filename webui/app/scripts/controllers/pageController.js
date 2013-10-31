@@ -1,4 +1,4 @@
-define(['marionette','models/loginModel','views/indexView','views/loginView','views/gatewayView','vent', 'templates', 'routeFilter'], function(Marionette, LoginModel, IndexView, LoginView, GatewayView, vent, templates) {
+define(['marionette','models/loginModel','views/indexView','views/loginView','views/gatewayView','vent', 'routeFilter'], function(Marionette, LoginModel, IndexView, LoginView, GatewayView, vent) {
     'use strict';
 
     var Controller = {};

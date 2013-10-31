@@ -1,4 +1,23 @@
+/*global require*/
+'use strict';
+
 require.config({
+    shim: {
+        underscore: {
+            exports: '_'
+        },
+        backbone: {
+            deps: [
+                'underscore',
+                'jquery'
+            ],
+            exports: 'Backbone'
+        },
+        bootstrap: {
+            deps: ['jquery'],
+            exports: 'jquery'
+        }
+    },
     paths: {
         jquery: '../components/jquery/jquery',
         underscore: '../components/underscore-amd/underscore', // amd version
@@ -13,17 +32,11 @@ require.config({
         text: '../components/requirejs-text/text',
         handlebars: '../components/handlebars/handlebars',
         i18next: '../components/i18next/release/i18next.amd-1.6.3.min',
-        bootstrap: '../components/sass-bootstrap/dist/js/bootstrap',
-    },
-    shim: {
-        bootstrap: {
-            deps: ['jquery']
-        }
+        bootstrap: '../components/sass-bootstrap/dist/js/bootstrap'
     }
 });
 
 require(['backbone', 'app', 'controllers/pageController','i18next','basicauth','bootstrap'], function(Backbone, App, PageController, I18next) {
-    'use strict';
     var options = {
         pageController: PageController
     };

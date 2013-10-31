@@ -43,6 +43,7 @@ public class IndexResource {
 		Map<String,String> data = new HashMap<>();
 		data.put("resPath", MessagingServletConfig.resPath);
 		data.put("basePath", MessagingServletConfig.basePath);
+		data.put("srvcPath", MessagingServletConfig.srvcPath);
 		data.put("lng", (lng!=null)?lng.split(",")[0]:"en-US");
 		DataSet ds = new DataSet()
 			.setService("index.html")

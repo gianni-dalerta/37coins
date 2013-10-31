@@ -196,7 +196,7 @@ public class GatewayResource {
 			if (gu.getFee().compareTo(fee)!=0){
 				try {
 					Attributes a = new BasicAttributes("description",gu.getFee().toString());
-					ctx.modifyAttributes(context.getUserPrincipal().getName(), DirContext.ADD_ATTRIBUTE, a);
+					ctx.modifyAttributes(context.getUserPrincipal().getName(), DirContext.REPLACE_ATTRIBUTE, a);
 				} catch (IllegalStateException | NamingException e1) {
 					e1.printStackTrace();
 					throw new WebApplicationException(e1, Response.Status.INTERNAL_SERVER_ERROR);

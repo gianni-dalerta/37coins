@@ -5,8 +5,8 @@ define(['underscoreM', 'marionette', 'templates'], function(_, Marionette, templ
         className: 'container',
         initialize: function(opt) {
             this.next = opt.next;
-			this.model.bind('change:roles', this.onRolesChange, this);
-            this.model.bind('error', this.onError, this);
+			this.model.on('change:roles', this.onRolesChange, this);
+            this.model.on('error', this.onError, this);
         },
         events: {
             'click #loginBtn':'handleLogin',

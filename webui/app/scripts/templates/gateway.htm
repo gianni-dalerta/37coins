@@ -1,6 +1,6 @@
 <div class="pusher"></div>
 <div class="container">
-  <div id="valFrm" class="span12 hidden">
+  <div id="valFrm" class="span12">
     <h2>Initialize Gateway Validation</h2>
     <form>
       <fieldset>
@@ -13,7 +13,7 @@
   </div>
 </div>
 <div class="container">
-  <div id="cfmFrm" class="span12 hidden">
+  <div id="cfmFrm" class="span12">
     <h2>Validate Gateway Ownership</h2>
     <form>
       <fieldset>
@@ -25,7 +25,7 @@
     </form>
   </div>
 </div>
-<div id="statusFrm" class="container hidden">
+<div id="statusFrm" class="container">
   <div class="row marketing">
     <div class="col-lg-6">
       <h2>Account Balance</h2>
@@ -35,6 +35,7 @@
           <button id="withdrawalBtn" type="submit" class="btn btn-inverse">Withdraw</button>
         </fieldset>
       </form>
+      <div class="alert alert-danger"><a class="close">&times;</a>Not implemented!</div>
       <br>
     </div>
     <div class="col-lg-6">
@@ -47,24 +48,27 @@
           <button id="feeBtn" type="submit" class="btn btn-inverse">Set Fee</button>
         </fieldset>
       </form>
+      <div id="error" class="alert alert-danger"><a class="close">&times;</a>Communitcation Error!</div>
+      <div id="success" class="alert alert-success"><a class="close">&times;</a>Fee updated!</div>
       <br>
     </div>
   </div>
 </div>
 <div class="container">
-  <div id="cnfFrm" class="span12 hidden">
+  <div id="cnfFrm" class="span12">
+    <h2>Download App</h2>
     To operate the gateway, download  <a href="https://play.google.com/store/apps/details?id=org.envaya.sms">EnvayaSMS</a> and configure it with the following parameters.
+    <h2>Configure App</h2>
     <table class="table .table-striped">
-      <caption>Configuration</caption>
       <thead>
         <tr><th>Field</th><th>Value</th></tr>
       </thead>
       <tbody>
         <tr><td>Enable EnvayaSMS</td><td>true</td></tr>
         <tr><td>#Server Settings</td><td></td></tr>
-        <tr><td>Server URL</td><td>basePath + envayasms/sms</td></tr>
-        <tr><td>Your phone Number</td><td>+821051833737</td></tr>
-        <tr><td>Password</td><td>**********</td></tr>
+        <tr><td>Server URL</td><td>{{basePath}} /envayasms/{{cn}}/sms</td></tr>
+        <tr><td>Your phone Number</td><td>{{mobile}}</td></tr>
+        <tr><td>Password</td><td>{{envayaToken}}</td></tr>
         <tr><td>Poll interval</td><td>never</td></tr>
         <tr><td>#Messaging Settings</td><td></td></tr>
         <tr><td>Keep new messages</td><td>false</td></tr>
@@ -75,16 +79,16 @@
         <tr><td>Test mode</td><td>false</td></tr>
         <tr><td>#Networking Settings</td><td></td></tr>
         <tr><td>Wi-Fi sleep policy</td><td>always stay connected</td></tr>
-        <tr><td>Network failover</td><td>if possible, true</td></tr>
+        <tr><td>Network failover</td><td>true</td></tr>
         <tr><td>#AMQP Settings(Real-Time Connection)</td><td></td></tr>
         <tr><td>Enable AMQP</td><td>true</td></tr>
-        <tr><td>AMQP Host</td><td>server2</td></tr>
+        <tr><td>AMQP Host</td><td>{{srvcPath}}</td></tr>
         <tr><td>AMQP Port</td><td>5672</td></tr>
         <tr><td>AMQP Virtual Host</td><td>/</td></tr>
         <tr><td>AMQP SSL</td><td>true</td></tr>
-        <tr><td>AMQP User</td><td>ldap cn</td></tr>
-        <tr><td>AMQP Password</td><td>website password</td></tr>
-        <tr><td>AMQP Queue Name</td><td>821051833737</td></tr>
+        <tr><td>AMQP User</td><td>{{cn}}</td></tr>
+        <tr><td>AMQP Password</td><td>[web login password]</td></tr>
+        <tr><td>AMQP Queue Name</td><td>{{cn}}</td></tr>
         <tr><td>AMQP Heartbeat (sec)</td><td>60</td></tr>
         <tr><td>#Help</td><td></td></tr>
         <tr><td>about EnvayaSMS</td><td>3.0.1</td></tr>

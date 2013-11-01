@@ -1,6 +1,6 @@
 {
   "name": "37web",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "dependencies": {},
   "devDependencies": {
     "grunt": "~0.4.1",
@@ -29,7 +29,7 @@
     "connect-livereload": "~0.3.0",
     "time-grunt": "~0.1.2",
     "load-grunt-tasks": "~0.2.0",
-    "jst": "0.0.13"
+    "grunt-contrib-handlebars": "~0.5.11"
   },
   "engines": {
     "node": ">=0.8.0"

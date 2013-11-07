@@ -1,7 +1,7 @@
-define(['underscoreM', 'marionette', 'templates'], function(_, Marionette, templates) {
+define(['backbone', 'hbs!tmpl/gateway'], function(Backbone, GatewayTmpl) {
     'use strict';
-    return Marionette.ItemView.extend({
-        template: _.template(templates.gateway),
+    return Backbone.Marionette.ItemView.extend({
+        template: GatewayTmpl,
         className: 'container',
         initialize: function() {
             //something

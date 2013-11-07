@@ -1,7 +1,7 @@
-define(['underscoreM', 'marionette', 'templates'], function(_, Marionette, templates) {
+define(['backbone', 'hbs!tmpl/header'], function(Backbone, HeaderTmpl) {
     'use strict';
-    return Marionette.ItemView.extend({
-        template: _.template(templates.header),
+    return Backbone.Marionette.ItemView.extend({
+        template: HeaderTmpl,
         className: 'transp',
         onShow:function () {
 			console.log($('ul.nav'));

@@ -24,6 +24,8 @@ module.exports = function (grunt) {
         dist: 'dist'
     };
 
+    grunt.loadNpmTasks('grunt-contrib-handlebars');
+
     grunt.initConfig({
         yeoman: yeomanConfig,
         watch: {
@@ -264,15 +266,7 @@ module.exports = function (grunt) {
             }
         },
         handlebars: {
-            compile: {
-                options: {
-                    namespace: 'JST',
-                    amd: true
-                },
-                files: {
-                    '.tmp/scripts/templates.js': ['<%= yeoman.app %>/scripts/templates/*.htm']
-                }
-            }
+            'dist/scripts/templates.js': ['app/scripts/templates/*.htm']
         },
         rev: {
             dist: {

@@ -1,4 +1,4 @@
-define(['jquery', 'underscoreM', 'backbone'], function( $, _, Backbone) {
+define(['backbone'], function(Backbone) {
     'use strict';
 
     // private

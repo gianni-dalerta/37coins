@@ -1,7 +1,7 @@
-define(['underscoreM', 'marionette', 'templates'], function(_, Marionette, templates) {
+define(['backbone', 'hbs!tmpl/login'], function(Backbone, LoginTmpl) {
     'use strict';
-    return Marionette.ItemView.extend({
-        template: _.template(templates.login),
+    return Backbone.Marionette.ItemView.extend({
+        template: LoginTmpl,
         className: 'container',
         initialize: function(opt) {
             this.next = opt.next;

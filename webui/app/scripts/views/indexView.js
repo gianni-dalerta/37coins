@@ -1,7 +1,7 @@
-define(['underscoreM', 'marionette', 'templates'], function(_, Marionette, templates) {
+define(['backbone', 'hbs!tmpl/index'], function(Backbone, IndexTmpl) {
     'use strict';
-    return Marionette.ItemView.extend({
-        template: _.template(templates.index),
+    return Backbone.Marionette.ItemView.extend({
+        template: IndexTmpl,
         className: 'container',
         events: {
             'click a.btn-success':'handleClick'

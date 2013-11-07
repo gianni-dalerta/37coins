@@ -1,10 +1,17 @@
-define(['marionette','models/loginModel','views/indexView','views/loginView','views/gatewayView','vent', 'routeFilter'], function(Marionette, LoginModel, IndexView, LoginView, GatewayView, vent) {
+define(['backbone', 
+    'communicator',
+    'models/loginModel',
+    'views/indexView',
+    'views/loginView',
+    'views/gatewayView',
+    'routeFilter'
+    ], function(Backbone, Communicator, LoginModel, IndexView, LoginView, GatewayView) {
     'use strict';
 
     var Controller = {};
 
     // private module/app router  capture route and call start method of our controller
-    Controller.Router = Marionette.AppRouter.extend({
+    Controller.Router = Backbone.Marionette.AppRouter.extend({
         appRoutes: {
             '': 'showIndex',
             'gateways': 'showGateway'
@@ -24,19 +31,19 @@ define(['marionette','models/loginModel','views/indexView','views/loginView','vi
                 next();
             }else{
                 var view = new LoginView({model:this.options.controller.loginStatus,next:next});
-                vent.trigger('app:show', view);
+                Communicator.mediator.trigger('app:show', view);
             }
         }
     });
 
     Controller.showIndex = function() {
         var view = new IndexView();
-        vent.trigger('app:show', view);
+        Communicator.mediator.trigger('app:show', view);
     };
 
     Controller.showGateway = function() {
         var view = new GatewayView({model:this.loginStatus});
-        vent.trigger('app:show', view);
+        Communicator.mediator.trigger('app:show', view);
     };
 
     Controller.showLogin = function(fragment, args, next) {
@@ -44,7 +51,7 @@ define(['marionette','models/loginModel','views/indexView','views/loginView','vi
             this.loginStatus = new LoginModel();
         }
         var view = new LoginView({model:this.loginStatus,next:next});
-        vent.trigger('app:show', view);
+        Communicator.mediator.trigger('app:show', view);
     };
 
     return Controller;

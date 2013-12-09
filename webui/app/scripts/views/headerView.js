@@ -4,8 +4,8 @@ define(['backbone', 'hbs!tmpl/header'], function(Backbone, HeaderTmpl) {
         template: HeaderTmpl,
         className: 'transp',
         onShow:function () {
-			console.log($('ul.nav'));
-			$('ul.nav').tab();
+			this.$('ul.nav').tab();
+			this.$('.collapse').collapse();
         }
     });
 });

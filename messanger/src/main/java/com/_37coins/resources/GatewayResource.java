@@ -45,6 +45,8 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
 import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 import com.plivo.helper.api.client.RestAPI;
+import com.plivo.helper.api.response.call.Call;
+import com.plivo.helper.exception.PlivoException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -100,7 +102,8 @@ public class GatewayResource {
 	
 	@PUT
 	@RolesAllowed({"gateway"})
-	public void confirm(@Context SecurityContext context,GatewayUser gu){
+	public GatewayUser confirm(@Context SecurityContext context,GatewayUser gu){
+		GatewayUser rv = null;
 		//fish user from directory
 		String mobile = null;
 		BigDecimal fee = null;
@@ -137,35 +140,16 @@ public class GatewayResource {
 			    params.put("to", phoneUtil.format(pn, PhoneNumberFormat.E164));
 			    params.put("answer_url", MessagingServletConfig.basePath + "/plivo/register/"+code+"/"+gu.getLocale());
 			    params.put("time_limit", "55");
-//			    Call response = restAPI.makeCall(params);
-//			    if (response.serverCode != 200 && response.serverCode != 201 && response.serverCode !=204){
-//			    	throw new PlivoException(response.message);
-//			    }
+			    Call response = restAPI.makeCall(params);
+			    if (response.serverCode != 200 && response.serverCode != 201 && response.serverCode !=204){
+			    	throw new PlivoException(response.message);
+			    }
 			    System.out.println("code: "+code);
-			//} catch (NumberParseException | IllegalStateException | NamingException | PlivoException e) {
-			} catch (NumberParseException | IllegalStateException | NamingException e) {
+			} catch (NumberParseException | IllegalStateException | NamingException | PlivoException e) {
 				e.printStackTrace();
 				throw new WebApplicationException(e,Response.Status.INTERNAL_SERVER_ERROR);
 			}
 		}else if (gu.getCode()!=null && gu.getFee()==null){
-			//complete validation for mobile number
-			Element e = cache.get(gu.getCode()); 
-			if (null==e){
-				throw new WebApplicationException(gu.getCode()+" not correct", Response.Status.NOT_FOUND);
-			}
-			PhoneNumber pn = (PhoneNumber)e.getObjectValue();
-			try {
-				Attributes a = new BasicAttributes();
-				a.put("preferredLanguage", gu.getLocaleString());
-				a.put("mobile",phoneUtil.format(pn, PhoneNumberFormat.E164));
-				//some abuses here: description -> fee and departementNumber -> envayapw
-				a.put("description",FEE.toString());
-				a.put("departmentNumber",RandomStringUtils.random(12, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789"));
-				ctx.modifyAttributes(context.getUserPrincipal().getName(), DirContext.REPLACE_ATTRIBUTE, a);
-			} catch (IllegalStateException | NamingException e1) {
-				e1.printStackTrace();
-				throw new WebApplicationException(e1, Response.Status.INTERNAL_SERVER_ERROR);
-			}
 			//create queue in mqs
 			Matcher m = Pattern.compile("[Cc][Nn]=([^,]+),").matcher(context.getUserPrincipal().getName());
 			m.find();
@@ -191,12 +175,35 @@ public class GatewayResource {
 					if (null!=conn&&conn.isOpen()) conn.close();
 				} catch (IOException e1) {}
 			}
+			//complete validation for mobile number
+			Element e = cache.get(gu.getCode()); 
+			if (null==e){
+				throw new WebApplicationException(gu.getCode()+" not correct", Response.Status.NOT_FOUND);
+			}
+			PhoneNumber pn = (PhoneNumber)e.getObjectValue();
+			try {
+				Attributes a = new BasicAttributes();
+				a.put("preferredLanguage", gu.getLocaleString());
+				a.put("mobile",phoneUtil.format(pn, PhoneNumberFormat.E164));
+				//some abuses here: description -> fee and departementNumber -> envayapw
+				a.put("description",FEE.toString());
+				a.put("departmentNumber",RandomStringUtils.random(12, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789"));
+				ctx.modifyAttributes(context.getUserPrincipal().getName(), DirContext.REPLACE_ATTRIBUTE, a);
+				rv = new GatewayUser()
+					.setLocale(gu.getLocale())
+					.setFee(FEE)
+					.setMobile(phoneUtil.format(pn, PhoneNumberFormat.E164));
+			} catch (IllegalStateException | NamingException e1) {
+				e1.printStackTrace();
+				throw new WebApplicationException(e1, Response.Status.INTERNAL_SERVER_ERROR);
+			}
 		}else if (mobile.equalsIgnoreCase(gu.getMobile()) && gu.getFee()!=null) {
 			//set/update fee
 			if (gu.getFee().compareTo(fee)!=0){
 				try {
 					Attributes a = new BasicAttributes("description",gu.getFee().toString());
 					ctx.modifyAttributes(context.getUserPrincipal().getName(), DirContext.REPLACE_ATTRIBUTE, a);
+					rv = new GatewayUser().setFee(gu.getFee());
 				} catch (IllegalStateException | NamingException e1) {
 					e1.printStackTrace();
 					throw new WebApplicationException(e1, Response.Status.INTERNAL_SERVER_ERROR);
@@ -205,6 +212,7 @@ public class GatewayResource {
 		}else{
 			throw new WebApplicationException("unexpected state", Response.Status.BAD_REQUEST);
 		}
+		return rv;
 	}
 	
 }

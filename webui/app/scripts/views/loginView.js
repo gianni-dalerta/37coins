@@ -11,10 +11,15 @@ define(['backbone', 'hbs!tmpl/login'], function(Backbone, LoginTmpl) {
         events: {
             'click #loginBtn':'handleLogin',
             'click #regBtn':'handleRegister',
-            'click #lostBtn':'handleLost'
+            'click #lostBtn':'handleLost',
+            'change input': 'changeInput'
+        },
+        changeInput: function(e) {
+            this.$('#loginBtn').button('reset');
         },
         handleLogin: function(e) {
             e.preventDefault();
+            $(e.target).button('loading');
             var user = $('input:text').val();
             var pw = $('input:password').val();
             if (user && pw){
@@ -22,6 +27,7 @@ define(['backbone', 'hbs!tmpl/login'], function(Backbone, LoginTmpl) {
                     username: user,
                     password: pw
                 };
+                this.model.clear({silent:true});
                 sessionStorage.setItem('credentials',cred);
                 this.model.credentials = cred;
                 this.model.fetch();
@@ -39,11 +45,13 @@ define(['backbone', 'hbs!tmpl/login'], function(Backbone, LoginTmpl) {
             this.next();
         },
         onError: function(){
-            $('div.alert').show();
+            this.$('div.alert').show();
+            this.$('#loginBtn').button('reset');
         },
         onShow:function () {
-            $('.alert').alert();
-            $('div.alert').hide();
+            this.$('.alert').alert();
+            this.$('div.alert').hide();
+            this.$('#loginBtn').prop('disabled',true);
         }
     });
 });

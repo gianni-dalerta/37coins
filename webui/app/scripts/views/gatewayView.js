@@ -4,7 +4,16 @@ define(['backbone', 'hbs!tmpl/gateway'], function(Backbone, GatewayTmpl) {
         template: GatewayTmpl,
         className: 'container',
         initialize: function() {
-            //something
+            this.model.on('sync', this.onSync, this);
+            this.model.on('error', this.onError, this);
+        },
+        onSync: function(){
+            this.onShow();
+            this.$('button').button('reset');
+        },
+        onError: function(){
+            this.$('div.alert').show();
+            this.$('button').button('reset');
         },
         events: {
             'click #valBtn':'handleValidate',
@@ -15,6 +24,7 @@ define(['backbone', 'hbs!tmpl/gateway'], function(Backbone, GatewayTmpl) {
         },
         handleValidate: function(e) {
             e.preventDefault();
+            $(e.target).button('loading');
             var mobile = this.$('#mobVal').val();
             this.model.set('mobile',mobile);
             this.model.set('locale',window.opt.lng);
@@ -22,12 +32,14 @@ define(['backbone', 'hbs!tmpl/gateway'], function(Backbone, GatewayTmpl) {
         },
         handleConfirm: function(e) {
             e.preventDefault();
+            $(e.target).button('loading');
             var code = this.$('#cfmVal').val();
             this.model.set('code',code);
             this.model.save();
         },
         handleFee: function(e){
             e.preventDefault();
+            $(e.target).button('loading');
             var fee = this.$('#feeVal').val();
             this.$('#error').hide();
             this.$('#success').hide();
@@ -51,6 +63,7 @@ define(['backbone', 'hbs!tmpl/gateway'], function(Backbone, GatewayTmpl) {
         },
         handleWithdrawal: function(e){
             e.preventDefault();
+            $(e.target).button('loading');
             $(e.target).parent().parent().parent().children('.alert').show();
         },
         onShow:function () {

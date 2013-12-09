@@ -210,36 +210,6 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>pack-persistence</id>
-						<phase>process-resources</phase>
-						<goals>
-							<goal>copy</goal>
-						</goals>
-						<configuration>
-							<locales>
-								<locale>en_US</locale>
-							</locales>
-							<artifactItems>
-								<artifactItem>
-									<type>war</type>
-									<groupId>password.pwm</groupId>
-									<artifactId>pwm</artifactId>
-									<version>1.7</version>
-									<overWrite>false</overWrite>
-									<destFileName>pwm.war</destFileName>
-								</artifactItem>
-							</artifactItems>
-							<outputDirectory>${project.build.directory}/${project.artifactId}-${project.version}</outputDirectory>
-							<overWriteReleases>false</overWriteReleases>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.1</version>
 				<configuration>

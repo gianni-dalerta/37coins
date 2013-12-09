@@ -9,11 +9,11 @@ define(['backbone'], function(Backbone) {
             locale: window.opt.lng,
             basePath: window.opt.basePath,
             srvcPath: window.opt.srvcPath,
-            cn: (sessionStorage.getItem('cn'))?sessionStorage.getItem('cn'):null,
-            roles: (sessionStorage.getItem('roles'))?[sessionStorage.getItem('roles')]:null,
-            mobile: (sessionStorage.getItem('mobile'))?sessionStorage.getItem('mobile'):null,
-            fee: (sessionStorage.getItem('fee'))?sessionStorage.getItem('fee'):null,
-            envayaToken: (sessionStorage.getItem('envayaToken'))?sessionStorage.getItem('envayaToken'):null
+            cn: (sessionStorage.getItem('cn'))?sessionStorage.getItem('cn'):undefined,
+            roles: (sessionStorage.getItem('roles'))?[sessionStorage.getItem('roles')]:undefined,
+            mobile: (sessionStorage.getItem('mobile'))?sessionStorage.getItem('mobile'):undefined,
+            fee: (sessionStorage.getItem('fee'))?sessionStorage.getItem('fee'):undefined,
+            envayaToken: (sessionStorage.getItem('envayaToken'))?sessionStorage.getItem('envayaToken'):undefined
         },
 
         initialize: function(){

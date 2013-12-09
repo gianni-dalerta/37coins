@@ -33,7 +33,7 @@ require.config({
         routeFilter: '../bower_components/backbone-async-route-filter/backbone-route-filter-amd',
 
         /* alias the bootstrap js lib */
-        bootstrap: 'vendor/bootstrap',
+        bootstrap: '../bower_components/sass-bootstrap/dist/js/bootstrap',
 
         /* Alias text.js for template loading and shortcut the templates dir to tmpl */
         text: '../bower_components/requirejs-text/text',
@@ -45,7 +45,8 @@ require.config({
         /* require handlebars plugin - Alex Sexton */
         i18nprecompile: '../bower_components/require-handlebars-plugin/hbs/i18nprecompile',
         json2: '../bower_components/require-handlebars-plugin/hbs/json2',
-        hbs: '../bower_components/require-handlebars-plugin/hbs'
+        hbs: '../bower_components/require-handlebars-plugin/hbs',
+        basicauth: '../bower_components/backbone.basicauth/backbone.basicauth',
     },
 
     hbs: {

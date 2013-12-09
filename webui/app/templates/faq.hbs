@@ -1,0 +1,98 @@
+<div class="pusher"></div>
+<div class="container">
+  <div class="col-md-12 wbox">
+	<h2>FAQ:</h2>
+	<div class="panel-group" id="accordion">
+	  <div class="panel panel-default">
+	    <div class="panel-heading">
+	      <h4 class="panel-title">
+	        <a data-toggle="collapse" data-parent="#accordion" href="#collapseOne">
+	          What is 37 Coins?
+	        </a>
+	      </h4>
+	    </div>
+	    <div id="collapseOne" class="panel-collapse collapse in">
+	      <div class="panel-body">
+	        37 Coins is a web-service and android app to enable Bitcoin transactions via sms only. It is a set of compromises to bring as much security as affordable to allow a client on an untrusted network to control a hosted wallet. The client sends simple text commands via SMS. The gateway verifies those commands, constructs a transaction and forwards it to the web-service.The web-service verifies once more idependently from the gateway and then publishes the transaction to the bitcoin network.
+	      </div>
+	    </div>
+	  </div>
+	  <div class="panel panel-default">
+	    <div class="panel-heading">
+	      <h4 class="panel-title">
+	        <a data-toggle="collapse" data-parent="#accordion" href="#collapseTwo">
+	          What is a gateway? why is it needed?
+	        </a>
+	      </h4>
+	    </div>
+	    <div id="collapseTwo" class="panel-collapse collapse in">
+	      <div class="panel-body">
+	        A gateway is a mediator between any local sms network and the internet. It can be operated by anyone willing to invest an android phone, install the app, and take care for it's connectivity. The gateway's operator's efforts are rewarded with a cut of any transaction that is initiated through his gateway. The more gateways are set up the bigger the reach of 37Coins and the more resilient it will be to hardware failure or takedown.
+	        The gateway is designed as a regular client to the mobile provider's network. No aproval, cooperation, or agreement with the network provider except a payed SIM-card is needed to set it up.
+	      </div>
+	    </div>
+	  </div>
+	  <div class="panel panel-default">
+	    <div class="panel-heading">
+	      <h4 class="panel-title">
+	        <a data-toggle="collapse" data-parent="#accordion" href="#collapseThree">
+	          How can I use it? Do I need a smartphone?
+	        </a>
+	      </h4>
+	    </div>
+	    <div id="collapseThree" class="panel-collapse collapse in">
+	      <div class="panel-body">
+	        As a client you don't need a smart-phone, but can open a wallet with a gateway by simply sending it an sms from any feature-phone. Send the 'address' command to receive a bitcoin address to charge you account, or tell any existing client your phone number to be able to receive Bitcoins via 37Coins.
+	      </div>
+	    </div>
+	  </div>
+	  <div class="panel panel-default">
+	    <div class="panel-heading">
+	      <h4 class="panel-title">
+	        <a data-toggle="collapse" data-parent="#accordion" href="#collapseFour">
+	          How is this secure? Haven't you heard of IMSI-catcher? What if you get hacked?
+	        </a>
+	      </h4>
+	    </div>
+	    <div id="collapseFour" class="panel-collapse collapse in">
+	      <div class="panel-body">
+	        37Coins operates on a shared responsibility model and a semi-multi-factor authentication for security.
+	        To protect the client from spoofing the gateways sends a challenge back to the phone to verify the request. Then a transaction is constructed and signed with the gateway private key. The input(s) to this transaction is not spendable without the signature of both, the gateway and the web-service. The web-service goes ahead and initiates a voice-call with the client to verify the client's pin. Once successfull, the web-service adds it's part of the signature and the transaction can be spend. 
+	        Throughout the process, the client is required to verify the possession of the phone as well as the knowledge of the pin, giving him two factors for authentication. The process is only semi-multi-factor as both secrets are transported over the same untrusted network.
+	        <div class="alert alert-warning">In the current MVP implementation no shared responsibility model is implemented yet. The gateway is dump and the web-service has to be fully trusted.</div>
+	      </div>
+	    </div>
+	  </div>
+	  <!--
+	  <div class="panel panel-default">
+	    <div class="panel-heading">
+	      <h4 class="panel-title">
+	        <a data-toggle="collapse" data-parent="#accordion" href="#collapseFive">
+	          I don't have internet access. How can I buy or sell bitcoins?
+	        </a>
+	      </h4>
+	    </div>
+	    <div id="collapseFive" class="panel-collapse collapse in">
+	      <div class="panel-body">
+	        As 37Coins is targeted at low-teched clients without smart-phone or internet, an sms based market similar to localbitcoins will be created. Wait for the 'buy' and 'sell' commands to come!
+	      </div>
+	    </div>
+	  </div>
+
+	  <div class="panel panel-default">
+	    <div class="panel-heading">
+	      <h4 class="panel-title">
+	        <a data-toggle="collapse" data-parent="#accordion" href="#collapseSix">
+	          I'm a gateway operator, my client forgot his/her pin.
+	        </a>
+	      </h4>
+	    </div>
+	    <div id="collapseSix" class="panel-collapse collapse in">
+	      <div class="panel-body">
+	        That's unfortunate, or might be a scam. 
+	      </div>
+	    </div>
+	  </div> -->
+	</div>
+  </div>
+</div>

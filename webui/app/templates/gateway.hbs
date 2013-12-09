@@ -1,6 +1,6 @@
 <div class="pusher"></div>
 <div class="container">
-  <div id="valFrm" class="span12">
+  <div id="valFrm" class="col-md-12 wbox">
     <h2>Initialize Gateway Validation</h2>
     <form>
       <fieldset>
@@ -13,21 +13,22 @@
   </div>
 </div>
 <div class="container">
-  <div id="cfmFrm" class="span12">
+  <div id="cfmFrm" class="col-md-12 wbox">
     <h2>Validate Gateway Ownership</h2>
     <form>
       <fieldset>
         <label>Confirmation Code</label>
-        <input id="cfmVal" type="text" placeholder="yYyYy">
+        <input id="cfmVal" type="text" placeholder="12345">
         <span class="help-block">Enter the code you received via SMS. To retry, log out and log back in again.</span>
         <button id="cfmBtn" type="submit" class="btn btn-inverse">Confirm Ownership</button>
       </fieldset>
     </form>
+    <div id="error" class="alert alert-danger"><a class="close">&times;</a>Communitcation Error!</div>
   </div>
 </div>
 <div id="statusFrm" class="container">
   <div class="row marketing">
-    <div class="col-lg-6">
+    <div class="col-sm-6 wbox">
       <h2>Account Balance</h2>
       Your account balance is 0.00 BTC
       <form>
@@ -38,7 +39,7 @@
       <div class="alert alert-danger"><a class="close">&times;</a>Not implemented!</div>
       <br>
     </div>
-    <div class="col-lg-6">
+    <div class="col-sm-6 wbox">
       <h2>Transaction Fee</h2>
       <form>
         <fieldset>
@@ -55,7 +56,7 @@
   </div>
 </div>
 <div class="container">
-  <div id="cnfFrm" class="span12">
+  <div id="cnfFrm" class="col-md-12 wbox">
     <h2>Download App</h2>
     To operate the gateway, download  <a href="https://play.google.com/store/apps/details?id=org.envaya.sms">EnvayaSMS</a> and configure it with the following parameters.
     <h2>Configure App</h2>

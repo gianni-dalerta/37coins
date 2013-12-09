@@ -4,8 +4,10 @@ define(['backbone',
     'views/indexView',
     'views/loginView',
     'views/gatewayView',
+    'views/faqView',
+    'views/contactView',
     'routeFilter'
-    ], function(Backbone, Communicator, LoginModel, IndexView, LoginView, GatewayView) {
+    ], function(Backbone, Communicator, LoginModel, IndexView, LoginView, GatewayView, FaqView, ContactView) {
     'use strict';
 
     var Controller = {};
@@ -14,7 +16,9 @@ define(['backbone',
     Controller.Router = Backbone.Marionette.AppRouter.extend({
         appRoutes: {
             '': 'showIndex',
-            'gateways': 'showGateway'
+            'gateways': 'showGateway',
+            'faq': 'showFaq',
+            'contact': 'showContact'
         },
         before:{
             'gateways': 'showLogin',
@@ -43,6 +47,16 @@ define(['backbone',
 
     Controller.showGateway = function() {
         var view = new GatewayView({model:this.loginStatus});
+        Communicator.mediator.trigger('app:show', view);
+    };
+
+    Controller.showFaq = function() {
+        var view = new FaqView();
+        Communicator.mediator.trigger('app:show', view);
+    };
+
+    Controller.showContact = function() {
+        var view = new ContactView();
         Communicator.mediator.trigger('app:show', view);
     };
 

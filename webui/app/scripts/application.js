@@ -28,12 +28,17 @@ function( Backbone, Communicator, HeaderView, FooterView ) {
         App.content.show(appView);
     });
 
+    Communicator.mediator.on('app:logout', function() {
+        //renavigate to see if we still have permission
+        App.router.navigate('logout',{trigger: true});
+    });
+
 	/* Add initializers here */
 	App.addInitializer( function (options) {
 
         App.header.show(new HeaderView({model:new Backbone.Model({resPath:window.opt.resPath})}));
         App.footer.show(new FooterView());
-        new options.pageController.Router({
+        this.router = new options.pageController.Router({
             controller: options.pageController // wire-up the start method
         });
 	});

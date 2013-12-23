@@ -17,7 +17,8 @@ require.config({
         bootstrap: {
             deps: ['jquery'],
             exports: 'jquery'
-        }
+        },
+        recaptcha: { exports: 'Recaptcha' }
     },
 
     paths: {
@@ -47,6 +48,7 @@ require.config({
         json2: '../bower_components/require-handlebars-plugin/hbs/json2',
         hbs: '../bower_components/require-handlebars-plugin/hbs',
         basicauth: '../bower_components/backbone.basicauth/backbone.basicauth',
+        recaptcha: 'vendor/recaptcha_ajax'
     },
 
     hbs: {

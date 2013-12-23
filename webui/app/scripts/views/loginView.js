@@ -10,8 +10,6 @@ define(['backbone', 'communicator', 'hbs!tmpl/login'], function(Backbone, Commun
         },
         events: {
             'click #loginBtn':'handleLogin',
-            'click #regBtn':'handleRegister',
-            'click #lostBtn':'handleLost',
             'change input': 'changeInput'
         },
         changeInput: function(e) {
@@ -37,14 +35,6 @@ define(['backbone', 'communicator', 'hbs!tmpl/login'], function(Backbone, Commun
                 this.model.credentials = cred;
                 this.model.fetch();
             }
-        },
-        handleRegister: function(e) {
-            e.preventDefault();
-            window.location.assign('/pwm/public/NewUser');
-        },
-        handleLost: function(e) {
-            e.preventDefault();
-            window.location.assign('/pwm/public/ForgottenPassword');
         },
         onRolesChange: function(){
             Communicator.mediator.trigger('app:verify', this.next);

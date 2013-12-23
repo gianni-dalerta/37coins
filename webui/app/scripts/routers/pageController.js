@@ -1,6 +1,10 @@
 define(['backbone',
     'communicator',
     'models/loginModel',
+    'models/accountRequest',
+    'models/resetRequest',
+    'models/resetConf',
+    'models/signupConf',
     'views/indexView',
     'views/loginView',
     'views/gatewayView',
@@ -8,8 +12,14 @@ define(['backbone',
     'views/contactView',
     'views/verifyView',
     'views/validateView',
+    'views/captchaView',
+    'views/logoutView',
+    'views/signupView',
+    'views/resetView',
+    'views/resetConfView',
+    'views/signupConfView',
     'routeFilter'
-    ], function(Backbone, Communicator, LoginModel, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView) {
+    ], function(Backbone, Communicator, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView) {
     'use strict';
 
     var Controller = {};
@@ -20,12 +30,34 @@ define(['backbone',
             '': 'showIndex',
             'gateways': 'showGateway',
             'faq': 'showFaq',
-            'contact': 'showContact'
+            'confSignup/:token': 'confirmSignUp',
+            'confReset/:token': 'confirmReset',
+            'reset': 'showReset',
+            'contact': 'showContact',
+            'signUp': 'showSignUp',
+            'logout': 'showLogout'
         },
         before:{
+            'signUp': 'getTicket',
+            'reset': 'getTicket',
             'gateways': 'showLogin',
             '*any': function(fragment, args, next){
                 console.log('before');
+                next();
+            }
+        },
+        getTicket: function(fragment, args, next) {
+            if (!this.options.controller.ticket){
+                //TODO: show wain screen
+                var self = this;
+                $.post( window.opt.basePath + '/account/ticket', function( data ) {
+                    self.options.controller.ticket = data.value;
+                    next();
+                },'json').fail(function() {
+                    var view = new CaptchaView({next:next,controller:self.options.controller});
+                    Communicator.mediator.trigger('app:show', null, view);
+                });
+            }else{
                 next();
             }
         },
@@ -84,6 +116,31 @@ define(['backbone',
         }
         var view = new LoginView({model:this.loginStatus,next:next});
         Communicator.mediator.trigger('app:show', view);
+    };
+    Controller.showLogout = function() {
+        var contentView = new LogoutView();
+        Communicator.mediator.trigger('app:show',null,contentView);
+    };
+    Controller.showSignUp = function() {
+        var accountRequest = new AccountRequest({ticket:Controller.ticket});
+        var contentView = new SignupView({model:accountRequest});
+        Communicator.mediator.trigger('app:show',null,contentView);
+    };
+    Controller.confirmSignUp = function(token) {
+        var model = new SignupConf({token:token});
+        var contentView = new SignupConfView({model: model});
+        Communicator.mediator.trigger('app:show',null,contentView);
+        model.save();
+    };
+    Controller.showReset = function() {
+        var model = new ResetRequest({ticket:Controller.ticket});
+        var contentView = new ResetView({model:model});
+        Communicator.mediator.trigger('app:show',null,contentView);
+    };
+    Controller.confirmReset = function(token) {
+        var model = new ResetConf({token:token});
+        var contentView = new ResetConfView({model: model});
+        Communicator.mediator.trigger('app:show',null,contentView);
     };
 
     return Controller;

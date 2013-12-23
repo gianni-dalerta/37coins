@@ -1,4 +1,4 @@
-define(['backbone', 'hbs!tmpl/login'], function(Backbone, LoginTmpl) {
+define(['backbone', 'communicator', 'hbs!tmpl/login'], function(Backbone, Communicator, LoginTmpl) {
     'use strict';
     return Backbone.Marionette.ItemView.extend({
         template: LoginTmpl,
@@ -28,6 +28,11 @@ define(['backbone', 'hbs!tmpl/login'], function(Backbone, LoginTmpl) {
                     password: pw
                 };
                 this.model.clear({silent:true});
+                this.model.set({
+                    locale: window.opt.lng,
+                    basePath: window.opt.basePath,
+                    srvcPath: window.opt.srvcPath
+                });
                 sessionStorage.setItem('credentials',cred);
                 this.model.credentials = cred;
                 this.model.fetch();
@@ -42,7 +47,8 @@ define(['backbone', 'hbs!tmpl/login'], function(Backbone, LoginTmpl) {
             window.location.assign('/pwm/public/ForgottenPassword');
         },
         onRolesChange: function(){
-            this.next();
+            Communicator.mediator.trigger('app:verify', this.next);
+            //this.next();
         },
         onError: function(){
             this.$('div.alert').show();

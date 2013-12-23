@@ -1,11 +1,25 @@
 $iconSpritePath: "../images/glyphicons-halflings.png";
 $iconWhiteSpritePath: "../images/glyphicons-halflings-white.png";
 
-
+$link-color:            #2E618D !default;
+$font-size-base:          16px !default;
 @import 'sass-bootstrap/lib/bootstrap';
 
 html, body {
   height: 100%;
+}
+
+#bg {
+  background-image: url(../images/blue.jpg);
+}
+
+a.navbar-brand img {
+  height: 50px;
+  margin-top: -25px;
+}
+
+img.img-responsive {
+   margin: 0 auto 20px;
 }
 
 #bg {

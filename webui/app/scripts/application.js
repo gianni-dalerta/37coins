@@ -31,8 +31,7 @@ function( Backbone, Communicator, HeaderView, FooterView ) {
 	/* Add initializers here */
 	App.addInitializer( function (options) {
 
-
-        App.header.show(new HeaderView());
+        App.header.show(new HeaderView({model:new Backbone.Model({resPath:window.opt.resPath})}));
         App.footer.show(new FooterView());
         new options.pageController.Router({
             controller: options.pageController // wire-up the start method

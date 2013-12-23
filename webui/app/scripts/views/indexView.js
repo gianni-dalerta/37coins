@@ -3,6 +3,9 @@ define(['backbone', 'hbs!tmpl/index'], function(Backbone, IndexTmpl) {
     return Backbone.Marionette.ItemView.extend({
         template: IndexTmpl,
         className: 'container',
+        initialize: function() {
+            console.dir(this.model);
+        },
         events: {
             'click a.btn-success':'handleClick'
         },

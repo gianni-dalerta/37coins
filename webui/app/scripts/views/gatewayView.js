@@ -4,38 +4,15 @@ define(['backbone', 'hbs!tmpl/gateway'], function(Backbone, GatewayTmpl) {
         template: GatewayTmpl,
         className: 'container',
         initialize: function() {
-            this.model.on('sync', this.onSync, this);
             this.model.on('error', this.onError, this);
-        },
-        onSync: function(){
-            this.onShow();
-            this.$('button').button('reset');
         },
         onError: function(){
             this.$('div.alert').show();
             this.$('button').button('reset');
         },
         events: {
-            'click #valBtn':'handleValidate',
-            'click #cfmBtn':'handleConfirm',
             'click #feeBtn':'handleFee',
-            'click a.close':'handleAlert',
             'click #withdrawalBtn':'handleWithdrawal'
-        },
-        handleValidate: function(e) {
-            e.preventDefault();
-            $(e.target).button('loading');
-            var mobile = this.$('#mobVal').val();
-            this.model.set('mobile',mobile);
-            this.model.set('locale',window.opt.lng);
-            this.model.save();
-        },
-        handleConfirm: function(e) {
-            e.preventDefault();
-            $(e.target).button('loading');
-            var code = this.$('#cfmVal').val();
-            this.model.set('code',code);
-            this.model.save();
         },
         handleFee: function(e){
             e.preventDefault();
@@ -57,10 +34,6 @@ define(['backbone', 'hbs!tmpl/gateway'], function(Backbone, GatewayTmpl) {
                 this.model.save();
             }
         },
-        handleAlert: function(e){
-            e.preventDefault();
-            $(e.target).parent().hide();
-        },
         handleWithdrawal: function(e){
             e.preventDefault();
             $(e.target).button('loading');
@@ -68,26 +41,8 @@ define(['backbone', 'hbs!tmpl/gateway'], function(Backbone, GatewayTmpl) {
         },
         onShow:function () {
             this.$('div.alert').hide();
-            if (!this.model.get('mobile')){
-                //show only validate phone form
-                this.$('#cfmFrm').hide();
-                this.$('#cnfFrm').hide();
-                this.$('#statusFrm').hide();
-                this.$('#valFrm').show();
-            }else if (!this.model.get('fee')){
-                //show only confirm phone form
-                this.$('#cfmFrm').show();
-                this.$('#cnfFrm').hide();
-                this.$('#statusFrm').hide();
-                this.$('#valFrm').hide();
-            }else {
-                //show only config and status views
-                this.$('#cfmFrm').hide();
-                this.$('#cnfFrm').show();
-                this.$('#statusFrm').show();
-                this.$('#valFrm').hide();
-                this.$('#feeVal').val(this.model.get('fee'));
-            }
+            this.$('#feeVal').val(this.model.get('fee'));
+            this.$('button').button('reset');
         }
     });
 });

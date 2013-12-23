@@ -187,12 +187,14 @@ public class GatewayResource {
 				a.put("mobile",phoneUtil.format(pn, PhoneNumberFormat.E164));
 				//some abuses here: description -> fee and departementNumber -> envayapw
 				a.put("description",FEE.toString());
-				a.put("departmentNumber",RandomStringUtils.random(12, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789"));
+				String envayaToken = RandomStringUtils.random(12, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789");
+				a.put("departmentNumber",envayaToken);
 				ctx.modifyAttributes(context.getUserPrincipal().getName(), DirContext.REPLACE_ATTRIBUTE, a);
 				rv = new GatewayUser()
 					.setLocale(gu.getLocale())
 					.setFee(FEE)
-					.setMobile(phoneUtil.format(pn, PhoneNumberFormat.E164));
+					.setMobile(phoneUtil.format(pn, PhoneNumberFormat.E164))
+					.setEnvayaToken(envayaToken);
 			} catch (IllegalStateException | NamingException e1) {
 				e1.printStackTrace();
 				throw new WebApplicationException(e1, Response.Status.INTERNAL_SERVER_ERROR);

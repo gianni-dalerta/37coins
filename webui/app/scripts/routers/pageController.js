@@ -1,4 +1,4 @@
-define(['backbone', 
+define(['backbone',
     'communicator',
     'models/loginModel',
     'views/indexView',
@@ -6,8 +6,10 @@ define(['backbone',
     'views/gatewayView',
     'views/faqView',
     'views/contactView',
+    'views/verifyView',
+    'views/validateView',
     'routeFilter'
-    ], function(Backbone, Communicator, LoginModel, IndexView, LoginView, GatewayView, FaqView, ContactView) {
+    ], function(Backbone, Communicator, LoginModel, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView) {
     'use strict';
 
     var Controller = {};
@@ -31,17 +33,33 @@ define(['backbone',
             if (!this.options.controller.loginStatus){
                 this.options.controller.loginStatus = new LoginModel();
             }
-            if (this.options.controller.loginStatus.get('roles')){
-                next();
+            var view;
+            var model = this.options.controller.loginStatus;
+            if (model.get('roles')){
+                Communicator.mediator.trigger('app:verify', next);
             }else{
-                var view = new LoginView({model:this.options.controller.loginStatus,next:next});
+                view = new LoginView({model:model,next:next});
                 Communicator.mediator.trigger('app:show', view);
             }
         }
     });
 
+    Communicator.mediator.on('app:verify', function(next) {
+        console.dir(Controller.loginStatus);
+        var view;
+        if (!Controller.loginStatus.get('mobile')){
+            view = new VerifyView({model:Controller.loginStatus,next:next});
+            Communicator.mediator.trigger('app:show', view);
+        }else if (!Controller.loginStatus.get('fee')){
+            view = new ValidateView({model:Controller.loginStatus,next:next});
+            Communicator.mediator.trigger('app:show', view);
+        }else {
+            next();
+        }
+    });
+
     Controller.showIndex = function() {
-        var view = new IndexView();
+        var view = new IndexView({model:new Backbone.Model({resPath:window.opt.resPath})});
         Communicator.mediator.trigger('app:show', view);
     };
 

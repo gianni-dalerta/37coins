@@ -27,6 +27,7 @@ import com._37coins.parse.ParserFilter;
 import com._37coins.sendMail.AmazonEmailClient;
 import com._37coins.sendMail.MailServiceClient;
 import com._37coins.sendMail.SmtpEmailClient;
+import com._37coins.web.AccountPolicy;
 import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
 import com._37coins.workflow.WithdrawalWorkflowClientExternalFactoryImpl;
 import com.amazonaws.auth.AWSCredentials;
@@ -73,6 +74,8 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 	public static String ldapUser;
 	public static String ldapPw;
 	public static String ldapBaseDn;
+	public static String captchaPubKey;
+	public static String captchaSecKey;
 	public static int localPort;
 	public static Logger log = LoggerFactory.getLogger(MessagingServletConfig.class);
 	public static Injector injector;
@@ -102,6 +105,8 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 		ldapUser = System.getProperty("ldapUser");
 		ldapPw = System.getProperty("ldapPw");
 		ldapBaseDn = System.getProperty("ldapBaseDn");
+		captchaPubKey = System.getProperty("captchaPubKey");
+		captchaSecKey = System.getProperty("captchaSecKey");
 	}
 	
 	private ServletContext servletContext;
@@ -217,6 +222,12 @@ public class MessagingServletConfig extends GuiceServletContextListener {
 					AmazonSimpleWorkflow workflowClient) {
 				return new WithdrawalWorkflowClientExternalFactoryImpl(
 						workflowClient, domainName);
+			}
+			
+			@Provides @Singleton @SuppressWarnings("unused")
+			AccountPolicy providePolicy(){
+				return new AccountPolicy()
+					.setEmailMxLookup(true);
 			}
 			
 			@Provides @Singleton @SuppressWarnings("unused")

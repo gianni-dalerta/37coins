@@ -129,6 +129,16 @@
 		    <artifactId>unboundid-ldapsdk</artifactId>
 		    <version>2.3.4</version>
 		</dependency>
+		<dependency>
+		   <groupId>edu.vt.middleware</groupId>
+		   <artifactId>vt-password</artifactId>
+		   <version>3.1.2</version>
+		</dependency>
+		<dependency>
+		    <groupId>net.tanesha.recaptcha4j</groupId>
+		    <artifactId>recaptcha4j</artifactId>
+		    <version>0.0.7</version>
+		</dependency>
 	</dependencies>
 
 	<profiles>
@@ -143,36 +153,6 @@
 
 			<build>
 				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-dependency-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>pack-persistence</id>
-								<phase>process-resources</phase>
-								<goals>
-									<goal>copy</goal>
-								</goals>
-								<configuration>
-									<locales>
-										<locale>en_US</locale>
-									</locales>
-									<artifactItems>
-										<artifactItem>
-											<type>war</type>
-											<groupId>password.pwm</groupId>
-											<artifactId>pwm</artifactId>
-											<version>1.7</version>
-											<overWrite>false</overWrite>
-											<destFileName>pwm.war</destFileName>
-										</artifactItem>
-									</artifactItems>
-									<outputDirectory>${project.build.directory}</outputDirectory>
-									<overWriteReleases>false</overWriteReleases>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>keytool-maven-plugin</artifactId>
@@ -226,7 +206,7 @@
 							<stopPort>18081</stopPort>
 							<contextHandlers>
 								<contextHandler implementation="org.eclipse.jetty.webapp.WebAppContext">
-									<war>${project.build.directory}/pwm.war</war>
+									<war>${project.build.directory}/${project.artifactId}-${project.version}/pwm.war</war>
 									<contextPath>/pwm</contextPath>
 								</contextHandler>
 							</contextHandlers>

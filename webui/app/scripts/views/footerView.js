@@ -1,7 +1,7 @@
-define(['underscoreM', 'marionette', 'templates'], function(_, Marionette, templates) {
+define(['backbone', 'hbs!tmpl/footer'], function(Backbone, FooterTmpl) {
     'use strict';
-    return Marionette.ItemView.extend({
-        template: _.template(templates.footer),
+    return Backbone.Marionette.ItemView.extend({
+        template: FooterTmpl,
         className: 'transp'
     });
 });

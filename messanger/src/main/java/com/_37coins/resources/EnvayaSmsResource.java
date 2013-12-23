@@ -104,7 +104,8 @@ public class EnvayaSmsResource {
 			String dn = "cn="+cn+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
 			Attributes atts = ctx.getAttributes(dn,new String[]{"departmentNumber"});
 			String envayaToken = (atts.get("departmentNumber")!=null)?(String)atts.get("departmentNumber").get():null;
-			String calcSig = calculateSignature(uriInfo.getRequestUri().toString(), params, envayaToken);
+			String url = MessagingServletConfig.basePath + uriInfo.getPath();
+			String calcSig = calculateSignature(url, params, envayaToken);
 			if (!sig.equals(calcSig)){
 				throw new WebApplicationException("signature missmatch",
 						javax.ws.rs.core.Response.Status.UNAUTHORIZED);

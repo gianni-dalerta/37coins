@@ -37,8 +37,10 @@ define(['backbone', 'communicator', 'hbs!tmpl/login'], function(Backbone, Commun
             }
         },
         onRolesChange: function(){
-            Communicator.mediator.trigger('app:verify', this.next);
-            //this.next();
+            if (this.model.get('roles')){
+                Communicator.mediator.trigger('app:login');
+                Communicator.mediator.trigger('app:verify', this.next);
+            }
         },
         onError: function(){
             this.$('div.alert').show();

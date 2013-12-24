@@ -1,9 +1,22 @@
-<input name="password1" type="password" class="form-control" placeholder="Password" required>
-<input name="password2" type="password" class="form-control" placeholder="Password" required>
+<div class="pusher"></div>
+<div class="container">
+    <div class="row marketing">
+        <div class="col-sm-12 wbox">
+        	<h2 class="form-signin-heading">Please Choose a new Password</h2>
+            <div class="form-group">
+                <label for="password1">Password:</label>
+                <input type="password" name="password1" class="form-control" id="password1" placeholder="Enter password">
+            </div>
+            <div class="form-group">
+                <label for="password2">Password:</label>
+                <input type="password" name="password2" class="form-control" id="password2" placeholder="Repeat password">
+            </div>
+            <button class="btn btn-lg btn-primary" type="submit">Save</button>
 
-<button class="btn btn-lg btn-primary btn-block" type="submit">Save new Password</button>
-
-<div class="alert alert-danger alert-dismissable fade">
-  <button type="button" class="close" aria-hidden="true">&times;</button>
-  <strong>Error!</strong> Passwords have to match.
+            <div class="alert alert-danger alert-dismissable fade">
+              <button type="button" class="close" aria-hidden="true">&times;</button>
+              <strong>Error!</strong> Passwords have to match!
+            </div>
+        </div>
+    </div>
 </div>

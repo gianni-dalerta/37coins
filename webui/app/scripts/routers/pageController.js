@@ -42,7 +42,6 @@ define(['backbone',
             'reset': 'getTicket',
             'gateways': 'showLogin',
             '*any': function(fragment, args, next){
-                console.log('before');
                 next();
             }
         },
@@ -50,12 +49,12 @@ define(['backbone',
             if (!this.options.controller.ticket){
                 //TODO: show wain screen
                 var self = this;
-                $.post( window.opt.basePath + '/account/ticket', function( data ) {
+                $.post( window.opt.basePath + '/ticket', function( data ) {
                     self.options.controller.ticket = data.value;
                     next();
                 },'json').fail(function() {
                     var view = new CaptchaView({next:next,controller:self.options.controller});
-                    Communicator.mediator.trigger('app:show', null, view);
+                    Communicator.mediator.trigger('app:show', view);
                 });
             }else{
                 next();
@@ -77,7 +76,6 @@ define(['backbone',
     });
 
     Communicator.mediator.on('app:verify', function(next) {
-        console.dir(Controller.loginStatus);
         var view;
         if (!Controller.loginStatus.get('mobile')){
             view = new VerifyView({model:Controller.loginStatus,next:next});
@@ -119,28 +117,28 @@ define(['backbone',
     };
     Controller.showLogout = function() {
         var contentView = new LogoutView();
-        Communicator.mediator.trigger('app:show',null,contentView);
+        Communicator.mediator.trigger('app:show',contentView);
     };
     Controller.showSignUp = function() {
         var accountRequest = new AccountRequest({ticket:Controller.ticket});
         var contentView = new SignupView({model:accountRequest});
-        Communicator.mediator.trigger('app:show',null,contentView);
+        Communicator.mediator.trigger('app:show',contentView);
     };
     Controller.confirmSignUp = function(token) {
         var model = new SignupConf({token:token});
         var contentView = new SignupConfView({model: model});
-        Communicator.mediator.trigger('app:show',null,contentView);
+        Communicator.mediator.trigger('app:show',contentView);
         model.save();
     };
     Controller.showReset = function() {
         var model = new ResetRequest({ticket:Controller.ticket});
         var contentView = new ResetView({model:model});
-        Communicator.mediator.trigger('app:show',null,contentView);
+        Communicator.mediator.trigger('app:show',contentView);
     };
     Controller.confirmReset = function(token) {
         var model = new ResetConf({token:token});
         var contentView = new ResetConfView({model: model});
-        Communicator.mediator.trigger('app:show',null,contentView);
+        Communicator.mediator.trigger('app:show',contentView);
     };
 
     return Controller;

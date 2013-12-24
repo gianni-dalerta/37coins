@@ -12,7 +12,6 @@ import javax.naming.directory.SearchControls;
 import javax.naming.ldap.InitialLdapContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -24,11 +23,8 @@ import javax.ws.rs.core.Response;
 
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
-import net.tanesha.recaptcha.ReCaptchaImpl;
-import net.tanesha.recaptcha.ReCaptchaResponse;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,45 +58,11 @@ public class AccountResource {
 		this.accountPolicy = accountPolicy;
 	}
 	
-	/**
-	 * a ticket is a token to execute critical or expensive code, like sending email.
-	 * a ticket will be given out a few times free, then limited by turing tests.
-	 */
-	@POST
-	@Path("/ticket")
-	public Pair<String,String> getTicket(){
-		Element e = cache.get(getRemoteAddress());
-		if (e!=null){
-			if (e.getHitCount()>3){
-				//TODO: implement turing test
-				throw new WebApplicationException("to many requests", Response.Status.BAD_REQUEST);
-			}
-		}else{
-			cache.put(new Element(getRemoteAddress(),getRemoteAddress()));
-		}
-		String ticket = RandomStringUtils.random(14, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789");
-		cache.put(new Element("ticket"+ticket,ticket));
-		return Pair.of("ticket",ticket);
-	}
 	
-	/**
-	 * recaptcha
-	 */
-	@POST
-	@Path("/captcha")
-	public Pair<String,String> recaptcha(@FormParam("chal") String challenge,
-			@FormParam("resp") String response){
-        ReCaptchaImpl reCaptcha = new ReCaptchaImpl();
-        reCaptcha.setPrivateKey(MessagingServletConfig.captchaSecKey);
-        ReCaptchaResponse reCaptchaResponse = reCaptcha.checkAnswer(getRemoteAddress(), challenge, response);
-        if (reCaptchaResponse.isValid()) {
-        	cache.remove(getRemoteAddress());
-    		String ticket = RandomStringUtils.random(14, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789");
-    		cache.put(new Element("ticket"+ticket,ticket));
-    		return Pair.of("ticket",ticket);
-        } else {
-          	throw new WebApplicationException("error", Response.Status.BAD_REQUEST);
-        }
+	private String getRemoteAddress(){
+		String ip = httpReq.getRemoteAddr();
+		//TODO: actually we need to check the proxy header too
+		return ip;
 	}
 	
 	/**
@@ -220,13 +182,6 @@ public class AccountResource {
 			throw new WebApplicationException("not found or expired", Response.Status.NOT_FOUND);
 		}
 	}
-
-	
-	private String getRemoteAddress(){
-		String ip = httpReq.getRemoteAddr();
-		//TODO: actually we need to check the proxy header too
-		return ip;
-	}
 	
 	/**
 	 * a password-request is validated, cached and email send out
@@ -249,25 +204,15 @@ public class AccountResource {
 		String dn = null;
 		try {
 			Attributes atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)(mail="+pwRequest.getEmail()+"))", ctx).getAttributes();
-			dn = "cn="+atts.get("cn")+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
+			dn = "cn="+atts.get("cn").get()+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
 		} catch (IllegalStateException | NamingException e1) {
+			e1.printStackTrace();
 			throw new WebApplicationException("account not found", Response.Status.NOT_FOUND);
 		}
 		String token = RandomStringUtils.random(14, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789");
 		sendResetEmail(pwRequest.getEmail(), token);
 		PasswordRequest pwr = new PasswordRequest().setToken(token).setDn(dn);
 		cache.put(new Element("reset"+token, pwr));
-	}
-	
-	@GET
-	@Path("/password/ticket")
-	public Pair<String,String> validateToken(@QueryParam("ticket") String ticket){
-		Element e = cache.get("reset"+ticket);
-		if (null!=e){
-			return Pair.of("status", "active");
-		}else{
-			return Pair.of("status", "inactive");
-		}
 	}
 	
 	/**
@@ -290,6 +235,7 @@ public class AccountResource {
 			try{
 				ctx.modifyAttributes(pwRequest.getDn(), DirContext.REPLACE_ATTRIBUTE, toModify);
 			}catch(Exception ex){
+				ex.printStackTrace();
 				throw new WebApplicationException(ex, Response.Status.INTERNAL_SERVER_ERROR);
 			}
 

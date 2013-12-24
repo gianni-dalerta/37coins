@@ -204,12 +204,6 @@
 								</connector>
 							</connectors>
 							<stopPort>18081</stopPort>
-							<contextHandlers>
-								<contextHandler implementation="org.eclipse.jetty.webapp.WebAppContext">
-									<war>${project.build.directory}/${project.artifactId}-${project.version}/pwm.war</war>
-									<contextPath>/pwm</contextPath>
-								</contextHandler>
-							</contextHandlers>
 						</configuration>
 					</plugin>
 				</plugins>

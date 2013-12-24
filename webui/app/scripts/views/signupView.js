@@ -1,9 +1,10 @@
 define([
 	'backbone',
 	'hbs!tmpl/signupView_tmpl',
+	'hbs!tmpl/signupCompletedView_tmpl',
 	'recaptcha'
 ],
-function( Backbone, SignupTmpl, Recaptcha) {
+function( Backbone, SignupTmpl, SignupCompleteTmpl, Recaptcha) {
     'use strict';
 
 	/* Return a ItemView class definition */
@@ -15,17 +16,23 @@ function( Backbone, SignupTmpl, Recaptcha) {
 		},
 
 		onError: function(){
-			this.$('div.alert').show();
+			this.$('.alert').css('display','');
+            this.$('.alert').addClass('in');
             this.$('button.btn-primary').button('reset');
 		},
 
 		onSuccess: function(){
-			this.$('form.form-signin').hide();
-			this.$('div.after').show();
-			this.$('.alert').show();
+			this.fetched = true;
+			this.render();
 		},
-		
-		template: SignupTmpl,
+
+		getTemplate: function(){
+		    if (this.fetched){
+		        return SignupCompleteTmpl;
+		    } else {
+		        return SignupTmpl;
+		    }
+		},
 
 
 		/* ui selector cache */
@@ -71,11 +78,10 @@ function( Backbone, SignupTmpl, Recaptcha) {
         },
 
         onShow: function(){
-			this.$('.alert').alert();
-            this.$('div.alert').hide();
-            this.$('div.after').hide();
-            this.$('button.btn-primary').prop('disabled',true);
-            var self = this;
+			if (!this.fetched){
+				this.$('.alert').css('display', 'none');
+				this.$('button.btn-primary').prop('disabled',true);
+			}
         }
 
 	});

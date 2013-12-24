@@ -1,9 +1,10 @@
 define([
 	'backbone',
 	'communicator',
-	'hbs!tmpl/resetView_tmpl'
+	'hbs!tmpl/resetView_tmpl',
+	'hbs!tmpl/resetCompletedView_tmpl'
 ],
-function( Backbone, Communicator, ResetTmpl  ) {
+function( Backbone, Communicator, ResetTmpl, ResetCompleteTmpl  ) {
     'use strict';
 
 	/* Return a ItemView class definition */
@@ -12,10 +13,22 @@ function( Backbone, Communicator, ResetTmpl  ) {
 		initialize: function() {
 			console.log('initialize a Reset ItemView');
 			this.model.on('error', this.onError, this);
+			this.model.on('sync', this.onSuccess, this);
 		},
 
-		template: ResetTmpl,
-        
+		getTemplate: function(){
+		    if (this.fetched){
+		        return ResetCompleteTmpl;
+		    } else {
+		        return ResetTmpl;
+		    }
+		},
+
+		onSuccess: function(){
+			this.fetched = true;
+			this.render();
+		},
+
         onError: function(model, response){
 			if (response.status===400){
 				location.reload();
@@ -43,14 +56,17 @@ function( Backbone, Communicator, ResetTmpl  ) {
 
 		handleReset: function(e){
 			e.preventDefault();
-			var user = this.$('input:text').val();
+			$(e.target).button('loading');
+			var user = this.$('#exampleInputEmail1').val();
 			this.model.set('email',user);
 			this.model.save();
 		},
 
 		/* on render callback */
-		onRender: function() {
-			this.$('.alert').css('display', 'none');
+		onShow: function() {
+			if (!this.fetched){
+				this.$('.alert').css('display', 'none');
+			}
 		}
 	});
 

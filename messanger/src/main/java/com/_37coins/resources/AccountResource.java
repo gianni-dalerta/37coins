@@ -1,6 +1,10 @@
 package com._37coins.resources;
 
+import java.io.IOException;
+
 import javax.inject.Inject;
+import javax.mail.MessagingException;
+import javax.mail.internet.AddressException;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -29,10 +33,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com._37coins.BasicAccessAuthFilter;
+import com._37coins.MessageFactory;
 import com._37coins.MessagingServletConfig;
+import com._37coins.sendMail.MailServiceClient;
 import com._37coins.web.AccountPolicy;
 import com._37coins.web.AccountRequest;
 import com._37coins.web.PasswordRequest;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
+
+import freemarker.template.TemplateException;
 
 @Path(AccountResource.PATH)
 @Produces(MediaType.APPLICATION_JSON)
@@ -47,22 +57,32 @@ public class AccountResource {
 	private final HttpServletRequest httpReq;
 	
 	private final AccountPolicy accountPolicy;
+	
+	private final MailServiceClient mailClient;
+	
+	private final MessageFactory msgFactory;
 
 	@Inject
 	public AccountResource(Cache cache,
 			ServletRequest request,
-			AccountPolicy accountPolicy){
+			AccountPolicy accountPolicy,
+			MailServiceClient mailClient,
+			MessageFactory msgFactory){
 		this.cache = cache;
 		httpReq = (HttpServletRequest)request;
 		this.ctx = (InitialLdapContext)httpReq.getAttribute("ctx");
 		this.accountPolicy = accountPolicy;
+		this.mailClient = mailClient;
+		this.msgFactory = msgFactory;
 	}
 	
 	
 	private String getRemoteAddress(){
-		String ip = httpReq.getRemoteAddr();
-		//TODO: actually we need to check the proxy header too
-		return ip;
+		String addr = httpReq.getHeader("X-Forwarded-For");
+		if (null==addr || addr.length()<7){
+			addr = httpReq.getRemoteAddr();
+		}
+		return addr;
 	}
 	
 	/**
@@ -141,7 +161,12 @@ public class AccountResource {
 		}
 		//put it into cache, and wait for email validation
 		String token = RandomStringUtils.random(14, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789");
-		sendCreateEmail(accountRequest.getEmail() ,token);
+		try {
+			sendCreateEmail(accountRequest.getEmail() ,token);
+		} catch (MessagingException | IOException| TemplateException e1) {
+			e1.printStackTrace();
+			throw new WebApplicationException(e1,Response.Status.INTERNAL_SERVER_ERROR);
+		}
 		AccountRequest ar = new AccountRequest()
 			.setEmail(accountRequest.getEmail())
 			.setPassword(accountRequest.getPassword());
@@ -210,7 +235,12 @@ public class AccountResource {
 			throw new WebApplicationException("account not found", Response.Status.NOT_FOUND);
 		}
 		String token = RandomStringUtils.random(14, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789");
-		sendResetEmail(pwRequest.getEmail(), token);
+		try {
+			sendResetEmail(pwRequest.getEmail(), token);
+		} catch (MessagingException | IOException| TemplateException e1) {
+			e1.printStackTrace();
+			throw new WebApplicationException(e1,Response.Status.INTERNAL_SERVER_ERROR);
+		}
 		PasswordRequest pwr = new PasswordRequest().setToken(token).setDn(dn);
 		cache.put(new Element("reset"+token, pwr));
 	}
@@ -245,14 +275,30 @@ public class AccountResource {
 		}
 	}
 	
-	private void sendResetEmail(String email, String token){
-		System.out.println(token);
-		//TODO: send email here
+	private void sendResetEmail(String email, String token) throws AddressException, MessagingException, IOException, TemplateException{
+		DataSet ds = new DataSet()
+			.setLocale(httpReq.getLocale())
+			.setAction(Action.RESET)
+			.setPayload(MessagingServletConfig.basePath+"#confReset/"+token);
+		mailClient.send(
+			msgFactory.constructSubject(ds), 
+			email,
+			MessagingServletConfig.senderMail, 
+			msgFactory.constructTxt(ds),
+			msgFactory.constructHtml(ds));
 	}
 	
-	private void sendCreateEmail(String email, String token){
-		System.out.println(token);
-		//TODO: send email here
+	private void sendCreateEmail(String email, String token) throws AddressException, MessagingException, IOException, TemplateException{
+		DataSet ds = new DataSet()
+			.setLocale(httpReq.getLocale())
+			.setAction(Action.REGISTER)
+			.setPayload(MessagingServletConfig.basePath+"#confSignup/"+token);
+		mailClient.send(
+			msgFactory.constructSubject(ds), 
+			email,
+			MessagingServletConfig.senderMail, 
+			msgFactory.constructTxt(ds),
+			msgFactory.constructHtml(ds));
 	}
 	
 }

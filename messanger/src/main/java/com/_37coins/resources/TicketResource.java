@@ -84,9 +84,11 @@ public class TicketResource {
 	
 	
 	private String getRemoteAddress(){
-		String ip = httpReq.getRemoteAddr();
-		//TODO: actually we need to check the proxy header too
-		return ip;
+		String addr = httpReq.getHeader("X-Forwarded-For");
+		if (null==addr || addr.length()<7){
+			addr = httpReq.getRemoteAddr();
+		}
+		return addr;
 	}
 	
 	

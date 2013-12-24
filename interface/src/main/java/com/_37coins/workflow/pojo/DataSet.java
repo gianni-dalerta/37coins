@@ -28,6 +28,8 @@ public class DataSet {
 		TRANSACTION("Transactions"),
 		//RESPONSES
 		SIGNUP("Signup"), // create a new account
+		RESET("Reset"), // gateway reset password
+		REGISTER("Register"), //gateway signup
 		DEPOSIT_CONF("DepositConf"),
 		FORMAT_ERROR("FormatError"),
 		UNKNOWN_COMMAND("UnknownCommand"),

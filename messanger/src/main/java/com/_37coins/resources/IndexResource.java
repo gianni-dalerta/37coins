@@ -49,6 +49,7 @@ public class IndexResource {
 		data.put("resPath", MessagingServletConfig.resPath);
 		data.put("basePath", MessagingServletConfig.basePath);
 		data.put("srvcPath", MessagingServletConfig.srvcPath);
+		data.put("captchaPubKey", MessagingServletConfig.captchaPubKey);
 		data.put("lng", (lng!=null)?lng.split(",")[0]:"en-US");
 		DataSet ds = new DataSet()
 			.setService("index.html")

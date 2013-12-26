@@ -151,6 +151,7 @@ public class MessagingServletConfig extends GuiceServletContextListener {
             	filter("/parser/*").through(ParserFilter.class); //read message into dataset
             	filter("/parser/*").through(DirectoryFilter.class); //allow directory access
             	filter("/account/*").through(DirectoryFilter.class); //allow directory access
+            	filter("/data/*").through(DirectoryFilter.class); //allow directory access
             	filter("/parser/*").through(InterpreterFilter.class); //do semantic stuff
             	bindListener(Matchers.any(), new SLF4JTypeListener());
         		bind(MessagingActivitiesImpl.class).annotatedWith(Names.named("activityImpl")).to(MessagingActivitiesImpl.class);

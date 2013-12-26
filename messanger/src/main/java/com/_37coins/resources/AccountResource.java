@@ -150,7 +150,7 @@ public class AccountResource {
 					}
 				}
 			}catch(Exception e){
-				
+				e.printStackTrace();
 			}
 		}
 		//################validate password############

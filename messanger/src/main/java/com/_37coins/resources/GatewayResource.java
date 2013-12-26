@@ -20,6 +20,8 @@ import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -36,10 +38,14 @@ import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 import com._37coins.BasicAccessAuthFilter;
 import com._37coins.MessagingServletConfig;
 import com._37coins.web.GatewayUser;
+import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
@@ -59,11 +65,14 @@ public class GatewayResource {
 	
 	final private InitialLdapContext ctx;
 	final private Cache cache;
+	final private NonTxWorkflowClientExternalFactoryImpl nonTxFactory;
 	
 	@Inject public GatewayResource(ServletRequest request, 
-			Cache cache) {
+			Cache cache, 
+			NonTxWorkflowClientExternalFactoryImpl nonTxFactory) {
 		HttpServletRequest httpReq = (HttpServletRequest)request;
 		ctx = (InitialLdapContext)httpReq.getAttribute("ctx");
+		this.nonTxFactory = nonTxFactory;
 		this.cache = cache;
 	}
 	
@@ -215,6 +224,33 @@ public class GatewayResource {
 			throw new WebApplicationException("unexpected state", Response.Status.BAD_REQUEST);
 		}
 		return rv;
+	}
+	
+	@GET
+	@Path("/balance")
+	@RolesAllowed({"gateway"})
+	public Pair<String,BigDecimal> getBalance(@Context SecurityContext context){
+		String cn = null;
+		try{
+			LdapName ln = new LdapName(context.getUserPrincipal().getName());
+			for(Rdn rdn : ln.getRdns()) {
+			    if(rdn.getType().equalsIgnoreCase("CN")) {
+			    	cn = (String) rdn.getValue();
+			    }
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+			throw new WebApplicationException(e, Response.Status.INTERNAL_SERVER_ERROR);
+		}
+		Element e = cache.get("balance"+cn);
+		if (null!=e && !e.isExpired()){
+			return Pair.of("balance", (BigDecimal)e.getObjectValue());
+		}
+		DataSet data = new DataSet()
+			.setAction(Action.GW_BALANCE)
+			.setCn(cn);
+		nonTxFactory.getClient(data.getAction()+"-"+cn).executeCommand(data);
+		throw new WebApplicationException("cache miss, requested, ask again later.", Response.Status.ACCEPTED);
 	}
 	
 }

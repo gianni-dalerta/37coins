@@ -71,6 +71,11 @@ public class MessagingActivitiesImpl implements MessagingActivities {
 			return;
 		}
 	}
+	
+	@Override
+	public void putCache(DataSet rsp) {
+		cache.put(new Element("balance"+rsp.getCn(), ((Withdrawal)rsp.getPayload()).getBalance()));
+	}
 
 	@Override
 	@ManualActivityCompletion

@@ -38,7 +38,6 @@ function(Backbone, Communicator, LoginTmpl) {
                 basePath: window.opt.basePath,
                 srvcPath: window.opt.srvcPath
             });
-            sessionStorage.setItem('credentials',cred);
             this.model.credentials = cred;
             this.model.fetch();
         },

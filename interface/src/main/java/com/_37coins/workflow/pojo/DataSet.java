@@ -24,6 +24,7 @@ public class DataSet {
 		WITHDRAWAL_REQ_OTHER("WithdrawalReqOther"), // request a payment
 		WITHDRAWAL_CONF("WithdrawalConf"), // confirm a payment
 		BALANCE("Balance"), // request the balance
+		GW_BALANCE("GwBal"), // request the balance
 		HELP("Help"), 
 		TRANSACTION("Transactions"),
 		//RESPONSES

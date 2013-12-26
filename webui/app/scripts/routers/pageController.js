@@ -5,6 +5,8 @@ define(['backbone',
     'models/resetRequest',
     'models/resetConf',
     'models/signupConf',
+    'models/balanceModel',
+    'collections/gatewayCollection',
     'views/indexView',
     'views/loginView',
     'views/gatewayView',
@@ -18,8 +20,9 @@ define(['backbone',
     'views/resetView',
     'views/resetConfView',
     'views/signupConfView',
+    'views/balanceView',
     'routeFilter'
-    ], function(Backbone, Communicator, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView) {
+    ], function(Backbone, Communicator, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView) {
     'use strict';
 
     var Controller = {};
@@ -29,6 +32,7 @@ define(['backbone',
         appRoutes: {
             '': 'showIndex',
             'gateways': 'showGateway',
+            'balance': 'showBalance',
             'faq': 'showFaq',
             'confSignup/:token': 'confirmSignUp',
             'confReset/:token': 'confirmReset',
@@ -41,6 +45,7 @@ define(['backbone',
             'signUp': 'getTicket',
             'reset': 'getTicket',
             'gateways': 'showLogin',
+            'balance': 'showLogin',
             '*any': function(fragment, args, next){
                 next();
             }
@@ -90,8 +95,11 @@ define(['backbone',
     });
 
     Controller.showIndex = function() {
-        var view = new IndexView({model:new Backbone.Model({resPath:window.opt.resPath})});
+        var gateways = new GatewayCollection();
+        //model:new Backbone.Model({resPath:window.opt.resPath})
+        var view = new IndexView({collection:gateways});
         Communicator.mediator.trigger('app:show', view);
+        gateways.fetch();
     };
 
     Controller.showGateway = function() {
@@ -106,6 +114,13 @@ define(['backbone',
     Controller.showContact = function() {
         var view = new ContactView();
         Communicator.mediator.trigger('app:show', view);
+    };
+
+    Controller.showBalance = function() {
+        var balance = new BalanceModel();
+        var view = new BalanceView({model:balance});
+        Communicator.mediator.trigger('app:show', view);
+        balance.fetch();
     };
 
     Controller.showLogin = function(fragment, args, next) {

@@ -17,9 +17,11 @@ define(['backbone','communicator'], function(Backbone, Communicator) {
         },
 
         initialize: function(){
-            this.credentials = sessionStorage.getItem('credentials');
+            var cred = sessionStorage.getItem('credentials');
+            this.credentials = $.parseJSON(cred);
             this.on('change', function (model){
                 sessionStorage.setItem('fee',model.get('fee'));
+                sessionStorage.setItem('credentials',JSON.stringify(model.credentials));
             });
             var vent = Communicator.mediator;
             var self = this;

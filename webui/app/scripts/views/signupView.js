@@ -2,7 +2,8 @@ define([
 	'backbone',
 	'hbs!tmpl/signupView_tmpl',
 	'hbs!tmpl/signupCompletedView_tmpl',
-	'recaptcha'
+	'recaptcha',
+	'jqueryValidation'
 ],
 function( Backbone, SignupTmpl, SignupCompleteTmpl, Recaptcha) {
     'use strict';
@@ -15,7 +16,10 @@ function( Backbone, SignupTmpl, SignupCompleteTmpl, Recaptcha) {
 			this.model.on('error', this.onError, this);
 		},
 
-		onError: function(){
+		onError: function(model, response){
+			if (response.status===400){
+				location.reload();
+			}
 			this.$('.alert').css('display','');
             this.$('.alert').addClass('in');
             this.$('button.btn-primary').button('reset');
@@ -34,53 +38,50 @@ function( Backbone, SignupTmpl, SignupCompleteTmpl, Recaptcha) {
 		    }
 		},
 
-
-		/* ui selector cache */
-		ui: {},
-
-		/* Ui events hash */
-		events: {
-            'click button.btn-primary':'handleRegister',
-            'blur input[name="email"]' : 'checkEmail',
-            'blur input[name="password1"]'    : 'checkPassword1',
-            'blur input[name="password2"]'    : 'checkPassword2'
-        },
-
-        checkEmail: function(e){
-			var user = this.$('input[name="email"]').val();
-			console.log(user);
-        },
-
-        checkPassword1: function(e){
-			var pw1 = this.$('input[name="password1"]').val();
-			console.log(pw1);
-			this.$('button.btn-primary').button('reset');
-        },
-
-        checkPassword2: function(e){
-			var pw2 = this.$('input[name="password2"]').val();
-			console.log(pw2);
-        },
-
-        handleRegister: function(e) {
-			e.preventDefault();
-            $(e.target).button('loading');
+        handleRegister: function() {
+            this.$('button.btn-primary').button('loading');
             var email = this.$('input[name="email"]').val();
             var pw1 = this.$('input[name="password1"]').val();
-            var pw2 = this.$('input[name="password2"]').val();
-            if (pw1 === pw2){
-	            this.model.set('email',email);
-				this.model.set('password',pw1);
-				this.model.save();
-	        }else{
-				this.$('div.alert').show();
-	        }
+            this.model.set('email',email);
+			this.model.set('password',pw1);
+			this.model.save();
         },
 
         onShow: function(){
 			if (!this.fetched){
 				this.$('.alert').css('display', 'none');
-				this.$('button.btn-primary').prop('disabled',true);
+				var jForm = this.$('form');
+				var self = this;
+				jForm.validate({
+			        rules: {
+			            email: {
+							required: true,
+							email: true
+			            },
+			            password1: {
+			                minlength: 6,
+			                maxlength: 15,
+			                required: true
+			            },
+			            password2: {
+			                equalTo: 'input[name="password1"]'
+			            }
+			        },
+			        highlight: function(element) {
+			            $(element).closest('.form-group').addClass('has-error');
+			        },
+			        unhighlight: function(element) {
+			            $(element).closest('.form-group').removeClass('has-error');
+			        },
+			        errorElement: 'span',
+			        errorClass: 'help-block',
+			        submitHandler: function() {
+						self.handleRegister();
+			        },
+			        errorPlacement: function(error, element) {
+			            error.insertAfter(element);
+			        }
+			    });
 			}
         }
 

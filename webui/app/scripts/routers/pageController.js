@@ -67,7 +67,7 @@ define(['backbone',
             var view;
             var model = this.options.controller.loginStatus;
             if (model.get('roles')){
-                Communicator.mediator.trigger('app:verify', next);
+                next();
             }else{
                 view = new LoginView({model:model,next:next});
                 Communicator.mediator.trigger('app:show', view);
@@ -75,16 +75,17 @@ define(['backbone',
         }
     });
 
-    Communicator.mediator.on('app:verify', function(next) {
+    Communicator.mediator.on('app:verify', function() {
         var view;
-        if (!Controller.loginStatus.get('mobile')){
-            view = new VerifyView({model:Controller.loginStatus,next:next});
+        if (Controller.loginStatus.get('mobile') && Controller.loginStatus.get('fee')){
+            view = new GatewayView({model:Controller.loginStatus});
             Communicator.mediator.trigger('app:show', view);
-        }else if (!Controller.loginStatus.get('fee')){
-            view = new ValidateView({model:Controller.loginStatus,next:next});
+        }else if (Controller.loginStatus.get('mobile')){
+            view = new ValidateView({model:Controller.loginStatus});
             Communicator.mediator.trigger('app:show', view);
         }else {
-            next();
+            view = new VerifyView({model:Controller.loginStatus});
+            Communicator.mediator.trigger('app:show', view);
         }
     });
 
@@ -94,8 +95,7 @@ define(['backbone',
     };
 
     Controller.showGateway = function() {
-        var view = new GatewayView({model:this.loginStatus});
-        Communicator.mediator.trigger('app:show', view);
+        Communicator.mediator.trigger('app:verify');
     };
 
     Controller.showFaq = function() {

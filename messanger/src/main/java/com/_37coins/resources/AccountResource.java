@@ -126,7 +126,7 @@ public class AccountResource {
 		//check regex
 		if (null==accountRequest.getEmail() || !AccountPolicy.isValidEmail(accountRequest.getEmail())){
 			log.debug("send a valid email plz :D");
-			throw new WebApplicationException("send a valid email plz :D", Response.Status.BAD_REQUEST);
+			throw new WebApplicationException("send a valid email plz :D", Response.Status.EXPECTATION_FAILED);
 		}
 		if (accountPolicy.isEmailMxLookup()){
 			//check db for active email with same domain

@@ -2,7 +2,8 @@ define([
 	'backbone',
 	'communicator',
 	'hbs!tmpl/resetView_tmpl',
-	'hbs!tmpl/resetCompletedView_tmpl'
+	'hbs!tmpl/resetCompletedView_tmpl',
+	'jqueryValidation'
 ],
 function( Backbone, Communicator, ResetTmpl, ResetCompleteTmpl  ) {
     'use strict';
@@ -45,18 +46,13 @@ function( Backbone, Communicator, ResetTmpl, ResetCompleteTmpl  ) {
             alert.removeClass('in');
         },
 
-		/* ui selector cache */
-		ui: {},
-
 		/* Ui events hash */
 		events: {
-			'click button.btn-primary':'handleReset',
 			'click .close': 'handleClose',
 		},
 
-		handleReset: function(e){
-			e.preventDefault();
-			$(e.target).button('loading');
+		handleReset: function(){
+			this.$('button.btn-primary').button('loading');
 			var user = this.$('#exampleInputEmail1').val();
 			this.model.set('email',user);
 			this.model.save();
@@ -66,6 +62,30 @@ function( Backbone, Communicator, ResetTmpl, ResetCompleteTmpl  ) {
 		onShow: function() {
 			if (!this.fetched){
 				this.$('.alert').css('display', 'none');
+				var jForm = this.$('form');
+				var self = this;
+				jForm.validate({
+			        rules: {
+			            email: {
+							required: true,
+							email: true
+			            }
+			        },
+			        highlight: function(element) {
+			            $(element).closest('.form-group').addClass('has-error');
+			        },
+			        unhighlight: function(element) {
+			            $(element).closest('.form-group').removeClass('has-error');
+			        },
+			        errorElement: 'span',
+			        errorClass: 'help-block',
+			        submitHandler: function() {
+						self.handleReset();
+			        },
+			        errorPlacement: function(error, element) {
+			            error.insertAfter(element);
+			        }
+			    });
 			}
 		}
 	});

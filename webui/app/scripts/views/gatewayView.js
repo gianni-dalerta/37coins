@@ -1,7 +1,24 @@
-define(['backbone', 'hbs!tmpl/gateway'], function(Backbone, GatewayTmpl) {
+define([
+    'backbone',
+    'hbs!tmpl/gateway',
+    'hbs!tmpl/validate',
+    'hbs!tmpl/verify'
+],
+function(Backbone, GatewayTmpl, ValidateTmpl, VerifyTmpl) {
     'use strict';
     return Backbone.Marionette.ItemView.extend({
         template: GatewayTmpl,
+        // getTemplate: function(){
+        //     if (!this.model.get('mobile')){
+        //         return VerifyTmpl;
+        //     } else {
+        //         if (!this.model.get('fee')){
+        //             return ValidateTmpl;
+        //         }else{
+        //             return GatewayTmpl;
+        //         }
+        //     }
+        // },
         className: 'container',
         initialize: function() {
             this.model.on('error', this.onError, this);

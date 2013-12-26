@@ -1,15 +1,18 @@
 <div class="pusher"></div>
 <div class="container">
   <div id="valFrm" class="col-md-12 wbox">
-    <h2>Initialize Gateway Validation</h2>
-    <form>
-      <fieldset>
-        <label>Mobile Number</label>
-        <input id="mobVal" type="text" placeholder="+CCXXXXXXXX..">
-        <span class="help-block">Enter the gateway's operational Number. It will receive a code to prove ownership.</span>
-        <button id="valBtn" type="submit" class="btn btn-inverse">Request Validation</button>
-      </fieldset>
-      <div id="error" class="alert alert-danger"><a class="close">&times;</a>Communitcation Error!</div>
-    </form>
+    <h2>Gateway Ownership Verification</h2>
+        <form>
+            <div class="form-group">
+                <label for="inputTel">Gateway Mobile Number:</label>
+                <input type="tel" name="tel" class="form-control" id="inputTel" placeholder="+CCXXXXXX...">
+                <span class="help-block">Enter your gateway's number in international format. Avoid special signs and spaces. You will receive a call, telling your 5-digit confirmation code.</span>
+            </div>
+            <button class="btn btn-lg btn-primary" type="submit">Start Verification</button>
+        </form>
+        <div class="alert alert-danger alert-dismissable fade">
+          <button type="button" class="close" aria-hidden="true">&times;</button>
+          <strong>Error!</strong> Communication Error.
+        </div>
   </div>
 </div>

@@ -32,19 +32,19 @@ function(Backbone, Communicator, LoginTmpl) {
                 username: user,
                 password: pw
             };
-            this.model.clear({silent:true});
             this.model.set({
                 locale: window.opt.lng,
                 basePath: window.opt.basePath,
                 srvcPath: window.opt.srvcPath
             });
+            sessionStorage.setItem('credentials',JSON.stringify(cred));
             this.model.credentials = cred;
             this.model.fetch();
         },
         onRolesChange: function(){
             if (this.model.get('roles')){
                 Communicator.mediator.trigger('app:login');
-                Communicator.mediator.trigger('app:verify', this.next);
+                this.next();
             }
         },
         onError: function(model, response){

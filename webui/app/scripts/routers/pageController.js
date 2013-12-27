@@ -6,6 +6,7 @@ define(['backbone',
     'models/resetConf',
     'models/signupConf',
     'models/balanceModel',
+    'models/feeModel',
     'collections/gatewayCollection',
     'views/indexView',
     'views/loginView',
@@ -21,8 +22,10 @@ define(['backbone',
     'views/resetConfView',
     'views/signupConfView',
     'views/balanceView',
+    'views/feeView',
+    'views/gatewayLayout',
     'routeFilter'
-    ], function(Backbone, Communicator, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView) {
+    ], function(Backbone, Communicator, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, FeeModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView, FeeView, GatewayLayout) {
     'use strict';
 
     var Controller = {};
@@ -83,8 +86,16 @@ define(['backbone',
     Communicator.mediator.on('app:verify', function() {
         var view;
         if (Controller.loginStatus.get('mobile') && Controller.loginStatus.get('fee')){
-            view = new GatewayView({model:Controller.loginStatus});
-            Communicator.mediator.trigger('app:show', view);
+            var layout = new GatewayLayout();
+            Communicator.mediator.trigger('app:show', layout);
+            var configView = new GatewayView({model:Controller.loginStatus});
+            layout.conf.show(configView);
+            var balance = new BalanceModel();
+            var balanceView = new BalanceView({model:balance});
+            layout.bal.show(balanceView);
+            var feeModel = new FeeModel({fee:sessionStorage.getItem('fee')});
+            var feeView = new FeeView({model:feeModel});
+            layout.fee.show(feeView);
         }else if (Controller.loginStatus.get('mobile')){
             view = new ValidateView({model:Controller.loginStatus});
             Communicator.mediator.trigger('app:show', view);
@@ -97,7 +108,7 @@ define(['backbone',
     Controller.showIndex = function() {
         var gateways = new GatewayCollection();
         //model:new Backbone.Model({resPath:window.opt.resPath})
-        var view = new IndexView({collection:gateways});
+        var view = new IndexView({collection:gateways,model:new Backbone.Model({resPath:window.opt.resPath})});
         Communicator.mediator.trigger('app:show', view);
         gateways.fetch();
     };

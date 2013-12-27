@@ -1,16 +1,21 @@
-<div class="pusher"></div>
-<div id="statusFrm" class="container">
-  <div class="row marketing">
-    <div class="col-sm-12 wbox">
-      <h2>Account Balance</h2>
-      Your account balance is {{value}} BTC
-      <form>
-        <fieldset>
-          <button id="withdrawalBtn" type="submit" class="btn btn-inverse">Withdraw</button>
-        </fieldset>
-      </form>
-      <div class="alert alert-danger"><a class="close">&times;</a>Not implemented!</div>
-      <br>
-    </div>
-  </div>
+<h2>Account Balance</h2>
+Your account balance is <span class="spin glyphicon glyphicon-refresh"></span>.
+<form>
+    <div class="form-group">
+	    <label for="amountInput">Withdrawal amount:</label>
+	    <input type="number" name="amount" step="0.00000001" min="0" class="form-control" id="amountInput" placeholder="Enter amount">
+	</div>
+	<div class="form-group">
+	    <label for="addressInput">Withdrawal address:</label>
+	    <input type="text" name="address" class="form-control" id="addressInput" placeholder="Enter withdrawal Address">
+	</div>
+    <button class="btn btn-inverse" type="submit">Withdraw</button>
+</form>
+<div id="errorAlert" class="alert alert-danger alert-dismissable fade">
+  <button type="button" class="close" aria-hidden="true">&times;</button>
+  <strong>Error!</strong> Communitcation Error!
+</div>
+<div id="successAlert" class="alert alert-success alert-dismissable fade">
+  <button type="button" class="close" aria-hidden="true">&times;</button>
+  <strong>Success!</strong> Request Submitted.
 </div>

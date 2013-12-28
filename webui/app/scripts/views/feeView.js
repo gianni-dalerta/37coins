@@ -33,9 +33,11 @@ function(Backbone, FeeTmpl) {
         },
         handleFee: function(){
             this.$('button').button('loading');
+            console.dir(this.$('#successAlert:first-child'));
+            this.handleClose({target:this.$('#successAlert:first-child')[0]});
+            this.handleClose({target:this.$('#errorAlert:first-child')[0]});
             var fee = this.$('#feeInput').val();
             if (fee !== this.model.get('fee')){
-                this.$('#feeBtn').attr('disabled', true);
                 sessionStorage.setItem('fee',fee);
                 this.model.set('fee',fee);
                 this.model.save();

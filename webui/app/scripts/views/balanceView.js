@@ -10,28 +10,28 @@ function(Backbone, BalanceTmpl) {
         initialize: function() {
             this.model.on('error', this.onError, this);
             this.model.on('sync', this.onSuccess, this);
-            window.setInterval(this.getBalance, 10000);
+            this.iid = window.setInterval(this.getBalance, 10000);
+        },
+        close: function(){
+            window.clearInterval(this.iid);
         },
         getBalance: function(){
-            if (!this.bal){
-                var cred = sessionStorage.getItem('credentials');
-                var up = $.parseJSON(cred);
-                var self = this;
-                $.ajax({
-                    type: 'GET',
-                    url: window.opt.basePath + '/api/gateway/balance',
-                    dataType: 'json',
-                    async: false,
-                    beforeSend: function(xhr) {
-                        console.log('here');
-                        xhr.setRequestHeader('Authorization', 'Basic ' + btoa(up.username + ':' + up.password));
-                    },
-                    success: function(data){
-                        self.$('span.spin').replaceWith('<strong> ' + data.value + ' BTC</string>');
-                        self.bal = data.value;
-                    }
-                });
-            }
+            var cred = sessionStorage.getItem('credentials');
+            var up = $.parseJSON(cred);
+            var self = this;
+            $.ajax({
+                type: 'GET',
+                url: window.opt.basePath + '/api/gateway/balance',
+                dataType: 'json',
+                async: false,
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('Authorization', 'Basic ' + btoa(up.username + ':' + up.password));
+                },
+                success: function(data){
+                    self.$('span.spin').replaceWith('<strong> ' + data.balance + ' BTC</string>');
+                    window.clearInterval(self.iid);
+                }
+            });
         },
         onError: function(){
             this.$('#errorAlert').css('display','');
@@ -55,6 +55,8 @@ function(Backbone, BalanceTmpl) {
         },
         handleWithdrawal: function(){
             this.$('button').button('loading');
+            this.handleClose({target:this.$('#successAlert:first-child')[0]});
+            this.handleClose({target:this.$('#errorAlert:first-child')[0]});
             var amount = this.$('#amountInput').val();
             var address = this.$('#addressInput').val();
             this.model.set('amount',amount);

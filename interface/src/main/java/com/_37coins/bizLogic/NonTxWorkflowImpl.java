@@ -31,6 +31,9 @@ public class NonTxWorkflowImpl implements NonTxWorkflow {
 		}else if (data.getAction()==Action.BALANCE){
 			Promise<BigDecimal> balance = bcdClient.getAccountBalance(data.getCn());
 			respondBalance(balance, data);
+		}else if (data.getAction()==Action.GW_BALANCE){
+			Promise<BigDecimal> balance = bcdClient.getAccountBalance(data.getCn());
+			cacheBalance(balance, data);
 		}else if (data.getAction()==Action.TRANSACTION){
 			Promise<List<Transaction>> transactions = bcdClient.getAccountTransactions(data.getCn());
 			respondTransactions(transactions, data);
@@ -55,6 +58,13 @@ public class NonTxWorkflowImpl implements NonTxWorkflow {
 		data.setPayload(new Withdrawal()
 				.setBalance(balance.get()));
 		msgClient.sendMessage(data);
+	}
+	
+	@Asynchronous
+	public void cacheBalance(Promise<BigDecimal> balance,DataSet data){
+		data.setPayload(new Withdrawal()
+				.setBalance(balance.get()));
+		msgClient.putCache(data);
 	}
 	
 	@Asynchronous

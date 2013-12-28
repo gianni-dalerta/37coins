@@ -1,6 +1,10 @@
 package com._37coins.resources;
 
+import java.io.IOException;
+
 import javax.inject.Inject;
+import javax.mail.MessagingException;
+import javax.mail.internet.AddressException;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
@@ -12,7 +16,6 @@ import javax.naming.directory.SearchControls;
 import javax.naming.ldap.InitialLdapContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -24,19 +27,22 @@ import javax.ws.rs.core.Response;
 
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
-import net.tanesha.recaptcha.ReCaptchaImpl;
-import net.tanesha.recaptcha.ReCaptchaResponse;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com._37coins.BasicAccessAuthFilter;
+import com._37coins.MessageFactory;
 import com._37coins.MessagingServletConfig;
+import com._37coins.sendMail.MailServiceClient;
 import com._37coins.web.AccountPolicy;
 import com._37coins.web.AccountRequest;
 import com._37coins.web.PasswordRequest;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
+
+import freemarker.template.TemplateException;
 
 @Path(AccountResource.PATH)
 @Produces(MediaType.APPLICATION_JSON)
@@ -51,56 +57,32 @@ public class AccountResource {
 	private final HttpServletRequest httpReq;
 	
 	private final AccountPolicy accountPolicy;
+	
+	private final MailServiceClient mailClient;
+	
+	private final MessageFactory msgFactory;
 
 	@Inject
 	public AccountResource(Cache cache,
 			ServletRequest request,
-			AccountPolicy accountPolicy){
+			AccountPolicy accountPolicy,
+			MailServiceClient mailClient,
+			MessageFactory msgFactory){
 		this.cache = cache;
 		httpReq = (HttpServletRequest)request;
 		this.ctx = (InitialLdapContext)httpReq.getAttribute("ctx");
 		this.accountPolicy = accountPolicy;
+		this.mailClient = mailClient;
+		this.msgFactory = msgFactory;
 	}
 	
-	/**
-	 * a ticket is a token to execute critical or expensive code, like sending email.
-	 * a ticket will be given out a few times free, then limited by turing tests.
-	 */
-	@POST
-	@Path("/ticket")
-	public Pair<String,String> getTicket(){
-		Element e = cache.get(getRemoteAddress());
-		if (e!=null){
-			if (e.getHitCount()>3){
-				//TODO: implement turing test
-				throw new WebApplicationException("to many requests", Response.Status.BAD_REQUEST);
-			}
-		}else{
-			cache.put(new Element(getRemoteAddress(),getRemoteAddress()));
+	
+	private String getRemoteAddress(){
+		String addr = httpReq.getHeader("X-Forwarded-For");
+		if (null==addr || addr.length()<7){
+			addr = httpReq.getRemoteAddr();
 		}
-		String ticket = RandomStringUtils.random(14, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789");
-		cache.put(new Element("ticket"+ticket,ticket));
-		return Pair.of("ticket",ticket);
-	}
-	
-	/**
-	 * recaptcha
-	 */
-	@POST
-	@Path("/captcha")
-	public Pair<String,String> recaptcha(@FormParam("chal") String challenge,
-			@FormParam("resp") String response){
-        ReCaptchaImpl reCaptcha = new ReCaptchaImpl();
-        reCaptcha.setPrivateKey(MessagingServletConfig.captchaSecKey);
-        ReCaptchaResponse reCaptchaResponse = reCaptcha.checkAnswer(getRemoteAddress(), challenge, response);
-        if (reCaptchaResponse.isValid()) {
-        	cache.remove(getRemoteAddress());
-    		String ticket = RandomStringUtils.random(14, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789");
-    		cache.put(new Element("ticket"+ticket,ticket));
-    		return Pair.of("ticket",ticket);
-        } else {
-          	throw new WebApplicationException("error", Response.Status.BAD_REQUEST);
-        }
+		return addr;
 	}
 	
 	/**
@@ -144,7 +126,7 @@ public class AccountResource {
 		//check regex
 		if (null==accountRequest.getEmail() || !AccountPolicy.isValidEmail(accountRequest.getEmail())){
 			log.debug("send a valid email plz :D");
-			throw new WebApplicationException("send a valid email plz :D", Response.Status.BAD_REQUEST);
+			throw new WebApplicationException("send a valid email plz :D", Response.Status.EXPECTATION_FAILED);
 		}
 		if (accountPolicy.isEmailMxLookup()){
 			//check db for active email with same domain
@@ -168,7 +150,7 @@ public class AccountResource {
 					}
 				}
 			}catch(Exception e){
-				
+				e.printStackTrace();
 			}
 		}
 		//################validate password############
@@ -179,7 +161,12 @@ public class AccountResource {
 		}
 		//put it into cache, and wait for email validation
 		String token = RandomStringUtils.random(14, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789");
-		sendCreateEmail(accountRequest.getEmail() ,token);
+		try {
+			sendCreateEmail(accountRequest.getEmail() ,token);
+		} catch (MessagingException | IOException| TemplateException e1) {
+			e1.printStackTrace();
+			throw new WebApplicationException(e1,Response.Status.INTERNAL_SERVER_ERROR);
+		}
 		AccountRequest ar = new AccountRequest()
 			.setEmail(accountRequest.getEmail())
 			.setPassword(accountRequest.getPassword());
@@ -220,13 +207,6 @@ public class AccountResource {
 			throw new WebApplicationException("not found or expired", Response.Status.NOT_FOUND);
 		}
 	}
-
-	
-	private String getRemoteAddress(){
-		String ip = httpReq.getRemoteAddr();
-		//TODO: actually we need to check the proxy header too
-		return ip;
-	}
 	
 	/**
 	 * a password-request is validated, cached and email send out
@@ -249,25 +229,20 @@ public class AccountResource {
 		String dn = null;
 		try {
 			Attributes atts = BasicAccessAuthFilter.searchUnique("(&(objectClass=person)(mail="+pwRequest.getEmail()+"))", ctx).getAttributes();
-			dn = "cn="+atts.get("cn")+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
+			dn = "cn="+atts.get("cn").get()+",ou=gateways,"+MessagingServletConfig.ldapBaseDn;
 		} catch (IllegalStateException | NamingException e1) {
+			e1.printStackTrace();
 			throw new WebApplicationException("account not found", Response.Status.NOT_FOUND);
 		}
 		String token = RandomStringUtils.random(14, "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ123456789");
-		sendResetEmail(pwRequest.getEmail(), token);
+		try {
+			sendResetEmail(pwRequest.getEmail(), token);
+		} catch (MessagingException | IOException| TemplateException e1) {
+			e1.printStackTrace();
+			throw new WebApplicationException(e1,Response.Status.INTERNAL_SERVER_ERROR);
+		}
 		PasswordRequest pwr = new PasswordRequest().setToken(token).setDn(dn);
 		cache.put(new Element("reset"+token, pwr));
-	}
-	
-	@GET
-	@Path("/password/ticket")
-	public Pair<String,String> validateToken(@QueryParam("ticket") String ticket){
-		Element e = cache.get("reset"+ticket);
-		if (null!=e){
-			return Pair.of("status", "active");
-		}else{
-			return Pair.of("status", "inactive");
-		}
 	}
 	
 	/**
@@ -290,6 +265,7 @@ public class AccountResource {
 			try{
 				ctx.modifyAttributes(pwRequest.getDn(), DirContext.REPLACE_ATTRIBUTE, toModify);
 			}catch(Exception ex){
+				ex.printStackTrace();
 				throw new WebApplicationException(ex, Response.Status.INTERNAL_SERVER_ERROR);
 			}
 
@@ -299,14 +275,30 @@ public class AccountResource {
 		}
 	}
 	
-	private void sendResetEmail(String email, String token){
-		System.out.println(token);
-		//TODO: send email here
+	private void sendResetEmail(String email, String token) throws AddressException, MessagingException, IOException, TemplateException{
+		DataSet ds = new DataSet()
+			.setLocale(httpReq.getLocale())
+			.setAction(Action.RESET)
+			.setPayload(MessagingServletConfig.basePath+"#confReset/"+token);
+		mailClient.send(
+			msgFactory.constructSubject(ds), 
+			email,
+			MessagingServletConfig.senderMail, 
+			msgFactory.constructTxt(ds),
+			msgFactory.constructHtml(ds));
 	}
 	
-	private void sendCreateEmail(String email, String token){
-		System.out.println(token);
-		//TODO: send email here
+	private void sendCreateEmail(String email, String token) throws AddressException, MessagingException, IOException, TemplateException{
+		DataSet ds = new DataSet()
+			.setLocale(httpReq.getLocale())
+			.setAction(Action.REGISTER)
+			.setPayload(MessagingServletConfig.basePath+"#confSignup/"+token);
+		mailClient.send(
+			msgFactory.constructSubject(ds), 
+			email,
+			MessagingServletConfig.senderMail, 
+			msgFactory.constructTxt(ds),
+			msgFactory.constructHtml(ds));
 	}
 	
 }

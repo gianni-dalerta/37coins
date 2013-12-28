@@ -1,4 +1,10 @@
-define(['backbone', 'communicator', 'hbs!tmpl/login'], function(Backbone, Communicator, LoginTmpl) {
+define([
+    'backbone',
+    'communicator',
+    'hbs!tmpl/login',
+    'jqueryValidation'
+],
+function(Backbone, Communicator, LoginTmpl) {
     'use strict';
     return Backbone.Marionette.ItemView.extend({
         template: LoginTmpl,
@@ -9,45 +15,75 @@ define(['backbone', 'communicator', 'hbs!tmpl/login'], function(Backbone, Commun
             this.model.on('error', this.onError, this);
         },
         events: {
-            'click #loginBtn':'handleLogin',
-            'change input': 'changeInput'
+            'click .close': 'handleClose',
         },
-        changeInput: function(e) {
-            this.$('#loginBtn').button('reset');
+        handleClose: function(e){
+            var alert = $(e.target).parent();
+            alert.one(window.transEvent(), function(){
+                alert.css('display', 'none');
+            });
+            alert.removeClass('in');
         },
-        handleLogin: function(e) {
-            e.preventDefault();
-            $(e.target).button('loading');
+        handleLogin: function() {
+            this.$('#loginBtn').button('loading');
             var user = $('input:text').val();
             var pw = $('input:password').val();
-            if (user && pw){
-                var cred = {
-                    username: user,
-                    password: pw
-                };
-                this.model.clear({silent:true});
-                this.model.set({
-                    locale: window.opt.lng,
-                    basePath: window.opt.basePath,
-                    srvcPath: window.opt.srvcPath
-                });
-                sessionStorage.setItem('credentials',cred);
-                this.model.credentials = cred;
-                this.model.fetch();
-            }
+            var cred = {
+                username: user,
+                password: pw
+            };
+            this.model.set({
+                locale: window.opt.lng,
+                basePath: window.opt.basePath,
+                srvcPath: window.opt.srvcPath
+            });
+            sessionStorage.setItem('credentials',JSON.stringify(cred));
+            this.model.credentials = cred;
+            this.model.fetch();
         },
         onRolesChange: function(){
-            Communicator.mediator.trigger('app:verify', this.next);
-            //this.next();
+            if (this.model.get('roles')){
+                Communicator.mediator.trigger('app:login');
+                this.next();
+            }
         },
-        onError: function(){
-            this.$('div.alert').show();
+        onError: function(model, response){
+            this.$('.alert').css('display','');
+            this.$('.alert').addClass('in');
             this.$('#loginBtn').button('reset');
         },
         onShow:function () {
-            this.$('.alert').alert();
-            this.$('div.alert').hide();
-            this.$('#loginBtn').prop('disabled',true);
+            this.$('.alert').css('display', 'none');
+            var jForm = this.$('form');
+            var self = this;
+            jForm.validate({
+                rules: {
+                    email: {
+                        required: true,
+                        email: true
+                    },
+                    password: {
+                        minlength: 6,
+                        maxlength: 15,
+                        required: true
+                    }
+                },
+                highlight: function(element) {
+                    $(element).closest('.form-group').addClass('has-error');
+                },
+                unhighlight: function(element) {
+                    $(element).closest('.form-group').removeClass('has-error');
+                },
+                errorElement: 'span',
+                errorClass: 'help-block',
+                submitHandler: function() {
+                    self.handleLogin();
+                },
+                errorPlacement: function(error, element) {
+                    error.insertAfter(element);
+                }
+            });
+
         }
     });
 });

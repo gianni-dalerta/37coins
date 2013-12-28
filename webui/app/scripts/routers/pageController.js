@@ -5,6 +5,9 @@ define(['backbone',
     'models/resetRequest',
     'models/resetConf',
     'models/signupConf',
+    'models/balanceModel',
+    'models/feeModel',
+    'collections/gatewayCollection',
     'views/indexView',
     'views/loginView',
     'views/gatewayView',
@@ -18,8 +21,11 @@ define(['backbone',
     'views/resetView',
     'views/resetConfView',
     'views/signupConfView',
+    'views/balanceView',
+    'views/feeView',
+    'views/gatewayLayout',
     'routeFilter'
-    ], function(Backbone, Communicator, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView) {
+    ], function(Backbone, Communicator, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, FeeModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView, FeeView, GatewayLayout) {
     'use strict';
 
     var Controller = {};
@@ -29,6 +35,7 @@ define(['backbone',
         appRoutes: {
             '': 'showIndex',
             'gateways': 'showGateway',
+            'balance': 'showBalance',
             'faq': 'showFaq',
             'confSignup/:token': 'confirmSignUp',
             'confReset/:token': 'confirmReset',
@@ -41,8 +48,8 @@ define(['backbone',
             'signUp': 'getTicket',
             'reset': 'getTicket',
             'gateways': 'showLogin',
+            'balance': 'showLogin',
             '*any': function(fragment, args, next){
-                console.log('before');
                 next();
             }
         },
@@ -50,12 +57,12 @@ define(['backbone',
             if (!this.options.controller.ticket){
                 //TODO: show wain screen
                 var self = this;
-                $.post( window.opt.basePath + '/account/ticket', function( data ) {
+                $.post( window.opt.basePath + '/ticket', function( data ) {
                     self.options.controller.ticket = data.value;
                     next();
                 },'json').fail(function() {
                     var view = new CaptchaView({next:next,controller:self.options.controller});
-                    Communicator.mediator.trigger('app:show', null, view);
+                    Communicator.mediator.trigger('app:show', view);
                 });
             }else{
                 next();
@@ -68,7 +75,7 @@ define(['backbone',
             var view;
             var model = this.options.controller.loginStatus;
             if (model.get('roles')){
-                Communicator.mediator.trigger('app:verify', next);
+                next();
             }else{
                 view = new LoginView({model:model,next:next});
                 Communicator.mediator.trigger('app:show', view);
@@ -76,28 +83,38 @@ define(['backbone',
         }
     });
 
-    Communicator.mediator.on('app:verify', function(next) {
-        console.dir(Controller.loginStatus);
+    Communicator.mediator.on('app:verify', function() {
         var view;
-        if (!Controller.loginStatus.get('mobile')){
-            view = new VerifyView({model:Controller.loginStatus,next:next});
-            Communicator.mediator.trigger('app:show', view);
-        }else if (!Controller.loginStatus.get('fee')){
-            view = new ValidateView({model:Controller.loginStatus,next:next});
+        if (Controller.loginStatus.get('mobile') && Controller.loginStatus.get('fee')){
+            var layout = new GatewayLayout();
+            Communicator.mediator.trigger('app:show', layout);
+            var configView = new GatewayView({model:Controller.loginStatus});
+            layout.conf.show(configView);
+            var balance = new BalanceModel();
+            var balanceView = new BalanceView({model:balance});
+            layout.bal.show(balanceView);
+            var feeModel = new FeeModel({fee:sessionStorage.getItem('fee')});
+            var feeView = new FeeView({model:feeModel});
+            layout.fee.show(feeView);
+        }else if (Controller.loginStatus.get('mobile')){
+            view = new ValidateView({model:Controller.loginStatus});
             Communicator.mediator.trigger('app:show', view);
         }else {
-            next();
+            view = new VerifyView({model:Controller.loginStatus});
+            Communicator.mediator.trigger('app:show', view);
         }
     });
 
     Controller.showIndex = function() {
-        var view = new IndexView({model:new Backbone.Model({resPath:window.opt.resPath})});
+        var gateways = new GatewayCollection();
+        //model:new Backbone.Model({resPath:window.opt.resPath})
+        var view = new IndexView({collection:gateways,model:new Backbone.Model({resPath:window.opt.resPath})});
         Communicator.mediator.trigger('app:show', view);
+        gateways.fetch();
     };
 
     Controller.showGateway = function() {
-        var view = new GatewayView({model:this.loginStatus});
-        Communicator.mediator.trigger('app:show', view);
+        Communicator.mediator.trigger('app:verify');
     };
 
     Controller.showFaq = function() {
@@ -110,6 +127,13 @@ define(['backbone',
         Communicator.mediator.trigger('app:show', view);
     };
 
+    Controller.showBalance = function() {
+        var balance = new BalanceModel();
+        var view = new BalanceView({model:balance});
+        Communicator.mediator.trigger('app:show', view);
+        balance.fetch();
+    };
+
     Controller.showLogin = function(fragment, args, next) {
         if (!this.loginStatus){
             this.loginStatus = new LoginModel();
@@ -119,28 +143,28 @@ define(['backbone',
     };
     Controller.showLogout = function() {
         var contentView = new LogoutView();
-        Communicator.mediator.trigger('app:show',null,contentView);
+        Communicator.mediator.trigger('app:show',contentView);
     };
     Controller.showSignUp = function() {
         var accountRequest = new AccountRequest({ticket:Controller.ticket});
         var contentView = new SignupView({model:accountRequest});
-        Communicator.mediator.trigger('app:show',null,contentView);
+        Communicator.mediator.trigger('app:show',contentView);
     };
     Controller.confirmSignUp = function(token) {
         var model = new SignupConf({token:token});
         var contentView = new SignupConfView({model: model});
-        Communicator.mediator.trigger('app:show',null,contentView);
+        Communicator.mediator.trigger('app:show',contentView);
         model.save();
     };
     Controller.showReset = function() {
         var model = new ResetRequest({ticket:Controller.ticket});
         var contentView = new ResetView({model:model});
-        Communicator.mediator.trigger('app:show',null,contentView);
+        Communicator.mediator.trigger('app:show',contentView);
     };
     Controller.confirmReset = function(token) {
         var model = new ResetConf({token:token});
         var contentView = new ResetConfView({model: model});
-        Communicator.mediator.trigger('app:show',null,contentView);
+        Communicator.mediator.trigger('app:show',contentView);
     };
 
     return Controller;

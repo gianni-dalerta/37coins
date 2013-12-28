@@ -11,11 +11,13 @@ import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.realm.ldap.JndiLdapContextFactory;
 import org.apache.shiro.web.filter.authc.BasicHttpAuthenticationFilter;
+import org.apache.shiro.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +32,18 @@ public class BasicAccessAuthFilter extends BasicHttpAuthenticationFilter {
 		this.setApplicationName("Password Self Service");
 		this.setAuthcScheme("B4S1C");
 		this.jlc = jlc;
+	}
+	
+	@Override
+	protected boolean isAccessAllowed(ServletRequest request,
+			ServletResponse response, Object mappedValue) {
+		HttpServletRequest httpRequest = WebUtils.toHttp(request);
+		String httpMethod = httpRequest.getMethod();
+		if ("OPTIONS".equalsIgnoreCase(httpMethod)) {
+			return true;
+		} else {
+			return super.isAccessAllowed(request, response, mappedValue);
+		}
 	}
 	
 	public static SearchResult searchUnique(String searchFilter,InitialLdapContext ctx) throws IllegalStateException, NamingException{

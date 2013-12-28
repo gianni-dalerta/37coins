@@ -24,10 +24,13 @@ public class DataSet {
 		WITHDRAWAL_REQ_OTHER("WithdrawalReqOther"), // request a payment
 		WITHDRAWAL_CONF("WithdrawalConf"), // confirm a payment
 		BALANCE("Balance"), // request the balance
+		GW_BALANCE("GwBal"), // request the balance
 		HELP("Help"), 
 		TRANSACTION("Transactions"),
 		//RESPONSES
 		SIGNUP("Signup"), // create a new account
+		RESET("Reset"), // gateway reset password
+		REGISTER("Register"), //gateway signup
 		DEPOSIT_CONF("DepositConf"),
 		FORMAT_ERROR("FormatError"),
 		UNKNOWN_COMMAND("UnknownCommand"),

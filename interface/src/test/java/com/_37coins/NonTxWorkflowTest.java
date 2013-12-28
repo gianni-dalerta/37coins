@@ -98,8 +98,10 @@ public class NonTxWorkflowTest {
 			}
 			@Override
 			public Action phoneConfirmation(DataSet rsp, String workflowId) {
-				// TODO Auto-generated method stub
 				return null;
+			}
+			@Override
+			public void putCache(DataSet rsp) {
 			}
 
         };

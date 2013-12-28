@@ -1,0 +1,16 @@
+<#setting locale=locale>
+<html>
+	<head>
+		<title><h3 id="head2">${resBundle.RegisterSubject}</h3></title>
+		<#include "style.css">
+	</head>
+	<body>
+		<article class="se-content">
+			<h3 id="head2">${resBundle.RegisterSubject}</h3>
+			<p class="text">
+				${resBundle("Register",payload)}
+			</p>
+			<#include "footer.html">
+		</article>
+	</body>
+</html>

@@ -39,7 +39,6 @@ public class AuthorizingRealm extends JndiLdapRealm {
 			PrincipalCollection principals,
 			LdapContextFactory ldapContextFactory) throws NamingException {
 		String username = (String) getAvailablePrincipal(principals);
-
 		// Perform context search
 		LdapContext ldapContext = ldapContextFactory.getSystemLdapContext();
 

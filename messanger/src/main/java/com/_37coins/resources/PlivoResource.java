@@ -264,10 +264,14 @@ public class PlivoResource {
 		for (char c : code.toCharArray()){
 			spokenCode+=c+", ";
 		}
+		Locale l = Locale.US;
+		if (locale.contains("de")){
+			l = new Locale("de", "DE");
+		}
 		DataSet ds = new DataSet()
-			.setLocaleString(locale)
+			.setLocale(l)
 			.setPayload(spokenCode);
-		try {	
+		try {
 			String text = msgFactory.getText("VoiceRegister",ds);
 			rv = new Response().add(new Speak()
 				.setText(text)

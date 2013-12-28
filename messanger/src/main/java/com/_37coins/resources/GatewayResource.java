@@ -20,9 +20,12 @@ import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -39,7 +42,12 @@ import org.apache.commons.lang3.RandomStringUtils;
 
 import com._37coins.BasicAccessAuthFilter;
 import com._37coins.MessagingServletConfig;
+import com._37coins.sendMail.MailServiceClient;
 import com._37coins.web.GatewayUser;
+import com._37coins.web.WithdrawRequest;
+import com._37coins.workflow.NonTxWorkflowClientExternalFactoryImpl;
+import com._37coins.workflow.pojo.DataSet;
+import com._37coins.workflow.pojo.DataSet.Action;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
@@ -59,11 +67,16 @@ public class GatewayResource {
 	
 	final private InitialLdapContext ctx;
 	final private Cache cache;
+	final private NonTxWorkflowClientExternalFactoryImpl nonTxFactory;
+	private final MailServiceClient mailClient;
 	
 	@Inject public GatewayResource(ServletRequest request, 
-			Cache cache) {
+			Cache cache, MailServiceClient mailClient,
+			NonTxWorkflowClientExternalFactoryImpl nonTxFactory) {
 		HttpServletRequest httpReq = (HttpServletRequest)request;
 		ctx = (InitialLdapContext)httpReq.getAttribute("ctx");
+		this.nonTxFactory = nonTxFactory;
+		this.mailClient = mailClient;
 		this.cache = cache;
 	}
 	
@@ -215,6 +228,104 @@ public class GatewayResource {
 			throw new WebApplicationException("unexpected state", Response.Status.BAD_REQUEST);
 		}
 		return rv;
+	}
+	
+	@POST
+	@Path("/fee")
+	@RolesAllowed({"gateway"})
+	public GatewayUser setFee(@Context SecurityContext context, GatewayUser gu){
+		GatewayUser rv = null;
+		if (gu.getFee().compareTo(new BigDecimal("0.001"))>0){
+			throw new WebApplicationException("fee to high", Response.Status.BAD_REQUEST);
+		}
+		try {
+			Attributes a = new BasicAttributes("description",gu.getFee().toString());
+			ctx.modifyAttributes(context.getUserPrincipal().getName(), DirContext.REPLACE_ATTRIBUTE, a);
+			rv = new GatewayUser().setFee(gu.getFee());
+		} catch (IllegalStateException | NamingException e1) {
+			e1.printStackTrace();
+			throw new WebApplicationException(e1, Response.Status.INTERNAL_SERVER_ERROR);
+		}
+		return rv;
+	}
+	
+	@PUT
+	@Path("/fee")
+	@RolesAllowed({"gateway"})
+	public GatewayUser updateFee(@Context SecurityContext context, GatewayUser gu){
+		return setFee(context, gu);
+	}
+	
+	@GET
+	@Path("/balance")
+	@RolesAllowed({"gateway"})
+	public WithdrawRequest getBalance(@Context SecurityContext context){
+		String cn = null;
+		try{
+			LdapName ln = new LdapName(context.getUserPrincipal().getName());
+			for(Rdn rdn : ln.getRdns()) {
+			    if(rdn.getType().equalsIgnoreCase("CN")) {
+			    	cn = (String) rdn.getValue();
+			    }
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+			throw new WebApplicationException(e, Response.Status.INTERNAL_SERVER_ERROR);
+		}
+		Element e = cache.get("balance"+cn);
+		Element e2 = cache.get("balanceReq"+cn);
+		if (null!=e && !e.isExpired()){
+			return new WithdrawRequest().setBalance((BigDecimal)e.getObjectValue());
+		}
+		if (null==e2 || e2.isExpired()){
+			DataSet data = new DataSet()
+				.setAction(Action.GW_BALANCE)
+				.setCn(cn);
+			nonTxFactory.getClient(data.getAction()+"-"+cn).executeCommand(data);
+			cache.put(new Element("balanceReq"+cn, true));
+		}
+		throw new WebApplicationException("cache miss, requested, ask again later.", Response.Status.ACCEPTED);
+	}
+	
+	@POST
+	@Path("/balance")
+	@RolesAllowed({"gateway"})
+	public WithdrawRequest withdraw(
+			@Context SecurityContext context,
+			WithdrawRequest withdrawalRequest){
+		String cn = null;
+		try{
+			LdapName ln = new LdapName(context.getUserPrincipal().getName());
+			for(Rdn rdn : ln.getRdns()) {
+			    if(rdn.getType().equalsIgnoreCase("CN")) {
+			    	cn = (String) rdn.getValue();
+			    }
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+			throw new WebApplicationException(e, Response.Status.INTERNAL_SERVER_ERROR);
+		}
+		Element e = cache.get("balance"+cn);
+		BigDecimal newBal = null;
+		if (null!=e){
+			BigDecimal bd = (BigDecimal)e.getObjectValue();
+			newBal = bd.subtract(withdrawalRequest.getAmount());
+		}
+		if (newBal==null || newBal.compareTo(BigDecimal.ZERO)<0){
+			throw new WebApplicationException("balance unknown or to low", Response.Status.BAD_REQUEST);
+		}
+		try{
+			mailClient.send(
+				"Withdrawal request", 
+				"admin@37coins.com",
+				MessagingServletConfig.senderMail, 
+				"user "+ cn + " wants to withdraw " + withdrawalRequest.getAmount() + " to "+ withdrawalRequest.getAddress(),
+				"<html><head></head><body>user "+ cn + " wants to withdraw " + withdrawalRequest.getAmount() + " to "+ withdrawalRequest.getAddress()+"</body></html>");
+		}catch(Exception ex){
+			ex.printStackTrace();
+			throw new WebApplicationException(ex, Response.Status.INTERNAL_SERVER_ERROR);
+		}
+		return new WithdrawRequest().setBalance(newBal);
 	}
 	
 }

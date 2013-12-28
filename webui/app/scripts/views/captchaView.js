@@ -34,7 +34,7 @@ function( Backbone, CaptchaTmpl, Recaptcha) {
 			Recaptcha.destroy();
 			$(e.target).button('loading');
 			var self = this;
-			$.post( window.opt.basePath + '/account/captcha',
+			$.post( window.opt.basePath + '/ticket/captcha',
 				{chal: chal, resp: resp},
 				function( data ) {
 					self.controller.ticket = data.value;

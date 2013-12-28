@@ -1,15 +1,18 @@
 <div class="pusher"></div>
 <div class="container">
   <div id="cfmFrm" class="col-md-12 wbox">
-    <h2>Validate Gateway Ownership</h2>
-    <form>
-      <fieldset>
-        <label>Confirmation Code</label>
-        <input id="cfmVal" type="text" placeholder="12345">
-        <span class="help-block">Enter the code you received via SMS. To retry, log out and log back in again.</span>
-        <button id="cfmBtn" type="submit" class="btn btn-inverse">Confirm Ownership</button>
-      </fieldset>
-    </form>
-    <div id="error" class="alert alert-danger"><a class="close">&times;</a>Communitcation Error!</div>
+    <h2>Gateway Ownership Verification</h2>
+      <form>
+          <div class="form-group">
+              <label for="inputCode">Verfication Code:</label>
+              <input type="number" name="code" class="form-control" id="inputCode" placeholder="12345">
+              <span class="help-block">Type the 5-digit code you received during the verification call.</span>
+          </div>
+          <button class="btn btn-lg btn-primary" type="submit">Confirm Ownership</button>
+      </form>
+      <div class="alert alert-danger alert-dismissable fade">
+          <button type="button" class="close" aria-hidden="true">&times;</button>
+          <strong>Error!</strong> Submitted code not valid.
+      </div>
   </div>
 </div>

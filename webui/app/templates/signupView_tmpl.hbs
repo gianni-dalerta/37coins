@@ -1,16 +1,28 @@
-<form class="form-signin">
-	<h2 class="form-signin-heading">Sign up, it's FREE!</h2>
-    <input type="text" name="email" class="form-control" placeholder="Email address" required autofocus>
-    <input type="password" name="password1" class="form-control" placeholder="Password" required>
-    <input type="password" name="password2" class="form-control" placeholder="Password" required>
-    <button class="btn btn-lg btn-primary btn-block" type="submit">Sign up</button>
-    <div class="alert alert-danger">
-        <a class="close" data-dismiss="alert">&times;</a>Incorrect Email or Password!
-    </div> 
-</form>
+<div class="pusher"></div>
+<div class="container">
+    <div class="row marketing">
+        <div class="col-sm-12 wbox">
+            <h2 class="form-signin-heading">Please Sign up</h2>
+            <form>
+                <div class="form-group">
+                    <label for="InputEmail1">Email address:</label>
+                    <input type="email" name="email" class="form-control" id="InputEmail1" placeholder="Enter email">
+                </div>
+                <div class="form-group">
+                    <label for="password1">Password:</label>
+                    <input type="password" name="password1" class="form-control" id="password1" placeholder="Enter password">
+                </div>
+                <div class="form-group">
+                    <label for="password2">Password:</label>
+                    <input type="password" name="password2" class="form-control" id="password2" placeholder="Repeat password">
+                </div>
+                <button class="btn btn-lg btn-primary" type="submit">Sign up</button>
 
-<div class="after">
-	<h2 class="form-signin-heading">SignUp Request Submitted Successfully.</h2>
-	<div class="alert alert-success">You have successfully submitted a registration request.</div>
-	<div class="alert alert-warning">Attention! To complete registration please check your email inbox and validate you email address.</div>
+                <div class="alert alert-danger alert-dismissable fade">
+                  <button type="button" class="close" aria-hidden="true">&times;</button>
+                  <strong>Error!</strong> Please <a href="#contact" class="alert-link">contact support</a>.
+                </div>
+            </form>
+        </div>
+    </div>
 </div>

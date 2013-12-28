@@ -1,9 +1,11 @@
 define([
 	'backbone',
 	'communicator',
-	'hbs!tmpl/resetView_tmpl'
+	'hbs!tmpl/resetView_tmpl',
+	'hbs!tmpl/resetCompletedView_tmpl',
+	'jqueryValidation'
 ],
-function( Backbone, Communicator, ResetTmpl  ) {
+function( Backbone, Communicator, ResetTmpl, ResetCompleteTmpl  ) {
     'use strict';
 
 	/* Return a ItemView class definition */
@@ -12,10 +14,22 @@ function( Backbone, Communicator, ResetTmpl  ) {
 		initialize: function() {
 			console.log('initialize a Reset ItemView');
 			this.model.on('error', this.onError, this);
+			this.model.on('sync', this.onSuccess, this);
 		},
 
-		template: ResetTmpl,
-        
+		getTemplate: function(){
+		    if (this.fetched){
+		        return ResetCompleteTmpl;
+		    } else {
+		        return ResetTmpl;
+		    }
+		},
+
+		onSuccess: function(){
+			this.fetched = true;
+			this.render();
+		},
+
         onError: function(model, response){
 			if (response.status===400){
 				location.reload();
@@ -32,25 +46,47 @@ function( Backbone, Communicator, ResetTmpl  ) {
             alert.removeClass('in');
         },
 
-		/* ui selector cache */
-		ui: {},
-
 		/* Ui events hash */
 		events: {
-			'click button.btn-primary':'handleReset',
 			'click .close': 'handleClose',
 		},
 
-		handleReset: function(e){
-			e.preventDefault();
-			var user = this.$('input:text').val();
+		handleReset: function(){
+			this.$('button.btn-primary').button('loading');
+			var user = this.$('#exampleInputEmail1').val();
 			this.model.set('email',user);
 			this.model.save();
 		},
 
 		/* on render callback */
-		onRender: function() {
-			this.$('.alert').css('display', 'none');
+		onShow: function() {
+			if (!this.fetched){
+				this.$('.alert').css('display', 'none');
+				var jForm = this.$('form');
+				var self = this;
+				jForm.validate({
+			        rules: {
+			            email: {
+							required: true,
+							email: true
+			            }
+			        },
+			        highlight: function(element) {
+			            $(element).closest('.form-group').addClass('has-error');
+			        },
+			        unhighlight: function(element) {
+			            $(element).closest('.form-group').removeClass('has-error');
+			        },
+			        errorElement: 'span',
+			        errorClass: 'help-block',
+			        submitHandler: function() {
+						self.handleReset();
+			        },
+			        errorPlacement: function(error, element) {
+			            error.insertAfter(element);
+			        }
+			    });
+			}
 		}
 	});
 

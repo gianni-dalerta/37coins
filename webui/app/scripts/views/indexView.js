@@ -1,6 +1,13 @@
-define(['backbone', 'hbs!tmpl/index'], function(Backbone, IndexTmpl) {
+define([
+    'backbone',
+    'hbs!tmpl/index',
+    'views/gatewayPreView'
+],
+function(Backbone, IndexTmpl, GatewayView) {
     'use strict';
-    return Backbone.Marionette.ItemView.extend({
+    return Backbone.Marionette.CompositeView.extend({
+        itemView: GatewayView,
+        itemViewContainer: '#gwTable',
         template: IndexTmpl,
         className: 'container',
         initialize: function() {

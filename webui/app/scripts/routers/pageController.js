@@ -1,5 +1,6 @@
 define(['backbone',
     'communicator',
+    'GA',
     'models/loginModel',
     'models/accountRequest',
     'models/resetRequest',
@@ -25,7 +26,7 @@ define(['backbone',
     'views/feeView',
     'views/gatewayLayout',
     'routeFilter'
-    ], function(Backbone, Communicator, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, FeeModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView, FeeView, GatewayLayout) {
+    ], function(Backbone, Communicator, GA, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, FeeModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView, FeeView, GatewayLayout) {
     'use strict';
 
     var Controller = {};
@@ -50,6 +51,8 @@ define(['backbone',
             'gateways': 'showLogin',
             'balance': 'showLogin',
             '*any': function(fragment, args, next){
+                console.log('tracking'+fragment);
+                GA.view(fragment);
                 next();
             }
         },

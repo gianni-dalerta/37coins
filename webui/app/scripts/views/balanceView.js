@@ -64,6 +64,7 @@ function(Backbone, BalanceTmpl) {
             this.model.save();
         },
         onShow:function () {
+            this.getBalance();
             this.$('.alert').css('display', 'none');
             var jForm = this.$('form');
             var self = this;

@@ -13,7 +13,6 @@ import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -41,11 +40,7 @@ public class IndexResource {
 	}
 
 	@GET
-	public Response index(@HeaderParam("Accept-Language") String lng,
-			@QueryParam("_escaped_fragment_") String escapeFragment){
-		if (null!=escapeFragment){
-			return Response.seeOther(URI.create("http://api.seo4ajax.com/0f4de5669f6c86f87aab38deb7290ea5/"+escapeFragment)).build();
-		}
+	public Response index(@HeaderParam("Accept-Language") String lng){
 		Map<String,String> data = new HashMap<>();
 		data.put("resPath", MessagingServletConfig.resPath);
 		data.put("basePath", MessagingServletConfig.basePath);
@@ -66,10 +61,26 @@ public class IndexResource {
 	}
 	
 	@GET
+	@Path("robots.txt")
+	public Response robots(){
+		String response = "User-agent: *\n " +
+				"Disallow: /ticket/\n" +
+				"Disallow: /account/\n" +
+				"Disallow: /envayaTest.html" +
+				"Sitemap: "+MessagingServletConfig.resPath+"/sitemap.xml";
+		return Response.ok(response, MediaType.TEXT_PLAIN_TYPE).build();
+	}
+	
+	@GET
+	@Path("sitemap.xml")
+	public Response sitemap(){
+		return Response.seeOther(URI.create(MessagingServletConfig.resPath+"/sitemap.xml")).build();
+	}
+	
+	@GET
 	@Path("{path: .*}")
-	public Response fullindex(@HeaderParam("Accept-Language") String lng,
-			@QueryParam("_escaped_fragment_") String escapeFragment){
-		return index(lng, escapeFragment);
+	public Response fullindex(@HeaderParam("Accept-Language") String lng){
+		return index(lng);
 	}
 	
 	/*

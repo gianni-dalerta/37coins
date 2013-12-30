@@ -20,7 +20,10 @@ function( Backbone, Communicator, HeaderView, FooterView ) {
     // marionette app events...
     App.on('initialize:after', function() {
         if (Backbone.history){
-            Backbone.history.start({pushState: true});
+            if (!Backbone.history.start({pushState: true})) {
+                console.log('notFound');
+                App.router.navigate('notFound', {trigger: true});
+            }
         }
     });
 
@@ -36,28 +39,23 @@ function( Backbone, Communicator, HeaderView, FooterView ) {
 	/* Add initializers here */
 	App.addInitializer( function (options) {
 
+        App.header.show(new HeaderView({model:new Backbone.Model({resPath:window.opt.resPath})}));
+        App.footer.show(new FooterView());
+        this.router = new options.pageController.Router({
+            controller: options.pageController // wire-up the start method
+        });
+
         // Use delegation to avoid initial DOM selection and allow all matching elements to bubble
         $(document).delegate('a', 'click', function(evt) {
             // Get the anchor href and protcol
             var href = $(this).attr('href');
             var protocol = this.protocol + '//';
-         
-            // Ensure the protocol is not part of URL, meaning its relative.
-            // Stop the event bubbling to ensure the link will not cause a page refresh.
+            // Ensure the protocol is not part of URL, meaning its relative. Stop the event bubbling to ensure the link will not cause a page refresh.
             if (href.slice(protocol.length) !== protocol) {
                 evt.preventDefault();
-         
-                // Note by using Backbone.history.navigate, router events will not be
-                // triggered.  If this is a problem, change this to navigate on your
-                // router.
-                Backbone.history.navigate(href, true);
+                // Note by using Backbone.history.navigate, router events will not be triggered.  If this is a problem, change this to navigate on your router.
+                App.router.navigate(href, true);
             }
-        });
-
-        App.header.show(new HeaderView({model:new Backbone.Model({resPath:window.opt.resPath})}));
-        App.footer.show(new FooterView());
-        this.router = new options.pageController.Router({
-            controller: options.pageController // wire-up the start method
         });
 	});
 

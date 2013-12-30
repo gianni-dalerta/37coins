@@ -25,8 +25,9 @@ define(['backbone',
     'views/balanceView',
     'views/feeView',
     'views/gatewayLayout',
+    'views/notFoundView',
     'routeFilter'
-    ], function(Backbone, Communicator, GA, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, FeeModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView, FeeView, GatewayLayout) {
+    ], function(Backbone, Communicator, GA, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, FeeModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView, FeeView, GatewayLayout, NotFoundView) {
     'use strict';
 
     var Controller = {};
@@ -43,7 +44,8 @@ define(['backbone',
             'reset': 'showReset',
             'contact': 'showContact',
             'signUp': 'showSignUp',
-            'logout': 'showLogout'
+            'logout': 'showLogout',
+            'notFound': 'showNotFound'
         },
         before:{
             'signUp': 'getTicket',
@@ -56,6 +58,7 @@ define(['backbone',
                 //set meta tag
                 $('meta[name=description]').remove();
                 $('head').append( '<meta name="description" content="this is new">' );
+                //track page visit
                 GA.view(fragment);
                 next();
             }
@@ -150,6 +153,10 @@ define(['backbone',
     };
     Controller.showLogout = function() {
         var contentView = new LogoutView();
+        Communicator.mediator.trigger('app:show',contentView);
+    };
+    Controller.showNotFound = function() {
+        var contentView = new NotFoundView();
         Communicator.mediator.trigger('app:show',contentView);
     };
     Controller.showSignUp = function() {

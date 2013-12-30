@@ -51,7 +51,11 @@ define(['backbone',
             'gateways': 'showLogin',
             'balance': 'showLogin',
             '*any': function(fragment, args, next){
-                console.log('tracking'+fragment);
+                //set title
+                $(document).attr('title', '37 Coins -' + fragment);
+                //set meta tag
+                $('meta[name=description]').remove();
+                $('head').append( '<meta name="description" content="this is new">' );
                 GA.view(fragment);
                 next();
             }

@@ -20,7 +20,7 @@ function( Backbone, Communicator, HeaderView, FooterView ) {
     // marionette app events...
     App.on('initialize:after', function() {
         if (Backbone.history){
-            Backbone.history.start();
+            Backbone.history.start({pushState: true});
         }
     });
 
@@ -35,6 +35,24 @@ function( Backbone, Communicator, HeaderView, FooterView ) {
 
 	/* Add initializers here */
 	App.addInitializer( function (options) {
+
+        // Use delegation to avoid initial DOM selection and allow all matching elements to bubble
+        $(document).delegate('a', 'click', function(evt) {
+            // Get the anchor href and protcol
+            var href = $(this).attr('href');
+            var protocol = this.protocol + '//';
+         
+            // Ensure the protocol is not part of URL, meaning its relative.
+            // Stop the event bubbling to ensure the link will not cause a page refresh.
+            if (href.slice(protocol.length) !== protocol) {
+                evt.preventDefault();
+         
+                // Note by using Backbone.history.navigate, router events will not be
+                // triggered.  If this is a problem, change this to navigate on your
+                // router.
+                Backbone.history.navigate(href, true);
+            }
+        });
 
         App.header.show(new HeaderView({model:new Backbone.Model({resPath:window.opt.resPath})}));
         App.footer.show(new FooterView());

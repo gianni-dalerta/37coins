@@ -61,7 +61,7 @@ require.config({
 
     config: {
         'GA': {
-            'id' : '29543456'
+            'id' : 'UA-29543456-1'
         }
     },
 

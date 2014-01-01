@@ -7,7 +7,7 @@ function(Backbone, Communicator, GatewayTmpl) {
     'use strict';
     return Backbone.Marionette.ItemView.extend({
         template: GatewayTmpl,
-        tagName: 'tr',
+        tagName: 'tr itemscope itemtype="http://schema.org/ServiceChannel"',
         initialize: function() {
             
         }

@@ -26,8 +26,9 @@ define(['backbone',
     'views/feeView',
     'views/gatewayLayout',
     'views/notFoundView',
+    'views/exampleView',
     'routeFilter'
-    ], function(Backbone, Communicator, GA, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, FeeModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView, FeeView, GatewayLayout, NotFoundView) {
+    ], function(Backbone, Communicator, GA, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, FeeModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView, FeeView, GatewayLayout, NotFoundView, ExampleView) {
     'use strict';
 
     var Controller = {};
@@ -45,6 +46,7 @@ define(['backbone',
             'contact': 'showContact',
             'signUp': 'showSignUp',
             'logout': 'showLogout',
+            'example': 'showExample',
             'notFound': 'showNotFound'
         },
         before:{
@@ -54,7 +56,11 @@ define(['backbone',
             'balance': 'showLogin',
             '*any': function(fragment, args, next){
                 //set title
-                $(document).attr('title', '37 Coins -' + fragment);
+                if (fragment){
+                    $(document).attr('title', '37 Coins - ' + fragment);
+                }else {
+                    $(document).attr('title', '37 Coins');
+                }
                 //set meta tag
                 $('meta[name=description]').remove();
                 $('head').append( '<meta name="description" content="this is new">' );
@@ -157,6 +163,10 @@ define(['backbone',
     };
     Controller.showNotFound = function() {
         var contentView = new NotFoundView();
+        Communicator.mediator.trigger('app:show',contentView);
+    };
+    Controller.showExample = function() {
+        var contentView = new ExampleView();
         Communicator.mediator.trigger('app:show',contentView);
     };
     Controller.showSignUp = function() {

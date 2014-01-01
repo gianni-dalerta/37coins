@@ -249,7 +249,7 @@ module.exports = function (grunt) {
                     cwd: '<%= yeoman.app %>',
                     dest: '<%= yeoman.dist %>',
                     src: [
-                        '*.{ico,txt}',
+                        '*.{ico,xml}',
                         '.htaccess',
                         'images/{,*/}*.{webp,gif,woff,ttf,eot,svg}',
                         'bower_components/requirejs/require.js'

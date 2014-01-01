@@ -63,10 +63,10 @@ public class IndexResource {
 	@GET
 	@Path("robots.txt")
 	public Response robots(){
-		String response = "User-agent: *\n " +
+		String response = "User-agent: *\n" +
 				"Disallow: /ticket/\n" +
 				"Disallow: /account/\n" +
-				"Disallow: /envayaTest.html" +
+				"Disallow: /envayaTest.html\n" +
 				"Sitemap: "+MessagingServletConfig.resPath+"/sitemap.xml";
 		return Response.ok(response, MediaType.TEXT_PLAIN_TYPE).build();
 	}

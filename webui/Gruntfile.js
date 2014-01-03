@@ -253,6 +253,7 @@ module.exports = function (grunt) {
                         '.htaccess',
                         'images/{,*/}*.{webp,gif,woff,ttf,eot,svg}',
                         'images/flags/*/*.svg',
+                        'scripts/vendor/libphonenumbers.js',
                         'bower_components/requirejs/require.js'
                     ]
                 }]

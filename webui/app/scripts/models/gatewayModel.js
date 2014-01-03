@@ -1,7 +1,7 @@
 define([
 	'backbone'
 ],
-function( Backbone ) {
+function( Backbone) {
     'use strict';
 
 	/* Return a model class definition */
@@ -11,7 +11,10 @@ function( Backbone ) {
 		},
 		parse: function(response) {
             if (response){
-				response.locale = response.locale.substring(1,3).toLowerCase();
+				var lc = response.locale.substring(1,3).toLowerCase();
+				response.mobile = window.formatLocal(lc,response.mobile);
+				response.locale = lc;
+				response.lName = window.countryCodeToName(lc);
             }
             return response;
         }

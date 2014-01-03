@@ -122,10 +122,24 @@ define(['backbone',
     });
 
     Controller.showIndex = function() {
-        var gateways = new GatewayCollection();
-        var view = new IndexView({collection:gateways,model:new Backbone.Model({resPath:window.opt.resPath})});
+        if (!this.gateways){
+            this.gateways = new GatewayCollection();
+        }
+        var view = new IndexView({collection:this.gateways,model:new Backbone.Model({resPath:window.opt.resPath})});
         Communicator.mediator.trigger('app:show', view);
-        gateways.fetch({reset: true});
+        if (this.gateways.length<1){
+            //load dependency manually
+            var script = document.createElement('script');
+            script.type = 'text/javascript';
+            var self = this;
+            script.onload = function(){
+                console.log('fetched');
+                self.gateways.fetch({reset: true});
+            };
+
+            script.src = window.opt.resPath + '/scripts/vendor/libphonenumbers.js';
+            document.getElementsByTagName('head')[0].appendChild(script);
+        }
     };
 
     Controller.showGateway = function() {

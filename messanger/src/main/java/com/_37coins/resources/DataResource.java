@@ -27,6 +27,7 @@ import net.sf.ehcache.Element;
 import com._37coins.MessagingServletConfig;
 import com._37coins.web.GatewayUser;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
 import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
 
 @Path(DataResource.PATH)
@@ -70,7 +71,7 @@ public class DataResource {
 					PhoneNumber pn = phoneUtil.parse(mobile, "ZZ");
 					String cc = phoneUtil.getRegionCodeForCountryCode(pn.getCountryCode());
 					GatewayUser gu = new GatewayUser()
-						.setMobile("0"+new Long(pn.getNationalNumber()).toString())
+						.setMobile(PhoneNumberUtil.getInstance().format(pn,PhoneNumberFormat.E164))
 						.setFee(fee)
 						.setLocale(new Builder().setRegion(cc).build());
 					rv.add(gu);

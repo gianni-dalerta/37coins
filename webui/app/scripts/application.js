@@ -49,9 +49,8 @@ function( Backbone, Communicator, HeaderView, FooterView ) {
         $(document).delegate('a', 'click', function(evt) {
             // Get the anchor href and protcol
             var href = $(this).attr('href');
-            var protocol = this.protocol + '//';
             // Ensure the protocol is not part of URL, meaning its relative. Stop the event bubbling to ensure the link will not cause a page refresh.
-            if (href.slice(protocol.length) !== protocol) {
+            if (href.indexOf('http://') === -1 && href.indexOf('https://') === -1 && href.indexOf('bitcoin:') === -1) {
                 evt.preventDefault();
                 // Note by using Backbone.history.navigate, router events will not be triggered.  If this is a problem, change this to navigate on your router.
                 App.router.navigate(href, true);

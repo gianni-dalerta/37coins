@@ -252,6 +252,7 @@ module.exports = function (grunt) {
                         '*.{ico,xml}',
                         '.htaccess',
                         'images/{,*/}*.{webp,gif,woff,ttf,eot,svg}',
+                        'images/flags/*/*.svg',
                         'bower_components/requirejs/require.js'
                     ]
                 }]

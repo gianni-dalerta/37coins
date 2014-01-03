@@ -1,6 +1,7 @@
 package com._37coins.resources;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import javax.inject.Inject;
 import javax.mail.MessagingException;
@@ -277,7 +278,7 @@ public class AccountResource {
 	
 	private void sendResetEmail(String email, String token) throws AddressException, MessagingException, IOException, TemplateException{
 		DataSet ds = new DataSet()
-			.setLocale(httpReq.getLocale())
+			.setLocale(Locale.ENGLISH)
 			.setAction(Action.RESET)
 			.setPayload(MessagingServletConfig.basePath+"#confReset/"+token);
 		mailClient.send(
@@ -290,7 +291,7 @@ public class AccountResource {
 	
 	private void sendCreateEmail(String email, String token) throws AddressException, MessagingException, IOException, TemplateException{
 		DataSet ds = new DataSet()
-			.setLocale(httpReq.getLocale())
+			.setLocale(Locale.ENGLISH)
 			.setAction(Action.REGISTER)
 			.setPayload(MessagingServletConfig.basePath+"#confSignup/"+token);
 		mailClient.send(

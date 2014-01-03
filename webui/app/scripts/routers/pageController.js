@@ -123,10 +123,9 @@ define(['backbone',
 
     Controller.showIndex = function() {
         var gateways = new GatewayCollection();
-        //model:new Backbone.Model({resPath:window.opt.resPath})
         var view = new IndexView({collection:gateways,model:new Backbone.Model({resPath:window.opt.resPath})});
         Communicator.mediator.trigger('app:show', view);
-        gateways.fetch();
+        gateways.fetch({reset: true});
     };
 
     Controller.showGateway = function() {

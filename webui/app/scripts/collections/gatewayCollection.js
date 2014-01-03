@@ -11,8 +11,7 @@ function( Backbone, GatewayModel ) {
 		initialize: function() {
 			console.log('initialize a Gateway collection');
 		},
-
+		comparator: 'fee',
 		model: GatewayModel
-		
 	});
 });

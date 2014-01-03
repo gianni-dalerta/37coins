@@ -11,7 +11,7 @@ function( Backbone ) {
 		},
 		parse: function(response) {
             if (response){
-            	response.locale = response.locale.substring(1,3);
+				response.locale = response.locale.substring(1,3).toLowerCase();
             }
             return response;
         }

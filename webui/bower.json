@@ -20,7 +20,8 @@
     "chai": "~1.7.2",
     "sinon": "~1.7.3",
     "jqueryValidation": "https://github.com/jzaefferer/jquery-validation.git",
-    "requirejs-google-analytics": "~0.1.6"
+    "requirejs-google-analytics": "~0.1.6",
+    "flag-icon-css": null
   },
   "devDependencies": {},
   "directory": "bower_components"

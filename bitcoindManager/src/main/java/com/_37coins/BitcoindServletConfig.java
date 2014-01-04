@@ -97,9 +97,9 @@ public class BitcoindServletConfig extends GuiceServletContextListener {
 					}					
 					//start a workflow for each account concerned by transaction
 					for (Entry<String,List<Transaction>> e : txGrouping.entrySet()){
-						BigDecimal sum = BigDecimal.ZERO; 
+						BigDecimal sum = BigDecimal.ZERO.setScale(8, RoundingMode.HALF_UP); 
 						for (Transaction tx : e.getValue()){
-							sum = sum.add(tx.getAmount());
+							sum = sum.add(tx.getAmount().setScale(8, RoundingMode.HALF_UP));
 						}
 						DataSet rsp = new DataSet()
 						.setCn(e.getKey())

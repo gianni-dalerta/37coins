@@ -1,11 +1,8 @@
 package com._37coins.resources;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -15,7 +12,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
@@ -65,41 +61,26 @@ public class IndexResource {
 	}
 	
 	@GET
-	@Path("index.html")
+	@Path("robots.txt")
+	public Response robots(){
+		String response = "User-agent: *\n" +
+				"Disallow: /ticket/\n" +
+				"Disallow: /account/\n" +
+				"Disallow: /envayaTest.html\n" +
+				"Sitemap: "+MessagingServletConfig.resPath+"/sitemap.xml";
+		return Response.ok(response, MediaType.TEXT_PLAIN_TYPE).build();
+	}
+	
+	@GET
+	@Path("sitemap.xml")
+	public Response sitemap(){
+		return Response.seeOther(URI.create(MessagingServletConfig.resPath+"/sitemap.xml")).build();
+	}
+	
+	@GET
+	@Path("{path: .*}")
 	public Response fullindex(@HeaderParam("Accept-Language") String lng){
 		return index(lng);
-	}
-	
-	@GET
-	@Path("res/locales/{language}/{namespace}.json")
-	public Response lngProky(
-			@PathParam("language") String language,
-			@PathParam("namespace") String namespace) throws IOException{
-		String rsp;
-		try {
-			rsp = htmlFactory.constructJson(
-					new DataSet().setLocale(new Locale(language)), 
-					namespace+".json");
-		} catch (IOException | TemplateException e) {
-			e.printStackTrace();
-			throw new WebApplicationException("template not loaded",
-					javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR);
-		}
-		return Response.ok(rsp, MediaType.APPLICATION_JSON_TYPE).build();
-	}
-	
-	@GET
-	@Path("deploy")
-	public Response deploy(){
-		File jsp = new File(servletContext.getRealPath(httpReq.getServletPath()));
-		File dir = jsp.getParentFile();
-		File warFile = new File (dir.toString() +  "/ROOT/pwm.war");
-		boolean success = warFile.renameTo (new File (dir, warFile.getName ()));
-		if (!success) {
-			return Response.ok("{\"status\":\"not found. already deployed?\"}", MediaType.APPLICATION_JSON_TYPE).build();
-		}else{
-			return Response.ok("{\"status\":\"deploying!\"}", MediaType.APPLICATION_JSON_TYPE).build();
-		}
 	}
 	
 	/*
@@ -122,21 +103,6 @@ public class IndexResource {
 					javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR);
 		}
 		return Response.ok(rsp, MediaType.TEXT_HTML_TYPE).build();
-	}
-	
-	@GET
-	@Path("res/scripts/templates/{name}.htm")
-	public Response proxy(@PathParam("name") String name) throws IOException{
-		BufferedReader br = new BufferedReader(new FileReader("/Users/johann/37coins/webui/app/scripts/templates/"+name+".htm"));
-        try{
-	        StringBuilder sb = new StringBuilder();
-	        String inputLine;
-	        while ((inputLine = br.readLine()) != null)
-	        	sb.append(inputLine);
-	        return Response.ok(sb.toString(), MediaType.TEXT_HTML_TYPE).build();
-        }finally{
-        	br.close();
-        }
 	}
 	
 }

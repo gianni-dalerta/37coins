@@ -1,14 +1,19 @@
 <div class="pusher"></div>
 <div class="container">
   <div class="jumbotron">
-    <img src="{{resPath}}/images/37coins_header.png" class="img-responsive" alt="37Coins">
-    <p class="lead">37Coins is your global Bitcoin wallet. <br>It makes financial transactions as simple as sending a text.</p>
-    <p><a class="btn btn-lg btn-success" href="#">Get Started</a></p>
+    <div class="mainMsg">
+      <img src="{{resPath}}/images/37coins_header.png" class="img-responsive" alt="37Coins">
+      <p class="lead">37Coins is your global Bitcoin wallet. <br>It makes financial transactions as simple as sending a text.</p>
+      <p><a class="btn btn-lg btn-success" href="#faq">Get Started</a></p>
+    </div>
+    <p id="donate">
+    Do you like what we do? <a href="bitcoin:1N3ZRM47t2uqpinKXgaXpQBxbFAHszedtu" title="tips routed to: 1N3ZRM47t2uqpinKXgaXpQBxbFAHszedtu">1N3ZRM47t2uqpinKXgaXpQBxbFAHszedtu</a></p>
   </div>
 
   <div class="row marketing">
     <div class="col-sm-6 wbox">
-      <h3>Commands</h3>
+      <h3>Commands:</h3>
+      <span>These commands are understood by any gateway and are send by users simply by typing the SMS. No smartphone or internet needed.</span>
       <table class="table table-hover">
         <thead>
           <tr>
@@ -23,12 +28,15 @@
           <tr><td>send &lt;amount&gt; &lt;to&gt; [comment]</td><td>send bitcoins to email, phone number or bitcoin address.</td></tr>
           <tr><td>req ..</td><td>like send, but requesting payment.</td></tr>
           <tr><td>txns</td><td>list the last 3 transactions.</td></tr>
+          <tr><td>buy</td><td>list Bitcoin sellers in same country.</td></tr>
+          <tr><td>sell &lt;price&gt;</td><td>enlist as Bitcoin seller.</td></tr>
         </tbody>
       </table>
     </div>
 
     <div class="col-sm-6 wbox">
       <h3>Gateways:</h3>
+      <span>Gateways are operated by individuals with interest to earn transaction fees. A dedicated Android phone and internet required.</span>
       <table class="table table-hover">
         <thead>
           <tr>
@@ -42,6 +50,7 @@
         </tbody>
       </table>
       <p><a class="btn btn-default" href="#gateways">Open a Gateway &raquo;</a></p>
+      <span>Or have a peek at the <a href="#example">configuration example</a></span>
     </div>
   </div>
 </div>

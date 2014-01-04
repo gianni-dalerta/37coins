@@ -122,7 +122,7 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 					total = total.add(tx.getFee());
 				}
 				//read in comments and receiver
-				if (tx.getComment().split("::").length>1){
+				if (null!= tx.getComment() && tx.getComment().split("::").length>1){
 					String c = tx.getComment().split("::")[1];
 					if (!c.equalsIgnoreCase("_")){
 						comment = c;
@@ -131,7 +131,7 @@ public class BitcoindActivitiesImpl implements BitcoindActivities {
 				if(tx.getCategory()==Category.RECEIVE || tx.getCategory()==Category.SEND){
 					to = tx.getTxid();
 				}
-				if (tx.getComment().split("::").length>3){
+				if (null!= tx.getComment() && tx.getComment().split("::").length>3){
 					String[] addr = tx.getComment().split("::");
 					to = (total.compareTo(BigDecimal.ZERO)<0)?addr[2]:addr[3];
 				}

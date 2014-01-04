@@ -31,7 +31,6 @@ define(['backbone','communicator' ,'hbs!tmpl/header'], function(Backbone, Commun
 		onShow: function() {
 			this.setButton();
 			this.$('ul.nav').tab();
-			this.$('.collapse').collapse();
         }
     });
 });

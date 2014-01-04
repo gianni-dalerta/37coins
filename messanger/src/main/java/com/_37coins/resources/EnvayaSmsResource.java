@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.inject.Inject;
+import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
 import javax.naming.ldap.InitialLdapContext;
 import javax.servlet.ServletRequest;
@@ -162,7 +163,7 @@ public class EnvayaSmsResource {
 					}
 				break;
 			}
-		}catch(Exception e){
+		}catch(NamingException | NoSuchAlgorithmException | UnsupportedEncodingException e){
 			e.printStackTrace();
 		}
 		rv.put("events", new ArrayList<String>());
@@ -189,7 +190,6 @@ public class EnvayaSmsResource {
 		sb.append(",");
 		sb.append(pw);
 		String value = sb.toString();
-
         MessageDigest md = MessageDigest.getInstance("SHA-1");
         md.update(value.getBytes("utf-8"));
 

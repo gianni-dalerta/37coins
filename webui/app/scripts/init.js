@@ -54,7 +54,15 @@ require.config({
         hbs: '../bower_components/require-handlebars-plugin/hbs',
         basicauth: '../bower_components/backbone.basicauth/backbone.basicauth',
         recaptcha: 'vendor/recaptcha_ajax',
-        jqueryValidation: '../bower_components/jqueryValidation/jquery.validate'
+        jqueryValidation: '../bower_components/jqueryValidation/jquery.validate',
+        EventEmitter: '../bower_components/event-emitter/dist/EventEmitter',
+        GA: '../bower_components/requirejs-google-analytics/dist/GoogleAnalytics'
+    },
+
+    config: {
+        'GA': {
+            'id' : 'UA-29543456-1'
+        }
     },
 
     hbs: {

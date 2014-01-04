@@ -1,5 +1,6 @@
 define(['backbone',
     'communicator',
+    'GA',
     'models/loginModel',
     'models/accountRequest',
     'models/resetRequest',
@@ -24,8 +25,10 @@ define(['backbone',
     'views/balanceView',
     'views/feeView',
     'views/gatewayLayout',
+    'views/notFoundView',
+    'views/exampleView',
     'routeFilter'
-    ], function(Backbone, Communicator, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, FeeModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView, FeeView, GatewayLayout) {
+    ], function(Backbone, Communicator, GA, LoginModel, AccountRequest, ResetRequest, ResetConf, SignupConf, BalanceModel, FeeModel, GatewayCollection, IndexView, LoginView, GatewayView, FaqView, ContactView, VerifyView, ValidateView, CaptchaView, LogoutView, SignupView, ResetView, ResetConfView, SignupConfView, BalanceView, FeeView, GatewayLayout, NotFoundView, ExampleView) {
     'use strict';
 
     var Controller = {};
@@ -42,7 +45,9 @@ define(['backbone',
             'reset': 'showReset',
             'contact': 'showContact',
             'signUp': 'showSignUp',
-            'logout': 'showLogout'
+            'logout': 'showLogout',
+            'example': 'showExample',
+            'notFound': 'showNotFound'
         },
         before:{
             'signUp': 'getTicket',
@@ -50,6 +55,17 @@ define(['backbone',
             'gateways': 'showLogin',
             'balance': 'showLogin',
             '*any': function(fragment, args, next){
+                //set title
+                if (fragment){
+                    $(document).attr('title', '37 Coins - ' + fragment);
+                }else {
+                    $(document).attr('title', '37 Coins');
+                }
+                //set meta tag
+                $('meta[name=description]').remove();
+                $('head').append( '<meta name="description" content="this is new">' );
+                //track page visit
+                GA.view(fragment);
                 next();
             }
         },
@@ -106,11 +122,24 @@ define(['backbone',
     });
 
     Controller.showIndex = function() {
-        var gateways = new GatewayCollection();
-        //model:new Backbone.Model({resPath:window.opt.resPath})
-        var view = new IndexView({collection:gateways,model:new Backbone.Model({resPath:window.opt.resPath})});
+        if (!this.gateways){
+            this.gateways = new GatewayCollection();
+        }
+        var view = new IndexView({collection:this.gateways,model:new Backbone.Model({resPath:window.opt.resPath})});
         Communicator.mediator.trigger('app:show', view);
-        gateways.fetch();
+        if (this.gateways.length<1){
+            //load dependency manually
+            var script = document.createElement('script');
+            script.type = 'text/javascript';
+            var self = this;
+            script.onload = function(){
+                console.log('fetched');
+                self.gateways.fetch({reset: true});
+            };
+
+            script.src = window.opt.resPath + '/scripts/vendor/libphonenumbers.js';
+            document.getElementsByTagName('head')[0].appendChild(script);
+        }
     };
 
     Controller.showGateway = function() {
@@ -143,6 +172,14 @@ define(['backbone',
     };
     Controller.showLogout = function() {
         var contentView = new LogoutView();
+        Communicator.mediator.trigger('app:show',contentView);
+    };
+    Controller.showNotFound = function() {
+        var contentView = new NotFoundView();
+        Communicator.mediator.trigger('app:show',contentView);
+    };
+    Controller.showExample = function() {
+        var contentView = new ExampleView();
         Communicator.mediator.trigger('app:show',contentView);
     };
     Controller.showSignUp = function() {
